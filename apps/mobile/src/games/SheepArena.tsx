@@ -47,20 +47,70 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
 
       <View
         style={[
-          { width: fieldW, height: fieldH, borderRadius: R.lg, overflow: 'hidden', borderWidth: 3, borderColor: '#7FC79B' },
-          softShadow(0.12, 12, 5),
+          { width: fieldW, height: fieldH, borderRadius: R.lg, overflow: 'hidden', borderWidth: 4, borderColor: '#3E8F63' },
+          softShadow(0.2, 16, 8),
         ]}
       >
         {/* Cỏ sọc theo làn */}
         {Array.from({ length: lanes }, (_, i) => (
           <LinearGradient
             key={`lane${i}`}
-            colors={i % 2 === 0 ? ['#BDEDC8', '#A5E4B4'] : ['#AEE7BC', '#98DFA8']}
+            colors={i % 2 === 0 ? ['#6FCB8F', '#4FB877'] : ['#63C486', '#46B06E']}
             style={{ position: 'absolute', left: i * cell, top: 0, width: cell, height: fieldH }}
           />
         ))}
-        {/* Vạch giữa sân */}
-        <View style={{ position: 'absolute', top: fieldH / 2 - 1, left: 0, width: fieldW, height: 2, backgroundColor: 'rgba(255,255,255,0.55)' }} />
+        {/* Vệt máy cắt cỏ chạy ngang — sân bóng thật luôn có sọc hai chiều */}
+        {Array.from({ length: len }, (_, r) =>
+          r % 2 === 0 ? (
+            <View
+              key={`mow${r}`}
+              pointerEvents="none"
+              style={{ position: 'absolute', left: 0, right: 0, top: r * cell, height: cell, backgroundColor: 'rgba(255,255,255,0.07)' }}
+            />
+          ) : null,
+        )}
+        {/* Vạch dọc chia làn */}
+        {Array.from({ length: lanes - 1 }, (_, i) => (
+          <View
+            key={`line${i}`}
+            pointerEvents="none"
+            style={{ position: 'absolute', left: (i + 1) * cell - 1, top: 0, width: 2, height: fieldH, backgroundColor: 'rgba(255,255,255,0.16)' }}
+          />
+        ))}
+        {/* Vạch giữa sân + vòng tròn trung tâm */}
+        <View style={{ position: 'absolute', top: fieldH / 2 - 1.5, left: 0, width: fieldW, height: 3, backgroundColor: 'rgba(255,255,255,0.7)' }} />
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: fieldH / 2 - cell,
+            left: fieldW / 2 - cell,
+            width: cell * 2,
+            height: cell * 2,
+            borderRadius: cell,
+            borderWidth: 3,
+            borderColor: 'rgba(255,255,255,0.55)',
+          }}
+        />
+        {/* Khung thành hai đầu: nơi cừu lọt qua là ghi điểm */}
+        {[0, 1].map((end) => (
+          <View
+            key={`goal${end}`}
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: cell * 0.6,
+              right: cell * 0.6,
+              top: end === 0 ? 0 : undefined,
+              bottom: end === 1 ? 0 : undefined,
+              height: cell * 0.55,
+              backgroundColor: 'rgba(255,255,255,0.14)',
+              borderBottomWidth: end === 0 ? 3 : 0,
+              borderTopWidth: end === 1 ? 3 : 0,
+              borderColor: 'rgba(255,255,255,0.6)',
+            }}
+          />
+        ))}
 
         {/* Vùng chạm để thả cừu — cả cột làn */}
         {Array.from({ length: lanes }, (_, i) => (

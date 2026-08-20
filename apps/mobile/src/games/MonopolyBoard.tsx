@@ -78,21 +78,32 @@ export default function MonopolyBoard({ view, mySeat, send, deadline, space }: B
             return (
               <View
                 key={i}
-                style={{
-                  position: 'absolute',
-                  left: p.x,
-                  top: p.y,
-                  width: cell - 2,
-                  height: cell - 2,
-                  borderRadius: 5,
-                  backgroundColor: t.color ?? '#FFFFFF',
-                  borderWidth: owner != null ? 2 : 1,
-                  borderColor: owner != null ? SEAT_COLORS[owner] : '#EBD6BC',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 1,
-                }}
+                style={[
+                  {
+                    position: 'absolute',
+                    left: p.x + 1,
+                    top: p.y + 1,
+                    width: cell - 4,
+                    height: cell - 4,
+                    borderRadius: 7,
+                    backgroundColor: t.color ?? '#FFFDF6',
+                    borderWidth: owner != null ? 2.5 : 1.5,
+                    borderColor: owner != null ? SEAT_COLORS[owner] : '#DCC29B',
+                    // mép dưới sẫm: ô đất nổi lên khỏi mặt bàn thay vì phẳng
+                    borderBottomWidth: owner != null ? 3.5 : 3,
+                    borderBottomColor: owner != null ? SEAT_COLORS[owner] : '#C8AA7C',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 1,
+                    overflow: 'hidden',
+                  },
+                  softShadow(0.1, 4, 2),
+                ]}
               >
+                {/* Dải màu nhóm đất ở mép trên, đúng kiểu bàn cờ tỷ phú thật */}
+                {t.kind === 'property' && t.color ? (
+                  <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: cell * 0.22, backgroundColor: 'rgba(0,0,0,0.14)' }} />
+                ) : null}
                 {t.kind === 'property' ? (
                   <Txt size={7} weight="bold" center numberOfLines={2} color="#4A3B2A">
                     {t.name}

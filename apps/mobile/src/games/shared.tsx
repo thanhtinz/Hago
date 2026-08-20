@@ -183,7 +183,7 @@ export function BoardSurface({
 
 const BOARD_SKIN: Record<string, { frame: string; base: string; wash: [string, string]; grain?: string }> = {
   wood: { frame: '#B5854C', base: '#EFD3A8', wash: ['#F6E2BF', '#E4C08F'], grain: 'rgba(160,110,55,0.10)' },
-  water: { frame: '#6FB9E8', base: '#CDEBFF', wash: ['#DFF3FF', '#A8DBFA'], grain: 'rgba(255,255,255,0.20)' },
+  water: { frame: '#3E8CC4', base: '#8FC9EC', wash: ['#A6DBF7', '#5AA9DC'], grain: 'rgba(255,255,255,0.16)' },
   felt: { frame: '#2E7D53', base: '#3FA36C', wash: ['#4CB77C', '#2E8B58'], grain: 'rgba(255,255,255,0.06)' },
 };
 

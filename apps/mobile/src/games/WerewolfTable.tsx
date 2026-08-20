@@ -5,7 +5,8 @@ import { Btn, Card, Chip, Txt } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { Art, ArtName } from '../components/Art';
 import { RoleArt, RoleName, SeatFace } from '../components/Piece';
-import { C, R, S } from '../theme';
+import { DotPattern } from '../components/decor';
+import { C, R, S, softShadow } from '../theme';
 import { BoardProps, GameLog } from './shared';
 
 const ROLE_INFO: Record<string, { name: string; hint: string; color: string }> = {
@@ -48,11 +49,12 @@ export default function WerewolfTable({ view, mySeat, send, space }: BoardProps)
 
   // Ghế chia lưới rộng để cả bàn làng lấp đầy màn hình dọc.
   const cols = view.seats.length <= 6 ? 2 : 3;
-  const seatW = Math.floor((space.width - S.sm * (cols + 1)) / cols);
+  // Trừ cả padding của khung bàn, không thì 2 cột không lọt và rơi xuống 1 cột.
+  const seatW = Math.floor((space.width - S.md * 2 - S.sm * (cols + 1)) / cols);
   const faceSize = cols === 2 ? 52 : 38;
 
   return (
-    <View style={{ gap: S.md, flex: 1 }}>
+    <View style={{ gap: S.md }}>
       <LinearGradient colors={phase.colors} style={{ borderRadius: R.lg, padding: S.lg, gap: 4, alignItems: 'center' }}>
         <Art name={phase.art} size={44} color={dark ? '#FFD36E' : C.ink} hi={dark ? '#3A2E6E' : '#FFF3E0'} />
         <Txt size={20} weight="display" color={dark ? '#fff' : C.ink}>
@@ -96,7 +98,26 @@ export default function WerewolfTable({ view, mySeat, send, space }: BoardProps)
         </Card>
       ) : null}
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.sm, justifyContent: 'center', alignContent: 'center', flex: 1 }}>
+      {/* Ban đêm cả bàn làng chìm trong tối — nền sáng trắng làm hỏng không khí. */}
+      <View
+        style={[
+          {
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: S.sm,
+            justifyContent: 'center',
+            alignContent: 'center',
+            padding: S.md,
+            borderRadius: 26,
+            backgroundColor: dark ? '#241A47' : 'rgba(255,255,255,0.45)',
+            borderWidth: 2,
+            borderColor: dark ? '#3B2E6B' : C.line,
+            overflow: 'hidden',
+          },
+          dark ? softShadow(0.3, 18, 8) : null,
+        ]}
+      >
+        {dark ? <DotPattern rows={6} cols={7} gap={54} color="rgba(255,255,255,0.10)" /> : null}
         {view.seats.map((s: any) => {
           const selected = night ? view.myNightTarget === s.seat : view.votes?.[mySeat] === s.seat;
           const voteCount = view.phase === 'vote' ? Object.values(view.votes ?? {}).filter((v) => v === s.seat).length : 0;
@@ -113,9 +134,17 @@ export default function WerewolfTable({ view, mySeat, send, space }: BoardProps)
                 borderRadius: R.lg,
                 alignItems: 'center',
                 gap: 4,
-                backgroundColor: selected ? C.primarySoft : s.alive ? C.surface : '#EFEAE4',
+                backgroundColor: selected
+                  ? C.primarySoft
+                  : dark
+                    ? s.alive
+                      ? 'rgba(255,255,255,0.10)'
+                      : 'rgba(255,255,255,0.04)'
+                    : s.alive
+                      ? C.surface
+                      : '#EFEAE4',
                 borderWidth: 2,
-                borderColor: selected ? C.primary : C.line,
+                borderColor: selected ? C.primary : dark ? 'rgba(255,255,255,0.16)' : C.line,
                 opacity: s.alive ? 1 : 0.55,
               }}
             >
@@ -123,9 +152,9 @@ export default function WerewolfTable({ view, mySeat, send, space }: BoardProps)
               {s.alive && s.role ? (
                 <RoleArt role={s.role as RoleName} size={faceSize} color={ROLE_INFO[s.role]?.color ?? C.inkSoft} />
               ) : (
-                <SeatFace alive={s.alive} size={faceSize} color={s.seat === mySeat ? C.primary : '#A98BFF'} />
+                <SeatFace alive={s.alive} size={faceSize} color={s.seat === mySeat ? C.primary : dark ? '#C7B3FF' : '#A98BFF'} />
               )}
-              <Txt size={13} weight="bold" numberOfLines={1}>
+              <Txt size={13} weight="bold" numberOfLines={1} color={dark ? '#F3EEFF' : C.ink}>
                 {s.name}
                 {s.seat === mySeat ? ' (bạn)' : ''}
               </Txt>
@@ -137,7 +166,7 @@ export default function WerewolfTable({ view, mySeat, send, space }: BoardProps)
                   </Txt>
                 </View>
               ) : (
-                <Txt size={11} color={C.inkFaint}>
+                <Txt size={11} color={dark ? 'rgba(255,255,255,0.55)' : C.inkFaint}>
                   ???
                 </Txt>
               )}

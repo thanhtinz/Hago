@@ -2,7 +2,8 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Btn, Chip, Txt } from '../components/ui';
 import { MandarinStone, StonePiece } from '../components/Piece';
-import { C, R, S, SEAT_COLORS } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { C, R, S, SEAT_COLORS, softShadow } from '../theme';
 import { BoardProps, GameLog, TurnBanner, VersusBar } from './shared';
 
 /** Rải sỏi thành các hàng cố định để không tràn khỏi ô. */
@@ -29,7 +30,7 @@ function StoneCloud({ count, big }: { count: number; big: boolean }) {
 export default function OanQuanBoard({ view, mySeat, send, deadline, space }: BoardProps) {
   const [picked, setPicked] = React.useState<number | null>(null);
   // Bàn dân gian nằm ngang nên chiều cao ô co giãn theo phần màn hình còn trống.
-  const cellH = Math.max(74, Math.min(250, Math.floor((space.height - 230) / 2)));
+  const cellH = Math.max(74, Math.min(148, Math.floor((space.height - 230) / 2)));
   const quanH = cellH * 2 + 12;
   const yourTurn = view.turnSeat === mySeat && !view.over;
   const mine: number[] = view.own?.[mySeat] ?? [1, 2, 3, 4, 5];
@@ -47,42 +48,56 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
     const own = mine.includes(index);
     const selectable = yourTurn && own && count > 0;
     const inPath = view.lastPath?.includes(index);
+    const seatTone = SEAT_COLORS[mine === view.own?.[0] ? 0 : 1];
     return (
-      <Pressable
-        disabled={!selectable}
-        onPress={() => setPicked(index)}
-        style={{
-          flex: 1,
-          height: cellH,
-          margin: 3,
-          borderRadius: R.md,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: picked === index ? '#FFE0B2' : inPath ? '#FFF2DC' : '#F7E4CB',
-          borderWidth: 2,
-          borderColor: picked === index ? C.primary : own ? SEAT_COLORS[mine === view.own?.[0] ? 0 : 1] + '55' : '#E0C7A5',
-        }}
-      >
-        <StoneCloud count={count} big={cellH > 110} />
-        <Txt size={13} weight="display" color="#6B4423">
-          {count}
-        </Txt>
+      <Pressable disabled={!selectable} onPress={() => setPicked(index)} style={{ flex: 1, margin: 3 }}>
+        <LinearGradient
+          // Lòng ô sẫm ở trên, sáng dần xuống dưới cho ra cảm giác lõm như ô khoét.
+          colors={
+            picked === index
+              ? ['#F0BE72', '#FFE7C0']
+              : inPath
+                ? ['#E7CFA6', '#FFF3DE']
+                : ['#DCC49B', '#FBEAD0']
+          }
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 0.75 }}
+          style={{
+            height: cellH,
+            borderRadius: R.md,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 2,
+            borderColor: picked === index ? C.primary : own ? seatTone + '99' : '#C8A87C',
+            borderTopWidth: 3,
+            borderTopColor: picked === index ? C.primary : '#BC9968',
+          }}
+        >
+          <StoneCloud count={count} big={cellH > 110} />
+          <Txt size={13} weight="display" color="#6B4423">
+            {count}
+          </Txt>
+        </LinearGradient>
       </Pressable>
     );
   };
 
   const Quan = ({ index, side }: { index: number; side: 0 | 1 }) => (
-    <View
+    <LinearGradient
+      colors={view.quan[side] ? ['#D79A2E', '#FFDF9B'] : ['#BDB3A5', '#E4DCD1']}
+      start={{ x: 0.5, y: 0 }}
+      end={{ x: 0.5, y: 0.8 }}
       style={{
-        width: 62,
+        width: 68,
         height: quanH,
         borderRadius: 40,
-        backgroundColor: view.quan[side] ? '#E8B14D' : '#D8CFC2',
         alignItems: 'center',
         justifyContent: 'center',
         margin: 3,
         borderWidth: 3,
-        borderColor: '#B98A2E',
+        borderColor: view.quan[side] ? '#A5741C' : '#9E958A',
+        borderTopWidth: 4,
+        borderTopColor: view.quan[side] ? '#8E6212' : '#8B837A',
       }}
     >
       {view.quan[side] ? (
@@ -96,11 +111,11 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
       <Txt size={10} color="#8C6239">
         +{view.cells[index]} dân
       </Txt>
-    </View>
+    </LinearGradient>
   );
 
   return (
-    <View style={{ gap: S.md, flex: 1 }}>
+    <View style={{ gap: S.md }}>
       <VersusBar
         players={view.players}
         activeSeat={view.turnSeat}
@@ -114,7 +129,15 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
         text={view.over ? 'Tàn cuộc' : yourTurn ? (picked == null ? 'Chọn 1 ô của bạn' : 'Chọn hướng rải') : 'Đối thủ đang tính nước...'}
       />
 
-      <View style={{ backgroundColor: '#EFD9B8', padding: 8, borderRadius: R.lg, borderWidth: 3, borderColor: '#C99C6B', flexDirection: 'row', alignItems: 'center' }}>
+      <LinearGradient
+        colors={['#E3C395', '#CBA470']}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={[
+          { padding: 8, borderRadius: R.lg, borderWidth: 3, borderColor: '#A9773F', flexDirection: 'row', alignItems: 'center' },
+          softShadow(0.18, 16, 8),
+        ]}
+      >
         <Quan index={0} side={0} />
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row' }}>
@@ -129,7 +152,7 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
           </View>
         </View>
         <Quan index={6} side={1} />
-      </View>
+      </LinearGradient>
 
       {picked != null ? (
         <View style={{ flexDirection: 'row', gap: S.md, justifyContent: 'center' }}>
@@ -151,7 +174,6 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
           </View>
         ))}
       </View>
-      <View style={{ flex: 1 }} />
       <GameLog log={view.log} />
     </View>
   );

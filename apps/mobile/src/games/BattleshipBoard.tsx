@@ -142,13 +142,16 @@ function Grid({
                   justifyContent: 'center',
                   backgroundColor: shot
                     ? shot.hit
-                      ? 'rgba(255,138,138,0.85)'
-                      : 'rgba(255,255,255,0.45)'
+                      ? 'rgba(255,120,120,0.9)'
+                      : 'rgba(255,255,255,0.6)'
                     : hasShip && !hideShips
-                      ? 'rgba(90,110,140,0.28)'
-                      : 'rgba(255,255,255,0.30)',
-                  borderWidth: 1,
-                  borderColor: 'rgba(120,180,220,0.45)',
+                      ? 'rgba(70,95,130,0.32)'
+                      : 'rgba(255,255,255,0.22)',
+                  borderWidth: 1.5,
+                  borderColor: shot ? 'rgba(255,255,255,0.75)' : 'rgba(255,255,255,0.42)',
+                  // đáy ô sẫm hơn: mặt nước có chiều sâu chứ không phẳng
+                  borderBottomWidth: 2.5,
+                  borderBottomColor: 'rgba(70,140,190,0.28)',
                 }}
               >
                 {shot ? (
