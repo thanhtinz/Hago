@@ -188,4 +188,4 @@ for (let i = 0; i < Math.min(count, ACCOUNTS.length); i++) {
   await spawn(ACCOUNTS[i], opts);
   await new Promise((r) => setTimeout(r, 250));
 }
-console.log(`🤖 ${Math.min(count, ACCOUNTS.length)} bot đang chạy — Ctrl+C để dừng`);
+console.log(`${Math.min(count, ACCOUNTS.length)} bot đang chạy — Ctrl+C để dừng`);

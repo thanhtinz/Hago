@@ -26,5 +26,5 @@ for (const p of PLAN) {
   );
   await new Promise((r) => setTimeout(r, 300));
 }
-console.log('🚪 Đã tạo phòng demo — Ctrl+C để đóng');
+console.log('Đã tạo phòng demo — Ctrl+C để đóng');
 setInterval(() => {}, 1 << 30);
