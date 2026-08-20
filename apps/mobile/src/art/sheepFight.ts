@@ -49,6 +49,9 @@ export const SHEEP_STILLS: Record<string, number> = {
   'lvl5B': require('../../assets/sheep-fight/lvl5B.png'),
   'sheep-ready': require('../../assets/sheep-fight/sheep-ready.png'),
   'grass-effect': require('../../assets/sheep-fight/grass-effect.png'),
+  'map': require('../../assets/sheep-fight/map.png'),
+  'map_up': require('../../assets/sheep-fight/map_up.png'),
+  'map_down': require('../../assets/sheep-fight/map_down.png'),
 };
 
 export type SheepTier = 1 | 2 | 3 | 4 | 5;

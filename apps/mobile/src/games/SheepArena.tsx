@@ -8,6 +8,13 @@ import { SHEEP_STILLS } from '../art/sheepFight';
 import { C, R, S, SEAT_COLORS, softShadow } from '../theme';
 import { BoardProps } from './shared';
 
+/**
+ * Vùng 5 làn trong ảnh sàn gốc (540px). Đo bằng cách dò các dải bụi trong ảnh:
+ * tâm 5 dải cỏ nằm ở x = 155, 239, 322, 406, 488 — bước làn ~83.6px — nên vùng
+ * chơi là x 113–531. Ảnh còn kèm thanh ray bên trái, cắt bỏ luôn.
+ */
+const MAP_LANES = { x: 113, width: 418, full: 540 };
+
 /** Cừu càng cấp cao càng to và nhiều chi tiết (sừng, gạc, vương miện). */
 const LEVEL_SCALE = [0.74, 0.74, 0.86, 0.98, 1.1, 1.24];
 
@@ -86,83 +93,23 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
           softShadow(0.2, 16, 8),
         ]}
       >
-        {/* Cỏ sọc theo làn */}
-        {Array.from({ length: lanes }, (_, i) => (
-          <LinearGradient
-            key={`lane${i}`}
-            colors={i % 2 === 0 ? ['#6FCB8F', '#4FB877'] : ['#63C486', '#46B06E']}
-            style={{ position: 'absolute', left: i * cell, top: 0, width: cell, height: fieldH }}
-          />
-        ))}
-        {/* Vệt máy cắt cỏ chạy ngang — sân bóng thật luôn có sọc hai chiều */}
-        {Array.from({ length: len }, (_, r) =>
-          r % 2 === 0 ? (
-            <View
-              key={`mow${r}`}
-              pointerEvents="none"
-              style={{ position: 'absolute', left: 0, right: 0, top: r * cell, height: cell, backgroundColor: 'rgba(255,255,255,0.07)' }}
-            />
-          ) : null,
-        )}
-        {/* Vạch dọc chia làn */}
-        {Array.from({ length: lanes - 1 }, (_, i) => (
-          <View
-            key={`line${i}`}
-            pointerEvents="none"
-            style={{ position: 'absolute', left: (i + 1) * cell - 1, top: 0, width: 2, height: fieldH, backgroundColor: 'rgba(255,255,255,0.16)' }}
-          />
-        ))}
-        {/* Vạch giữa sân + vòng tròn trung tâm */}
-        <View style={{ position: 'absolute', top: fieldH / 2 - 1.5, left: 0, width: fieldW, height: 3, backgroundColor: 'rgba(255,255,255,0.7)' }} />
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: fieldH / 2 - cell,
-            left: fieldW / 2 - cell,
-            width: cell * 2,
-            height: cell * 2,
-            borderRadius: cell,
-            borderWidth: 3,
-            borderColor: 'rgba(255,255,255,0.55)',
-          }}
-        />
-        {/* Khung thành hai đầu: nơi cừu lọt qua là ghi điểm */}
-        {[0, 1].map((end) => (
-          <View
-            key={`goal${end}`}
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              left: cell * 0.6,
-              right: cell * 0.6,
-              top: end === 0 ? 0 : undefined,
-              bottom: end === 1 ? 0 : undefined,
-              height: cell * 0.55,
-              backgroundColor: 'rgba(255,255,255,0.14)',
-              borderBottomWidth: end === 0 ? 3 : 0,
-              borderTopWidth: end === 1 ? 3 : 0,
-              borderColor: 'rgba(255,255,255,0.6)',
-            }}
-          />
-        ))}
-
-        {/* Cụm cỏ rải rác cho mặt sân có chi tiết, lấy từ chính bộ art của game */}
-        {Array.from({ length: 10 }, (_, i) => (
+        {/* Sàn đấu gốc của Sheep Fight: 5 làn cỏ ngăn bằng hàng rào, nông trại
+            phía xa, đồng hoa dưới chân. Ảnh gốc 540px còn kèm thanh ray bên
+            trái (x 14–100 là viền trắng của nó), nên cắt bỏ phần đó và chỉ kéo
+            đúng vùng 5 làn (x 99–519) cho khớp với 5 làn của bàn chơi. */}
+        <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, width: fieldW, height: fieldH, overflow: 'hidden' }}>
           <Image
-            key={`grass${i}`}
-            source={SHEEP_STILLS['grass-effect']}
-            resizeMode="contain"
+            source={SHEEP_STILLS['map']}
+            resizeMode="stretch"
             style={{
               position: 'absolute',
-              left: ((i * 37) % (lanes * cell - 40)) + 6,
-              top: ((i * 149) % (fieldH - 60)) + 20,
-              width: cell * 0.5,
-              height: cell * 0.16,
-              opacity: 0.5,
+              width: (fieldW / MAP_LANES.width) * MAP_LANES.full,
+              height: fieldH,
+              left: (-MAP_LANES.x / MAP_LANES.width) * fieldW,
+              top: 0,
             }}
           />
-        ))}
+        </View>
 
         {/* Vệt sáng chạy dọc làn vừa thả cừu, cho biết chạm đã ăn */}
         {Array.from({ length: lanes }, (_, i) =>
@@ -192,25 +139,6 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
           />
         ))}
 
-        {/* Ô xuất phát của mình */}
-        {Array.from({ length: lanes }, (_, i) => (
-          <View
-            key={`spawn${i}`}
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              left: i * cell + 3,
-              top: fieldH - cell + 3,
-              width: cell - 6,
-              height: cell - 6,
-              borderRadius: 10,
-              borderWidth: 2,
-              borderStyle: 'dashed',
-              borderColor: 'rgba(255,255,255,0.75)',
-            }}
-          />
-        ))}
-
         {/* Cừu: mỗi bậc là một giống riêng, phe trắng nhìn từ sau, phe đen nhìn chính diện */}
         {view.units.map((u: any) => {
           const row = rowOf(u.pos);
@@ -232,23 +160,11 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
                 <View
                   style={{
                     position: 'absolute',
-                    bottom: cell * 0.06,
-                    width: body * 0.6,
-                    height: body * 0.16,
+                    bottom: cell * 0.08,
+                    width: body * 0.52,
+                    height: body * 0.1,
                     borderRadius: body,
-                    backgroundColor: 'rgba(20,60,35,0.3)',
-                  }}
-                />
-                {/* Vệt màu phe dưới chân — nhìn lướt vẫn biết cừu của ai */}
-                <View
-                  style={{
-                    position: 'absolute',
-                    bottom: cell * 0.04,
-                    width: body * 0.72,
-                    height: 4,
-                    borderRadius: 3,
-                    backgroundColor: mine ? SEAT_COLORS[me] : SEAT_COLORS[foe],
-                    opacity: 0.9,
+                    backgroundColor: 'rgba(20,60,35,0.18)',
                   }}
                 />
                 <SheepSprite

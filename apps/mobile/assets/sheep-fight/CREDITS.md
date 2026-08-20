@@ -12,6 +12,8 @@ Sheep Fight của **Do Trung Kien**, phát hành theo giấy phép **MIT**
 | `push-effect.png` | Hiệu ứng bụi khi hai con húc nhau, 8 khung |
 | `lane-effect.png` | Vệt sáng chạy dọc làn khi thả cừu, 4 khung |
 | `grass-effect.png` | Cụm cỏ trên sân |
+| `map.png` | Sàn đấu: 5 làn cỏ ngăn bằng hàng rào, nông trại phía xa, đồng hoa dưới chân |
+| `map_up.png`, `map_down.png` | Dải trên và dải dưới của sàn |
 
 Bậc cừu: 1 cừu non chưa có sừng · 2 nhú sừng · 3 sừng xoắn · 4 đeo băng đầu
 · 5 cừu chúa sừng vàng, mặt dữ. Phe trắng nhìn từ sau lưng (đi lên), phe đen

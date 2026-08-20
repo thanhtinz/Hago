@@ -146,22 +146,25 @@ export default function MatchScreen() {
         <Txt size={15} weight="display" color="#fff" style={{ flex: 1 }}>
           {GAME_NAMES[state.gameType]}
         </Txt>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 5,
-            backgroundColor: connected ? 'rgba(255,255,255,0.25)' : C.danger,
-            paddingHorizontal: 9,
-            paddingVertical: 4,
-            borderRadius: R.pill,
-          }}
-        >
-          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: connected ? '#6BFF9E' : '#fff' }} />
-          <Txt size={10} weight="bold" color="#fff">
-            {connected ? 'LIVE' : 'Mất kết nối'}
-          </Txt>
-        </View>
+        {/* Chỉ báo khi mất kết nối; lúc bình thường không cần nhãn LIVE chiếm chỗ. */}
+        {!connected ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 5,
+              backgroundColor: C.danger,
+              paddingHorizontal: 9,
+              paddingVertical: 4,
+              borderRadius: R.pill,
+            }}
+          >
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#fff' }} />
+            <Txt size={10} weight="bold" color="#fff">
+              Mất kết nối
+            </Txt>
+          </View>
+        ) : null}
       </LinearGradient>
 
       {/* Bàn chơi chiếm toàn bộ phần còn lại */}
