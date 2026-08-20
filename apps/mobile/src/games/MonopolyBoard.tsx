@@ -1,12 +1,13 @@
 import React from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { Btn, Card, Chip, Txt } from '../components/ui';
 import { C, R, S, SEAT_COLORS } from '../theme';
-import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
+import { Chibi } from './chibiAssets';
+import { ChibiImg } from './ChibiImg';
+import { BoardProps, DiceFace, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
 
 const SIZE = 320;
 
-/** 28 ô xếp quanh khung vuông 8x8 (mỗi cạnh 7 ô). */
 function tilePos(i: number, n: number, cell: number): { x: number; y: number } {
   const per = n / 4;
   const side = Math.floor(i / per);
@@ -24,13 +25,13 @@ function tilePos(i: number, n: number, cell: number): { x: number; y: number } {
   }
 }
 
-const KIND_EMOJI: Record<string, string> = {
-  start: '🚩',
-  tax: '🧾',
-  chance: '❓',
-  jail: '🚔',
-  gotojail: '👮',
-  park: '🅿️',
+const KIND_ASSET: Record<string, any> = {
+  start: Chibi.monopoly.start,
+  tax: Chibi.monopoly.tax,
+  chance: Chibi.monopoly.chance,
+  jail: Chibi.monopoly.jail,
+  gotojail: Chibi.monopoly.jail,
+  park: Chibi.monopoly.park,
 };
 
 export default function MonopolyBoard({ view, mySeat, send, deadline }: BoardProps) {
@@ -61,6 +62,7 @@ export default function MonopolyBoard({ view, mySeat, send, deadline }: BoardPro
             const p = tilePos(i, n, cell);
             const owner = view.owner[i];
             const here = view.cash.filter((c: any) => c.pos === i && !c.bankrupt);
+            const kindSrc = KIND_ASSET[t.kind];
             return (
               <View
                 key={i}
@@ -80,33 +82,43 @@ export default function MonopolyBoard({ view, mySeat, send, deadline }: BoardPro
                 }}
               >
                 {t.kind === 'property' ? (
-                  <Txt size={7} weight="bold" center numberOfLines={2} color="#4A3B2A">
-                    {t.name}
-                  </Txt>
-                ) : (
-                  <Text style={{ fontSize: cell * 0.4 }}>{KIND_EMOJI[t.kind]}</Text>
-                )}
-                <View style={{ flexDirection: 'row', gap: 1, marginTop: 1 }}>
+                  <>
+                    <Txt size={7} weight="bold" center numberOfLines={2} color="#4A3B2A">
+                      {t.name}
+                    </Txt>
+                    {owner != null ? <ChibiImg source={Chibi.monopoly.house} size={cell * 0.35} /> : null}
+                  </>
+                ) : kindSrc ? (
+                  <ChibiImg source={kindSrc} size={cell * 0.55} />
+                ) : null}
+                <View style={{ flexDirection: 'row', gap: 1, marginTop: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
                   {here.map((c: any) => (
-                    <View key={c.seat} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: SEAT_COLORS[c.seat], borderWidth: 1, borderColor: '#fff' }} />
+                    <ChibiImg key={c.seat} source={Chibi.monopoly.tokens[c.seat % 4]} size={Math.max(10, cell * 0.32)} />
                   ))}
                 </View>
               </View>
             );
           })}
 
-          <View style={{ position: 'absolute', left: cell * 1.4, top: cell * 1.4, right: cell * 1.4, bottom: cell * 1.4, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-            <Text style={{ fontSize: 30 }}>🏦</Text>
+          <View
+            style={{
+              position: 'absolute',
+              left: cell * 1.4,
+              top: cell * 1.4,
+              right: cell * 1.4,
+              bottom: cell * 1.4,
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+            }}
+          >
+            <ChibiImg source={Chibi.monopoly.bank} size={48} />
             <Txt size={13} weight="display" color={C.rose}>
               Vòng {view.round}/{view.maxRounds}
             </Txt>
             <View style={{ flexDirection: 'row', gap: 6 }}>
               {(view.dice ?? [0, 0]).map((d: number, i: number) => (
-                <View key={i} style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: C.surface, borderWidth: 2, borderColor: C.line, alignItems: 'center', justifyContent: 'center' }}>
-                  <Txt size={16} weight="display">
-                    {d || '–'}
-                  </Txt>
-                </View>
+                <DiceFace key={i} value={d || null} size={34} />
               ))}
             </View>
           </View>
@@ -115,24 +127,40 @@ export default function MonopolyBoard({ view, mySeat, send, deadline }: BoardPro
 
       {yourTurn && view.phase === 'decide' && view.pending ? (
         <Card style={{ gap: S.sm, borderColor: C.primary }}>
-          <Txt size={15} weight="heading">
-            {view.board[view.pending.tile].name}
-          </Txt>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <ChibiImg source={Chibi.monopoly.house} size={28} />
+            <Txt size={15} weight="heading">
+              {view.board[view.pending.tile].name}
+            </Txt>
+          </View>
           <Txt size={12} color={C.inkSoft}>
             Giá ${view.pending.price} · Tiền thuê ${view.board[view.pending.tile].baseRent} · Bạn có ${me?.cash}
           </Txt>
           <View style={{ flexDirection: 'row', gap: S.sm }}>
-            <Btn label="Mua" icon="🏠" tone="mint" onPress={() => send('buy', {})} disabled={(me?.cash ?? 0) < view.pending.price} />
+            <Btn label="Mua" tone="mint" onPress={() => send('buy', {})} disabled={(me?.cash ?? 0) < view.pending.price} />
             <Btn label="Bỏ qua" tone="ghost" onPress={() => send('skip', {})} />
           </View>
         </Card>
       ) : null}
 
-      {yourTurn && view.phase === 'roll' ? <Btn label="Tung xúc xắc" icon="🎲" size="lg" style={{ alignSelf: 'center' }} onPress={() => send('roll', {})} /> : null}
+      {yourTurn && view.phase === 'roll' ? <Btn label="Tung xúc xắc" size="lg" style={{ alignSelf: 'center' }} onPress={() => send('roll', {})} /> : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
         {view.cash.map((c: any) => (
-          <View key={c.seat} style={{ backgroundColor: c.bankrupt ? '#F0EDE8' : C.surface, borderRadius: R.md, padding: S.md, borderWidth: 2, borderColor: SEAT_COLORS[c.seat], minWidth: 118, gap: 2 }}>
+          <View
+            key={c.seat}
+            style={{
+              backgroundColor: c.bankrupt ? '#F0EDE8' : C.surface,
+              borderRadius: R.md,
+              padding: S.md,
+              borderWidth: 2,
+              borderColor: SEAT_COLORS[c.seat],
+              minWidth: 118,
+              gap: 2,
+              alignItems: 'center',
+            }}
+          >
+            <ChibiImg source={Chibi.monopoly.tokens[c.seat % 4]} size={36} />
             <Txt size={12} weight="bold">
               {view.players[c.seat].name}
             </Txt>
@@ -140,9 +168,9 @@ export default function MonopolyBoard({ view, mySeat, send, deadline }: BoardPro
               ${c.cash}
             </Txt>
             <Txt size={10} color={C.inkFaint}>
-              {c.bankrupt ? 'Phá sản 💥' : `${c.properties.length} bất động sản`}
+              {c.bankrupt ? 'Phá sản' : `${c.properties.length} bất động sản`}
             </Txt>
-            {c.jailTurns > 0 ? <Chip label={`Tù ${c.jailTurns} lượt`} icon="🚔" color={C.danger} soft="#FFE5E5" size={9} /> : null}
+            {c.jailTurns > 0 ? <Chip label={`Tù ${c.jailTurns} lượt`} color={C.danger} soft="#FFE5E5" size={9} /> : null}
           </View>
         ))}
       </ScrollView>
