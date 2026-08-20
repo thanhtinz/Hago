@@ -234,7 +234,7 @@ bằng component riêng:
 | Loại | Nguồn | Giấy phép |
 |---|---|---|
 | Art trong trận: mark 7 game, quân cờ, xúc xắc, vai Ma Sói, ô bàn Tỷ Phú, sticker | [game-icons.net](https://github.com/game-icons/icons) — 70 asset trong `apps/mobile/assets/game-icons/` | CC BY 3.0 |
-| Sprite cừu có animation (Sheep Battle) | [LPC Style Farm Animals](https://opengameart.org/content/lpc-style-farm-animals) của Daniel Eddeland — `apps/mobile/assets/farm-animals/` | CC BY 3.0 |
+| Art Sheep Battle: 5 giống cừu × 2 phe × 2 animation, icon cấp, hiệu ứng | [TomoSheepFight](https://github.com/dotrungkien/TomoSheepFight) của Do Trung Kien — `apps/mobile/assets/sheep-fight/` | MIT |
 | Avatar người chơi | [DiceBear](https://github.com/dicebear/dicebear) — render SVG server-side, 10 bộ style | MIT |
 | Font tiêu đề | [Baloo 2](https://github.com/googlefonts/baloo) qua `@expo-google-fonts` | OFL |
 | Font nội dung | [Be Vietnam Pro](https://github.com/bettergui/BeVietnamPro) — hỗ trợ tiếng Việt đầy đủ | OFL |
@@ -257,10 +257,18 @@ giấy phép) rồi sinh `src/art/gameArt.ts` — dữ liệu vector đã bỏ n
 chỗ ăn màu, để `<Art>` vẽ bằng `react-native-svg` và tô theo phe / theo trạng thái.
 Muốn đổi hình cho game nào chỉ cần sửa một dòng trong bảng `ART` của script.
 
-Cừu trong Sheep Battle là **sprite sheet đi bộ thật** (4 hướng × 4 khung, ô
-128×128), không phải icon tĩnh: `<SheepSprite>` cắt sát hình theo kênh alpha rồi
-chạy chu kỳ bước chân, `<SheepUnit>` trượt con cừu sang ô mới đúng bằng nhịp
-`moveMs` của server nên đàn cừu đi mượt thay vì nhảy cóc mỗi lần tick.
+Sheep Battle dùng **art gốc của game Sheep Fight**: mỗi bậc hợp thể là một giống
+cừu riêng — cừu non chưa có sừng, nhú sừng, sừng xoắn, đeo băng đầu, cừu chúa
+sừng vàng mặt dữ — và hai phe khác hẳn nhau chứ không chỉ đổi màu: đàn trắng
+nhìn từ sau lưng (đang đi lên), đàn đen nhìn chính diện (đang đi xuống).
+
+- `<SheepSprite>` chạy strip 6 khung, đổi sang animation *húc* khi hai con chạm nhau.
+- `<SheepUnit>` trượt con cừu sang ô mới đúng bằng nhịp `moveMs` của server nên
+  đàn cừu đi mượt thay vì nhảy cóc mỗi lần tick; lúc húc thì nảy gấp đôi nhịp.
+- Kích thước từng khung đọc thẳng từ file `.meta` của Unity đi kèm sprite —
+  vài strip lẻ 1–2px nên chia đều chiều ngang là lệch khung.
+
+Tải lại bộ art: `node apps/mobile/scripts/fetch-sheep-fight.mjs`.
 
 **Không dùng emoji ở bất kỳ đâu trong giao diện** — emoji mỗi hệ điều hành vẽ một
 kiểu, không đổi được màu theo ngữ cảnh và không canh được nét với chữ.

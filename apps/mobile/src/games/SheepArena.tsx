@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bar, Txt } from '../components/ui';
 import { Icon } from '../components/Icon';
-import { SheepSprite, SheepUnit } from '../components/SheepSprite';
+import { SheepBadge, SheepSprite, SheepUnit } from '../components/SheepSprite';
+import { SHEEP_STILLS } from '../art/sheepFight';
 import { C, R, S, SEAT_COLORS, softShadow } from '../theme';
 import { BoardProps } from './shared';
 
 /** Cừu càng cấp cao càng to và nhiều chi tiết (sừng, gạc, vương miện). */
-const LEVEL_SCALE = [0.86, 0.86, 0.96, 1.06, 1.16, 1.26];
+const LEVEL_SCALE = [0.74, 0.74, 0.86, 0.98, 1.1, 1.24];
 
 export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
   const [now, setNow] = useState(Date.now());
@@ -112,6 +113,23 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
           />
         ))}
 
+        {/* Cụm cỏ rải rác cho mặt sân có chi tiết, lấy từ chính bộ art của game */}
+        {Array.from({ length: 10 }, (_, i) => (
+          <Image
+            key={`grass${i}`}
+            source={SHEEP_STILLS['grass-effect']}
+            resizeMode="contain"
+            style={{
+              position: 'absolute',
+              left: ((i * 37) % (lanes * cell - 40)) + 6,
+              top: ((i * 149) % (fieldH - 60)) + 20,
+              width: cell * 0.5,
+              height: cell * 0.16,
+              opacity: 0.5,
+            }}
+          />
+        ))}
+
         {/* Vùng chạm để thả cừu — cả cột làn */}
         {Array.from({ length: lanes }, (_, i) => (
           <Pressable
@@ -147,57 +165,59 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
           />
         ))}
 
-        {/* Cừu — sprite đi bộ thật, trượt mượt tới ô mới thay vì nhảy cóc */}
+        {/* Cừu: mỗi bậc là một giống riêng, phe trắng nhìn từ sau, phe đen nhìn chính diện */}
         {view.units.map((u: any) => {
           const row = rowOf(u.pos);
           const mine = u.seat === me;
-          const clashing = u.clashAt && now - u.clashAt < 400;
-          const body = cell * (LEVEL_SCALE[u.level] ?? 0.78);
+          const clashing = !!u.clashAt && now - u.clashAt < 500;
+          const body = cell * (LEVEL_SCALE[u.level] ?? 0.9);
           return (
-            <SheepUnit key={u.id} x={u.lane * cell} y={row * cell} size={cell} dir={mine ? 'up' : 'down'} moveMs={view.moveMs ?? 620}>
-              <View pointerEvents="none" style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                {/* Bóng đổ dưới chân cho cừu đứng trên mặt cỏ chứ không lơ lửng */}
+            <SheepUnit
+              key={u.id}
+              x={u.lane * cell}
+              y={row * cell}
+              width={cell}
+              height={cell}
+              moveMs={view.moveMs ?? 620}
+              clashing={clashing}
+            >
+              <View pointerEvents="none" style={{ alignItems: 'center', justifyContent: 'flex-end', height: cell }}>
+                {/* Bóng đổ để cừu đứng trên cỏ chứ không lơ lửng */}
                 <View
                   style={{
                     position: 'absolute',
-                    bottom: cell * 0.1,
-                    width: body * 0.62,
-                    height: body * 0.18,
+                    bottom: cell * 0.06,
+                    width: body * 0.6,
+                    height: body * 0.16,
                     borderRadius: body,
-                    backgroundColor: 'rgba(20,60,35,0.28)',
+                    backgroundColor: 'rgba(20,60,35,0.3)',
                   }}
                 />
-                {/* Vòng nền theo màu phe để phân biệt cừu ta / cừu địch */}
+                {/* Vệt màu phe dưới chân — nhìn lướt vẫn biết cừu của ai */}
                 <View
                   style={{
                     position: 'absolute',
-                    width: cell * 0.86,
-                    height: cell * 0.86,
-                    borderRadius: cell,
-                    backgroundColor: clashing ? 'rgba(255,140,140,0.55)' : mine ? 'rgba(255,255,255,0.22)' : 'rgba(46,37,69,0.18)',
-                    borderWidth: 2.5,
-                    borderColor: mine ? SEAT_COLORS[me] : SEAT_COLORS[foe],
+                    bottom: cell * 0.04,
+                    width: body * 0.72,
+                    height: 4,
+                    borderRadius: 3,
+                    backgroundColor: mine ? SEAT_COLORS[me] : SEAT_COLORS[foe],
+                    opacity: 0.9,
                   }}
                 />
-                <SheepSprite size={body} dir={mine ? 'up' : 'down'} />
-                {u.level > 1 ? (
-                  <View
-                    style={{
-                      position: 'absolute',
-                      right: 1,
-                      bottom: 1,
-                      minWidth: 16,
-                      paddingHorizontal: 3,
-                      borderRadius: 8,
-                      backgroundColor: mine ? SEAT_COLORS[me] : SEAT_COLORS[foe],
-                      borderWidth: 1.5,
-                      borderColor: '#fff',
-                    }}
-                  >
-                    <Txt size={9} weight="bold" color="#fff" center>
-                      {u.level}
-                    </Txt>
-                  </View>
+                <SheepSprite
+                  tier={u.level}
+                  team={mine ? 'w' : 'b'}
+                  anim={clashing ? 'push' : 'walk'}
+                  size={body}
+                  frameMs={clashing ? 90 : 120}
+                />
+                {clashing ? (
+                  <Image
+                    source={SHEEP_STILLS['push-effect']}
+                    resizeMode="contain"
+                    style={{ position: 'absolute', bottom: cell * 0.5, width: cell * 0.9, height: cell * 0.28 }}
+                  />
                 ) : null}
               </View>
             </SheepUnit>
@@ -250,7 +270,7 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
                 borderStyle: lvl ? 'solid' : 'dashed',
               }}
             >
-              {lvl ? <SheepSprite size={32} dir="down" walking={false} /> : null}
+              {lvl ? <SheepBadge tier={lvl} team="w" size={30} /> : null}
             </View>
           );
         })}

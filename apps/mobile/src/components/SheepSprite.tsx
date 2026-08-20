@@ -1,103 +1,93 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, View } from 'react-native';
+import { SheepAnim, SheepTeam, sheepBadge, sheepStrip } from '../art/sheepFight';
 
 /**
- * Cừu trong Sheep Battle — sprite sheet đi bộ thật, không phải icon tĩnh.
+ * Cừu trong Sheep Battle — sprite thật của game Sheep Fight, mỗi bậc hợp thể là
+ * một giống cừu riêng: cừu non chưa có sừng, nhú sừng, sừng xoắn, đeo băng đầu,
+ * cừu chúa sừng vàng mặt dữ. Hai phe khác hẳn nhau chứ không chỉ đổi màu: đàn
+ * trắng nhìn từ sau lưng (đang đi lên), đàn đen nhìn chính diện (đang đi xuống).
  *
- * Asset: "LPC Style Farm Animals" của Daniel Eddeland (CC-BY 3.0), xem
- * assets/farm-animals/CREDITS.md. Sheet 512×512, ô 128×128:
- * hàng 0 quay lưng, 1 quay trái, 2 quay mặt, 3 quay phải; 4 cột là 4 khung bước.
+ * Art: TomoSheepFight của Do Trung Kien (MIT) — assets/sheep-fight/CREDITS.md.
  */
-
-const SHEET = require('../../assets/farm-animals/sheep_walk.png');
-const CELL = 128;
-const COLS = 4;
-const ROWS = 4;
-const SHEET_PX = CELL * COLS;
-
-export type SheepDir = 'up' | 'left' | 'down' | 'right';
-
-/**
- * Con cừu chỉ chiếm một góc nhỏ trong ô 128px, phần còn lại là khoảng trong
- * suốt. Cắt sát theo hình thật (đo từ kênh alpha) rồi mới phóng to, không thì
- * cừu bé tí giữa một ô rỗng.
- */
-const CROP: Record<SheepDir, { row: number; x: number; y: number; w: number; h: number }> = {
-  up: { row: 0, x: 49, y: 38, w: 29, h: 52 },
-  left: { row: 1, x: 36, y: 42, w: 51, h: 42 },
-  down: { row: 2, x: 49, y: 46, w: 29, h: 44 },
-  right: { row: 3, x: 41, y: 42, w: 51, h: 42 },
-};
 
 export function SheepSprite({
+  tier = 1,
+  team = 'w',
+  anim = 'walk',
   size = 48,
-  dir = 'up',
-  /** Đang di chuyển thì chạy chu kỳ bước chân, đứng yên thì dừng ở khung 0. */
-  walking = true,
-  /** Nhịp một khung, ms. */
-  frameMs = 170,
+  /** Đứng yên thì dừng ở khung đầu. */
+  animated = true,
+  frameMs = 120,
 }: {
-  /** Chiều cao hiển thị của con cừu; bề ngang suy ra từ tỉ lệ hình gốc. */
+  tier?: number;
+  team?: SheepTeam;
+  anim?: SheepAnim;
+  /** Chiều cao hiển thị; bề ngang suy ra từ tỉ lệ khung gốc. */
   size?: number;
-  dir?: SheepDir;
-  walking?: boolean;
+  animated?: boolean;
   frameMs?: number;
 }) {
+  const strip = sheepStrip(tier, team, anim);
   const [frame, setFrame] = useState(0);
 
   useEffect(() => {
-    if (!walking) {
+    if (!animated) {
       setFrame(0);
       return;
     }
     // Lệch pha ngẫu nhiên để cả đàn không bước trùng chân nhau.
-    const offset = Math.floor(Math.random() * frameMs);
-    const start = setTimeout(() => {
-      setFrame((f) => (f + 1) % COLS);
-    }, offset);
-    const timer = setInterval(() => setFrame((f) => (f + 1) % COLS), frameMs);
+    const kick = setTimeout(() => setFrame((f) => (f + 1) % strip.count), Math.floor(Math.random() * frameMs));
+    const timer = setInterval(() => setFrame((f) => (f + 1) % strip.count), frameMs);
     return () => {
-      clearTimeout(start);
+      clearTimeout(kick);
       clearInterval(timer);
     };
-  }, [walking, frameMs]);
+  }, [animated, frameMs, strip.count]);
 
-  const crop = CROP[dir];
-  const k = size / crop.h;
+  const k = size / strip.h;
+  const i = frame % strip.count;
   return (
-    <View style={{ width: crop.w * k, height: size, overflow: 'hidden' }}>
+    <View style={{ width: strip.w * k, height: size, overflow: 'hidden' }}>
       <Image
-        source={SHEET}
+        source={strip.src}
         resizeMode="stretch"
         style={{
           position: 'absolute',
-          width: SHEET_PX * k,
-          height: CELL * ROWS * k,
-          left: -(frame * CELL + crop.x) * k,
-          top: -(crop.row * CELL + crop.y) * k,
+          width: strip.w * strip.count * k,
+          height: size,
+          left: -i * strip.w * k,
+          top: 0,
         }}
       />
     </View>
   );
 }
 
+/** Icon cấp cừu — dùng cho hàng chờ và chú thích. */
+export function SheepBadge({ tier, team = 'w', size = 30 }: { tier: number; team?: SheepTeam; size?: number }) {
+  return <Image source={sheepBadge(tier, team)} resizeMode="contain" style={{ width: size, height: size }} />;
+}
+
 /**
  * Một con cừu trên sân: tự trượt tới ô mới thay vì nhảy cóc mỗi lần server tick,
- * và nảy nhẹ theo nhịp bước.
+ * nảy nhẹ theo nhịp bước, và giật lùi một cái khi đang húc nhau.
  */
 export function SheepUnit({
   x,
   y,
-  size,
-  dir,
+  width,
+  height,
   moveMs = 620,
+  clashing,
   children,
 }: {
   x: number;
   y: number;
-  size: number;
-  dir: SheepDir;
+  width: number;
+  height: number;
   moveMs?: number;
+  clashing?: boolean;
   children?: React.ReactNode;
 }) {
   const pos = useRef(new Animated.ValueXY({ x, y })).current;
@@ -121,22 +111,24 @@ export function SheepUnit({
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(hop, { toValue: 1, duration: 340, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(hop, { toValue: 0, duration: 340, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(hop, { toValue: 1, duration: clashing ? 90 : 320, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(hop, { toValue: 0, duration: clashing ? 90 : 320, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
       ]),
     );
     loop.start();
     return () => loop.stop();
-  }, [hop]);
+  }, [hop, clashing]);
 
-  const bob = hop.interpolate({ inputRange: [0, 1], outputRange: [0, -size * 0.06] });
+  const bob = hop.interpolate({ inputRange: [0, 1], outputRange: [0, clashing ? -height * 0.1 : -height * 0.05] });
 
   return (
     <Animated.View
       style={{
         position: 'absolute',
-        width: size,
-        height: size,
+        width,
+        height,
+        alignItems: 'center',
+        justifyContent: 'flex-end',
         transform: [{ translateX: pos.x }, { translateY: Animated.add(pos.y, bob) }],
       }}
     >
