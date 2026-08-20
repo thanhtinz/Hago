@@ -3,12 +3,12 @@ import { Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bar, Txt } from '../components/ui';
 import { Icon } from '../components/Icon';
-import { SheepPiece } from '../components/Piece';
+import { SheepSprite, SheepUnit } from '../components/SheepSprite';
 import { C, R, S, SEAT_COLORS, softShadow } from '../theme';
 import { BoardProps } from './shared';
 
 /** Cừu càng cấp cao càng to và nhiều chi tiết (sừng, gạc, vương miện). */
-const LEVEL_SCALE = [0.78, 0.78, 0.86, 0.94, 1.02, 1.1];
+const LEVEL_SCALE = [0.86, 0.86, 0.96, 1.06, 1.16, 1.26];
 
 export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
   const [now, setNow] = useState(Date.now());
@@ -147,61 +147,60 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
           />
         ))}
 
-        {/* Cừu */}
+        {/* Cừu — sprite đi bộ thật, trượt mượt tới ô mới thay vì nhảy cóc */}
         {view.units.map((u: any) => {
           const row = rowOf(u.pos);
           const mine = u.seat === me;
           const clashing = u.clashAt && now - u.clashAt < 400;
+          const body = cell * (LEVEL_SCALE[u.level] ?? 0.78);
           return (
-            <View
-              key={u.id}
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                left: u.lane * cell,
-                top: row * cell,
-                width: cell,
-                height: cell,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {/* Vòng nền theo màu phe để phân biệt cừu ta / cừu địch */}
-              <View
-                style={{
-                  position: 'absolute',
-                  width: cell * 0.9,
-                  height: cell * 0.9,
-                  borderRadius: cell,
-                  backgroundColor: clashing ? '#FFD8D8' : mine ? 'rgba(255,255,255,0.55)' : 'rgba(46,37,69,0.13)',
-                  borderWidth: 2,
-                  borderColor: mine ? SEAT_COLORS[me] : SEAT_COLORS[foe],
-                }}
-              />
-              {/* Cừu mình trắng, cừu đối thủ sẫm — nhìn lướt vẫn phân biệt được phe. */}
-              <SheepPiece
-                size={cell * (LEVEL_SCALE[u.level] ?? 0.78)}
-                level={u.level}
-                body={mine ? '#FFFFFF' : '#3B2A5A'}
-              />
-              {u.level > 1 ? (
+            <SheepUnit key={u.id} x={u.lane * cell} y={row * cell} size={cell} dir={mine ? 'up' : 'down'} moveMs={view.moveMs ?? 620}>
+              <View pointerEvents="none" style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                {/* Bóng đổ dưới chân cho cừu đứng trên mặt cỏ chứ không lơ lửng */}
                 <View
                   style={{
                     position: 'absolute',
-                    right: 1,
-                    bottom: 1,
-                    minWidth: 15,
-                    paddingHorizontal: 3,
-                    borderRadius: 8,
-                    backgroundColor: mine ? SEAT_COLORS[me] : SEAT_COLORS[foe],
+                    bottom: cell * 0.1,
+                    width: body * 0.62,
+                    height: body * 0.18,
+                    borderRadius: body,
+                    backgroundColor: 'rgba(20,60,35,0.28)',
                   }}
-                >
-                  <Txt size={9} weight="bold" color="#fff" center>
-                    {u.level}
-                  </Txt>
-                </View>
-              ) : null}
-            </View>
+                />
+                {/* Vòng nền theo màu phe để phân biệt cừu ta / cừu địch */}
+                <View
+                  style={{
+                    position: 'absolute',
+                    width: cell * 0.86,
+                    height: cell * 0.86,
+                    borderRadius: cell,
+                    backgroundColor: clashing ? 'rgba(255,140,140,0.55)' : mine ? 'rgba(255,255,255,0.22)' : 'rgba(46,37,69,0.18)',
+                    borderWidth: 2.5,
+                    borderColor: mine ? SEAT_COLORS[me] : SEAT_COLORS[foe],
+                  }}
+                />
+                <SheepSprite size={body} dir={mine ? 'up' : 'down'} />
+                {u.level > 1 ? (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      right: 1,
+                      bottom: 1,
+                      minWidth: 16,
+                      paddingHorizontal: 3,
+                      borderRadius: 8,
+                      backgroundColor: mine ? SEAT_COLORS[me] : SEAT_COLORS[foe],
+                      borderWidth: 1.5,
+                      borderColor: '#fff',
+                    }}
+                  >
+                    <Txt size={9} weight="bold" color="#fff" center>
+                      {u.level}
+                    </Txt>
+                  </View>
+                ) : null}
+              </View>
+            </SheepUnit>
           );
         })}
       </View>
@@ -251,8 +250,7 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
                 borderStyle: lvl ? 'solid' : 'dashed',
               }}
             >
-              {/* Trên nền trắng của hàng chờ thì cừu tô màu phe mới nhìn ra. */}
-              {lvl ? <SheepPiece size={30} level={lvl} body={i === 0 ? '#1F8F5F' : SEAT_COLORS[me]} /> : null}
+              {lvl ? <SheepSprite size={32} dir="down" walking={false} /> : null}
             </View>
           );
         })}

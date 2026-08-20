@@ -9,23 +9,6 @@ import { Art, ArtName } from './Art';
  * Ở đây chỉ quyết định *dùng asset nào* và *tô màu gì* theo trạng thái ván đấu.
  */
 
-/** Cừu Sheep Battle — cùng một asset, bậc cao thì to hơn và đổi tông. */
-const TIER_TINT = ['#FFFFFF', '#FFFFFF', '#FFF0C2', '#D9FBE7', '#DCE9FF', '#F3DBFF'];
-
-export function SheepPiece({
-  size = 32,
-  level = 1,
-  body,
-}: {
-  size?: number;
-  level?: number;
-  /** Cho phép ép tông (ví dụ cừu trong hàng chờ). */
-  body?: string;
-  outline?: string;
-}) {
-  return <Art name="sheep" size={size} color={body ?? TIER_TINT[Math.min(level, 5)]} />;
-}
-
 /** Quân cá ngựa — dùng quân mã cờ vua. */
 export function HorsePiece({ size = 26, color = '#FF7A59' }: { size?: number; color?: string }) {
   return <Art name="knight" size={size} color={color} />;

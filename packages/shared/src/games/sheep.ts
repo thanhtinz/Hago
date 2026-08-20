@@ -258,6 +258,8 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
       score: state.score,
       targetScore: state.targetScore,
       maxLevel: MAX_LEVEL,
+      // Client dùng nhịp này để trượt cừu sang ô mới đúng bằng thời gian server đi.
+      moveMs: MOVE_MS,
       mySeat: seat,
       // Hàng chờ của đối thủ được giấu, chỉ lộ số lượng.
       myQueue: seat >= 0 ? state.queues[seat] : [],
