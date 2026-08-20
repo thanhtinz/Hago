@@ -1,0 +1,90 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+
+function guessHost(): string {
+  const fromEnv = process.env.EXPO_PUBLIC_API_URL;
+  if (fromEnv) return fromEnv;
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return `${window.location.protocol}//${window.location.hostname}:4000`;
+  }
+  // Trên thiết bị thật, lấy IP máy dev từ Expo host URI.
+  const hostUri = (Constants.expoConfig as any)?.hostUri ?? (Constants as any)?.manifest2?.extra?.expoGo?.debuggerHost;
+  const host = typeof hostUri === 'string' ? hostUri.split(':')[0] : 'localhost';
+  return `http://${host}:4000`;
+}
+
+export const API_URL = guessHost();
+export const TOKEN_KEY = 'hago.token';
+
+let memoryToken: string | null = null;
+
+export async function setToken(token: string | null): Promise<void> {
+  memoryToken = token;
+  if (token) await AsyncStorage.setItem(TOKEN_KEY, token);
+  else await AsyncStorage.removeItem(TOKEN_KEY);
+}
+
+export async function getToken(): Promise<string | null> {
+  if (memoryToken) return memoryToken;
+  memoryToken = await AsyncStorage.getItem(TOKEN_KEY);
+  return memoryToken;
+}
+
+export class ApiError extends Error {
+  constructor(public code: string, public status: number) {
+    super(code);
+  }
+}
+
+export async function api<T = any>(
+  path: string,
+  opts: { method?: string; body?: unknown; auth?: boolean } = {},
+): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (opts.auth !== false) {
+    const token = await getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_URL}${path}`, {
+    method: opts.method ?? 'GET',
+    headers,
+    body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+  });
+  const text = await res.text();
+  const json = text ? JSON.parse(text) : {};
+  if (!res.ok) throw new ApiError(json.error ?? 'REQUEST_FAILED', res.status);
+  return json as T;
+}
+
+export function avatarUrl(style: string | undefined, seed: string | undefined, size = 160): string {
+  return `${API_URL}/avatar/${style || 'adventurer'}/${encodeURIComponent(seed || 'hago')}.svg?size=${size}`;
+}
+
+/** Thông báo lỗi thân thiện cho người chơi Việt. */
+export const ERROR_TEXT: Record<string, string> = {
+  INVALID_CREDENTIALS: 'Sai tài khoản hoặc mật khẩu',
+  USERNAME_TAKEN: 'Tên đăng nhập đã có người dùng',
+  EMAIL_TAKEN: 'Email đã được đăng ký',
+  VALIDATION: 'Thông tin chưa hợp lệ',
+  TOO_MANY_ATTEMPTS: 'Thử lại sau ít phút nhé',
+  ACCOUNT_BANNED: 'Tài khoản đã bị khoá',
+  INSUFFICIENT_FUNDS: 'Bạn không đủ tiền',
+  ALREADY_OWNED: 'Bạn đã sở hữu món này',
+  ROOM_FULL: 'Phòng đã đầy',
+  ROOM_NOT_FOUND: 'Không tìm thấy phòng',
+  WRONG_PASSWORD: 'Sai mật khẩu phòng',
+  ROOM_IN_PROGRESS: 'Phòng đang trong trận',
+  NOT_ENOUGH_PLAYERS: 'Chưa đủ người chơi',
+  PLAYERS_NOT_READY: 'Còn người chưa sẵn sàng',
+  NOT_YOUR_TURN: 'Chưa tới lượt bạn',
+  CELL_TAKEN: 'Ô này đã có quân',
+  RATE_LIMITED: 'Bạn thao tác hơi nhanh, chờ chút nhé',
+  MUTED: 'Bạn đang bị hạn chế chat',
+  BLOCKED: 'Không thể tương tác với người này',
+  NETWORK: 'Mất kết nối tới máy chủ',
+};
+
+export function friendlyError(code: string): string {
+  return ERROR_TEXT[code] ?? 'Có lỗi xảy ra, thử lại nhé';
+}

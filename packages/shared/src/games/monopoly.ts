@@ -74,6 +74,12 @@ function buildBoard(): Tile[] {
     if (gi === 4) push({ kind: 'gotojail', name: 'Vào Tù' });
   });
   push({ kind: 'chance', name: 'Cơ Hội' });
+  // Bàn cờ phải chia hết cho 4 để 4 cạnh dài bằng nhau khi render.
+  const filler: TileKind[] = ['chance', 'park', 'tax'];
+  while (board.length % 4 !== 0) {
+    const kind = filler[board.length % filler.length];
+    push({ kind, name: kind === 'chance' ? 'Cơ Hội' : kind === 'park' ? 'Bãi Đỗ' : 'Thuế 10%' });
+  }
   return board;
 }
 
