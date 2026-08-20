@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, Pressable, TextInput, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Empty, Txt } from '../../src/components/ui';
@@ -107,13 +107,18 @@ export default function ChatScreen() {
         }}
       />
 
-      <View style={{ paddingHorizontal: S.lg, paddingBottom: 6, flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0, height: 42 }}
+        contentContainerStyle={{ paddingHorizontal: S.lg, gap: 10, alignItems: 'center' }}
+      >
         {STICKERS.map((s) => (
-          <Pressable key={s} onPress={() => send(s, 'sticker')} style={{ padding: 4 }}>
-            <Txt size={22}>{s}</Txt>
+          <Pressable key={s} onPress={() => send(s, 'sticker')}>
+            <Txt size={24}>{s}</Txt>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
 
       <View style={{ flexDirection: 'row', gap: S.sm, padding: S.md, paddingBottom: Math.max(insets.bottom, S.md), alignItems: 'center', backgroundColor: C.surface, borderTopWidth: 2, borderColor: C.line }}>
         <TextInput

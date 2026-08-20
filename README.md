@@ -242,3 +242,18 @@ nên app nhẹ và mọi item mới chỉ cần một dòng cấu hình màu.
 | Skill-based MM nâng cao, seasonal rank | 🔜 Phase 2 |
 
 Chi tiết kỹ thuật: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · API: [`docs/API.md`](docs/API.md)
+
+---
+
+## ✅ Kiểm thử
+
+```bash
+npm test                    # chạy toàn bộ
+npm test -w @hago/shared    # 31 test: 7 engine, redact thông tin ẩn, Elo, XP cap
+npm test -w @hago/server    # 13 test tích hợp: đăng ký → ghép trận → thưởng → shop → admin
+```
+
+Test tích hợp khởi động server thật trên SQLite tạm và điều khiển hai WebSocket client
+chơi trọn một ván Caro ranked, kiểm tra: kết quả do server quyết định, Elo bảo toàn tổng,
+`action_id` trùng không tính hai lần, lọc từ tục, rate limit chat, không mua trùng vật phẩm,
+không claim quest hai lần, RBAC admin và ban thu hồi phiên.
