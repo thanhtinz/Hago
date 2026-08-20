@@ -2,23 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Btn, Card, Chip, Txt } from '../components/ui';
+import { Chibi } from '../components/Chibi';
 import { C, R, S } from '../theme';
 import { BoardProps, GameLog } from './shared';
 
-const ROLE_INFO: Record<string, { emoji: string; name: string; hint: string; color: string }> = {
-  werewolf: { emoji: '🐺', name: 'Sói', hint: 'Mỗi đêm chọn một dân làng để cắn', color: '#E9556D' },
-  seer: { emoji: '🔮', name: 'Tiên Tri', hint: 'Mỗi đêm soi 1 người xem có phải Sói', color: '#7C6BFF' },
-  guard: { emoji: '🛡️', name: 'Bảo Vệ', hint: 'Bảo vệ 1 người mỗi đêm, không lặp lại 2 đêm liền', color: '#2FA9F5' },
-  witch: { emoji: '🧪', name: 'Phù Thuỷ', hint: 'Có bình cứu và bình độc, mỗi loại dùng 1 lần', color: '#39C77F' },
-  hunter: { emoji: '🏹', name: 'Thợ Săn', hint: 'Khi chết có thể bắn theo 1 người', color: '#FF8A3D' },
-  villager: { emoji: '🧑‍🌾', name: 'Dân Làng', hint: 'Không có kỹ năng — hãy suy luận và bỏ phiếu đúng', color: '#8E96A8' },
+const ROLE_INFO: Record<string, { art: string; name: string; hint: string; color: string }> = {
+  werewolf: { art: 'wolf', name: 'Sói', hint: 'Mỗi đêm chọn một dân làng để cắn', color: '#E9556D' },
+  seer: { art: 'crystal', name: 'Tiên Tri', hint: 'Mỗi đêm soi 1 người xem có phải Sói', color: '#7C6BFF' },
+  guard: { art: 'shield', name: 'Bảo Vệ', hint: 'Bảo vệ 1 người mỗi đêm, không lặp lại 2 đêm liền', color: '#2FA9F5' },
+  witch: { art: 'potion', name: 'Phù Thuỷ', hint: 'Có bình cứu và bình độc, mỗi loại dùng 1 lần', color: '#39C77F' },
+  hunter: { art: 'bow', name: 'Thợ Săn', hint: 'Khi chết có thể bắn theo 1 người', color: '#FF8A3D' },
+  villager: { art: 'farmer', name: 'Dân Làng', hint: 'Không có kỹ năng — hãy suy luận và bỏ phiếu đúng', color: '#8E96A8' },
 };
 
-const PHASE_TEXT: Record<string, { title: string; emoji: string; colors: [string, string] }> = {
-  night: { title: 'Đêm xuống', emoji: '🌙', colors: ['#3A2E6E', '#1C1636'] },
-  day: { title: 'Trời sáng — thảo luận', emoji: '☀️', colors: ['#FFD9A0', '#FFF3E0'] },
-  vote: { title: 'Bỏ phiếu treo cổ', emoji: '🗳️', colors: ['#FFB4A2', '#FFE5DC'] },
-  result: { title: 'Kết thúc', emoji: '🏁', colors: ['#C8B6FF', '#EDE7FF'] },
+const PHASE_TEXT: Record<string, { title: string; art: string; colors: [string, string] }> = {
+  night: { title: 'Đêm xuống', art: 'moon', colors: ['#3A2E6E', '#1C1636'] },
+  day: { title: 'Trời sáng — thảo luận', art: 'sun', colors: ['#FFD9A0', '#FFF3E0'] },
+  vote: { title: 'Bỏ phiếu treo cổ', art: 'ballot', colors: ['#FFB4A2', '#FFE5DC'] },
+  result: { title: 'Kết thúc', art: 'flag-finish', colors: ['#C8B6FF', '#EDE7FF'] },
 };
 
 export default function WerewolfTable({ view, mySeat, send }: BoardProps) {
@@ -40,7 +41,7 @@ export default function WerewolfTable({ view, mySeat, send }: BoardProps) {
   return (
     <View style={{ gap: S.md }}>
       <LinearGradient colors={phase.colors} style={{ borderRadius: R.lg, padding: S.lg, gap: 4, alignItems: 'center' }}>
-        <Text style={{ fontSize: 34 }}>{phase.emoji}</Text>
+        <Chibi name={phase.art} size={38} />
         <Txt size={20} weight="display" color={dark ? '#fff' : C.ink}>
           {phase.title}
         </Txt>
@@ -52,7 +53,7 @@ export default function WerewolfTable({ view, mySeat, send }: BoardProps) {
       {role ? (
         <Card style={{ gap: 4, borderColor: role.color }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontSize: 26 }}>{role.emoji}</Text>
+            <Chibi name={role.art} size={30} />
             <View style={{ flex: 1 }}>
               <Txt size={15} weight="heading" color={role.color}>
                 Bạn là {role.name}
@@ -68,12 +69,15 @@ export default function WerewolfTable({ view, mySeat, send }: BoardProps) {
 
       {view.myRole === 'seer' && view.seerResults?.length ? (
         <Card style={{ gap: 4, borderColor: '#7C6BFF' }}>
-          <Txt size={13} weight="heading" color="#7C6BFF">
-            🔮 Kết quả soi (chỉ bạn thấy)
-          </Txt>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Chibi name="crystal" size={18} />
+            <Txt size={13} weight="heading" color="#7C6BFF">
+              Kết quả soi (chỉ bạn thấy)
+            </Txt>
+          </View>
           {view.seerResults.map((r: any, i: number) => (
             <Txt key={i} size={12} color={C.inkSoft}>
-              Đêm {r.day}: {view.seats[r.target]?.name} là {r.isWolf ? '🐺 SÓI' : '✅ không phải sói'}
+              Đêm {r.day}: {view.seats[r.target]?.name} {r.isWolf ? 'là SÓI 🐺' : 'không phải sói ✅'}
             </Txt>
           ))}
         </Card>
@@ -101,15 +105,18 @@ export default function WerewolfTable({ view, mySeat, send }: BoardProps) {
                 opacity: s.alive ? 1 : 0.55,
               }}
             >
-              <Text style={{ fontSize: 22 }}>{s.alive ? '🙂' : '💀'}</Text>
+              <Chibi name={s.alive ? 'smile' : 'skull'} size={26} />
               <Txt size={11} weight="bold" numberOfLines={1}>
                 {s.name}
                 {s.seat === mySeat ? ' (bạn)' : ''}
               </Txt>
               {s.role ? (
-                <Txt size={9} weight="bold" color={ROLE_INFO[s.role]?.color}>
-                  {ROLE_INFO[s.role]?.emoji} {ROLE_INFO[s.role]?.name}
-                </Txt>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Chibi name={ROLE_INFO[s.role]?.art ?? 'farmer'} size={11} />
+                  <Txt size={9} weight="bold" color={ROLE_INFO[s.role]?.color}>
+                    {ROLE_INFO[s.role]?.name}
+                  </Txt>
+                </View>
               ) : (
                 <Txt size={9} color={C.inkFaint}>
                   ???
@@ -127,7 +134,7 @@ export default function WerewolfTable({ view, mySeat, send }: BoardProps) {
 
       {view.winner ? (
         <Card style={{ alignItems: 'center', gap: 4, borderColor: C.primary }}>
-          <Text style={{ fontSize: 34 }}>{view.winner === 'wolves' ? '🐺' : '🏡'}</Text>
+          <Chibi name={view.winner === 'wolves' ? 'wolf' : 'house'} size={38} />
           <Txt size={18} weight="display">
             Phe {view.winner === 'wolves' ? 'Sói' : 'Dân làng'} chiến thắng!
           </Txt>

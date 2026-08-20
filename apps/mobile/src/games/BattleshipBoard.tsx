@@ -1,18 +1,20 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Btn, Chip, Txt } from '../components/ui';
+import { Chibi } from '../components/Chibi';
 import { C, R, S } from '../theme';
 import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
 
-export default function BattleshipBoard({ view, mySeat, send, deadline }: BoardProps) {
+export default function BattleshipBoard({ view, mySeat, send, deadline, space }: BoardProps) {
   const size = view.size ?? 10;
-  const cell = Math.min(30, Math.floor(320 / size));
+  // Hai bàn xếp dọc: bàn địch lớn, bàn mình nhỏ hơn ~60%.
+  const cell = Math.max(14, Math.min(34, Math.floor(Math.min(space.width - 24, (space.height - 120) / 1.7) / size)));
   const yourTurn = view.turnSeat === mySeat && !view.over && view.phase === 'battle';
 
   if (view.phase === 'placement') {
     return (
       <View style={{ gap: S.lg, alignItems: 'center' }}>
-        <Text style={{ fontSize: 52 }}>⚓</Text>
+        <Chibi name="anchor" size={56} />
         <Txt size={20} weight="display">
           Bố trí hạm đội
         </Txt>
@@ -22,7 +24,12 @@ export default function BattleshipBoard({ view, mySeat, send, deadline }: BoardP
         <TurnTimer deadline={deadline} total={60} />
         <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
           {view.fleet.map((len: number, i: number) => (
-            <Chip key={i} label={`${len} ô`} icon="🚢" color={C.sky} soft={C.skySoft} size={11} />
+            <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.skySoft, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999 }}>
+              <Chibi name="ship" size={14} />
+              <Txt size={11} weight="bold" color={C.sky}>
+                {len} ô
+              </Txt>
+            </View>
           ))}
         </View>
         {view.me?.placed ? (
@@ -37,16 +44,19 @@ export default function BattleshipBoard({ view, mySeat, send, deadline }: BoardP
 
   return (
     <View style={{ gap: S.md }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <PlayerStrip players={view.players} activeSeat={view.turnSeat} mySeat={mySeat} />
         <TurnTimer deadline={deadline} total={25} />
       </View>
       <TurnBanner yourTurn={yourTurn} text={view.over ? 'Kết thúc' : yourTurn ? 'Chọn ô để khai hoả!' : 'Đối thủ đang ngắm...'} />
 
       <View style={{ alignItems: 'center', gap: 6 }}>
-        <Txt size={13} weight="heading">
-          🎯 Bàn đối thủ · còn {view.foe?.alive}/{view.foe?.total} tàu
-        </Txt>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Chibi name="target" size={18} />
+          <Txt size={13} weight="heading">
+            Bàn đối thủ · còn {view.foe?.alive}/{view.foe?.total} tàu
+          </Txt>
+        </View>
         <Grid
           size={size}
           cell={cell}
@@ -59,9 +69,12 @@ export default function BattleshipBoard({ view, mySeat, send, deadline }: BoardP
       </View>
 
       <View style={{ alignItems: 'center', gap: 6 }}>
-        <Txt size={13} weight="heading" color={C.inkSoft}>
-          🛡️ Hạm đội của bạn · còn {view.me?.alive}/{view.me?.total}
-        </Txt>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Chibi name="shield" size={16} />
+          <Txt size={13} weight="heading" color={C.inkSoft}>
+            Hạm đội của bạn · còn {view.me?.alive}/{view.me?.total}
+          </Txt>
+        </View>
         <MiniGrid size={size} cell={Math.round(cell * 0.62)} side={view.me} showShips incoming={view.foe?.shots ?? []} />
       </View>
       <GameLog log={view.log} />
@@ -124,7 +137,15 @@ function Grid({
                   borderColor: '#B6DDF5',
                 }}
               >
-                {shot ? <Text style={{ fontSize: cell * 0.55 }}>{shot.sunk !== null ? '💥' : shot.hit ? '🔥' : '·'}</Text> : null}
+                {shot ? (
+                  shot.sunk !== null ? (
+                    <Chibi name="explosion" size={cell * 0.72} />
+                  ) : shot.hit ? (
+                    <Chibi name="fire" size={cell * 0.66} />
+                  ) : (
+                    <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#9CC6E0' }} />
+                  )
+                ) : null}
                 {!shot && hasShip && !hideShips ? <View style={{ width: cell * 0.6, height: cell * 0.6, borderRadius: 3, backgroundColor: '#5E6B80' }} /> : null}
               </Pressable>
             );

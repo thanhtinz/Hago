@@ -1,10 +1,9 @@
 import React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Btn, Card, Chip, Txt } from '../components/ui';
+import { Chibi } from '../components/Chibi';
 import { C, R, S, SEAT_COLORS } from '../theme';
 import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
-
-const SIZE = 320;
 
 /** 28 ô xếp quanh khung vuông 8x8 (mỗi cạnh 7 ô). */
 function tilePos(i: number, n: number, cell: number): { x: number; y: number } {
@@ -24,24 +23,26 @@ function tilePos(i: number, n: number, cell: number): { x: number; y: number } {
   }
 }
 
-const KIND_EMOJI: Record<string, string> = {
-  start: '🚩',
-  tax: '🧾',
-  chance: '❓',
-  jail: '🚔',
-  gotojail: '👮',
-  park: '🅿️',
+const KIND_ART: Record<string, string> = {
+  start: 'flag-red',
+  tax: 'receipt',
+  chance: 'question',
+  jail: 'police',
+  gotojail: 'police',
+  park: 'parking',
 };
 
-export default function MonopolyBoard({ view, mySeat, send, deadline }: BoardProps) {
+export default function MonopolyBoard({ view, mySeat, send, deadline, space }: BoardProps) {
   const n = view.board.length;
-  const cell = SIZE / (n / 4 + 1);
+  const SIZE = Math.max(260, Math.min(space.width - 20, space.height - 190));
+  // Trừ viền 3px mỗi bên để hàng ô ngoài cùng nằm gọn trong khung.
+  const cell = (SIZE - 6) / (n / 4 + 1);
   const yourTurn = view.turnSeat === mySeat && !view.over;
   const me = view.cash?.[mySeat];
 
   return (
     <View style={{ gap: S.md }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <PlayerStrip
           players={view.players}
           activeSeat={view.turnSeat}
@@ -84,7 +85,7 @@ export default function MonopolyBoard({ view, mySeat, send, deadline }: BoardPro
                     {t.name}
                   </Txt>
                 ) : (
-                  <Text style={{ fontSize: cell * 0.4 }}>{KIND_EMOJI[t.kind]}</Text>
+                  <Chibi name={KIND_ART[t.kind] ?? 'question'} size={cell * 0.5} />
                 )}
                 <View style={{ flexDirection: 'row', gap: 1, marginTop: 1 }}>
                   {here.map((c: any) => (
@@ -96,16 +97,20 @@ export default function MonopolyBoard({ view, mySeat, send, deadline }: BoardPro
           })}
 
           <View style={{ position: 'absolute', left: cell * 1.4, top: cell * 1.4, right: cell * 1.4, bottom: cell * 1.4, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-            <Text style={{ fontSize: 30 }}>🏦</Text>
+            <Chibi name="game-monopoly" size={34} />
             <Txt size={13} weight="display" color={C.rose}>
               Vòng {view.round}/{view.maxRounds}
             </Txt>
             <View style={{ flexDirection: 'row', gap: 6 }}>
               {(view.dice ?? [0, 0]).map((d: number, i: number) => (
                 <View key={i} style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: C.surface, borderWidth: 2, borderColor: C.line, alignItems: 'center', justifyContent: 'center' }}>
-                  <Txt size={16} weight="display">
-                    {d || '–'}
-                  </Txt>
+                  {d ? (
+                    <Txt size={16} weight="display">
+                      {d}
+                    </Txt>
+                  ) : (
+                    <Chibi name="dice" size={18} opacity={0.45} />
+                  )}
                 </View>
               ))}
             </View>
@@ -142,7 +147,7 @@ export default function MonopolyBoard({ view, mySeat, send, deadline }: BoardPro
             <Txt size={10} color={C.inkFaint}>
               {c.bankrupt ? 'Phá sản 💥' : `${c.properties.length} bất động sản`}
             </Txt>
-            {c.jailTurns > 0 ? <Chip label={`Tù ${c.jailTurns} lượt`} icon="🚔" color={C.danger} soft="#FFE5E5" size={9} /> : null}
+            {c.jailTurns > 0 ? <Chip label={`Tù ${c.jailTurns} lượt`} icon="🚓" color={C.danger} soft="#FFE5E5" size={9} /> : null}
           </View>
         ))}
       </ScrollView>

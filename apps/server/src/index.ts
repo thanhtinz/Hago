@@ -29,6 +29,16 @@ app.get('/avatar/:style/:seed.svg', (req, res) => {
   res.send(svg);
 });
 
+/** Asset chibi (Noto Emoji, Apache 2.0) — bất biến nên cache dài. */
+app.use(
+  '/asset/chibi',
+  express.static(path.join(__dirname, '../assets/chibi'), {
+    maxAge: '30d',
+    immutable: true,
+    setHeaders: (res) => res.setHeader('Content-Type', 'image/svg+xml'),
+  }),
+);
+
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/social', socialRouter);

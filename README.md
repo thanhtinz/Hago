@@ -20,6 +20,10 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/04-social.png) | ![](docs/screenshots/11-chat.png) | ![](docs/screenshots/05-shop.png) |
 
+| Tìm phòng | Tạo phòng | Chơi nhanh |
+|---|---|---|
+| ![](docs/screenshots/41-room-find.png) | ![](docs/screenshots/40-room-create.png) | ![](docs/screenshots/12-quickplay.png) |
+
 | Hồ sơ | Nhiệm vụ | Bảng xếp hạng |
 |---|---|---|
 | ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/07-quests.png) | ![](docs/screenshots/08-leaderboard.png) |
@@ -34,9 +38,12 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/23-game-ludo.png) | ![](docs/screenshots/24-game-monopoly.png) | ![](docs/screenshots/25-game-sheep.png) |
 
-| Ma Sói | Tìm trận | Kết quả |
+| Ma Sói | Đang tìm trận | Kho game |
 |---|---|---|
-| ![](docs/screenshots/26-game-werewolf.png) | ![](docs/screenshots/13-searching.png) | ![](docs/screenshots/12-quickplay.png) |
+| ![](docs/screenshots/26-game-werewolf.png) | ![](docs/screenshots/13-searching.png) | ![](docs/screenshots/03-games.png) |
+
+Mọi game chạy **full screen**: HUD chỉ cao 46px, phần còn lại là bàn chơi và bàn cờ tự
+co giãn theo kích thước màn hình.
 
 ### Admin Dashboard
 
@@ -122,8 +129,15 @@ sinh tự động, level/XP, rank Bronze→Master, thống kê theo từng game.
 **Social** — kết bạn hai chiều, chặn, chat 1-1 và chat phòng, sticker, presence online,
 báo cáo người chơi, lọc từ ngữ tục tĩu, rate limit chống spam.
 
-**Lobby & matchmaking** — phòng public/private có mã 6 ký tự, mật khẩu, kick, mời bạn,
-sẵn sàng; Quick Match ghép theo game + mode + region, cửa sổ Elo nới dần theo thời gian chờ.
+**Lobby & matchmaking** — màn *Phòng chơi* gồm hai tab:
+- **Tìm phòng**: lọc theo game, ẩn phòng đã đầy, tự làm mới mỗi 5 giây, hiện mã phòng,
+  chế độ, số chỗ trống và avatar người đang ngồi; phòng khoá sẽ hỏi mật khẩu; vào nhanh
+  bằng mã 6 ký tự.
+- **Tạo phòng**: chọn game, chế độ Tự do/Xếp hạng, số người tối đa, riêng tư + mật khẩu,
+  và tuỳ chọn riêng từng game (bàn Caro 9–19, thời lượng Sheep Battle, số vòng Cờ Tỷ Phú).
+
+Trong phòng: kick, mời bạn bè, đánh dấu sẵn sàng, chat phòng. Quick Match ghép theo
+game + mode + region với cửa sổ Elo nới dần theo thời gian chờ.
 
 **Realtime** — Socket.IO, idempotency theo `action_id`, version state tăng dần,
 reconnect tự động khôi phục ván đang chơi, grace period 60s trước khi xử thua AFK.
@@ -199,14 +213,22 @@ node apps/server/scripts/bot.mjs --game ludo --count 3 --loop
 
 | Loại | Nguồn | Giấy phép |
 |---|---|---|
-| Avatar chibi | [DiceBear](https://github.com/dicebear/dicebear) — render SVG server-side, 10 bộ style | MIT |
+| Art game & vật phẩm | [Noto Emoji](https://github.com/googlefonts/noto-emoji) — 68 SVG chibi trong `apps/server/assets/chibi/` | Apache-2.0 |
+| Avatar người chơi | [DiceBear](https://github.com/dicebear/dicebear) — render SVG server-side, 10 bộ style | MIT |
 | Font tiêu đề | [Baloo 2](https://github.com/googlefonts/baloo) qua `@expo-google-fonts` | OFL |
 | Font nội dung | [Be Vietnam Pro](https://github.com/bettergui/BeVietnamPro) — hỗ trợ tiếng Việt đầy đủ | OFL |
-| Icon & minh hoạ | Emoji hệ thống | — |
-| Khung, nền, bàn cờ, hiệu ứng | **CSS/gradient tự vẽ** trong `src/theme.ts` | — |
+| Khung, nền, bàn cờ, hiệu ứng cosmetic | **CSS/gradient tự vẽ** trong `src/theme.ts` | — |
 
-Không phụ thuộc asset nhị phân nào: avatar sinh theo seed, cosmetic vẽ bằng gradient,
-nên app nhẹ và mọi item mới chỉ cần một dòng cấu hình màu.
+Chọn Noto Emoji vì nét tròn mềm và mặt dễ thương đúng tông chibi, quan trọng hơn là
+**hiển thị giống hệt nhau trên iOS / Android / Web** — emoji hệ thống mỗi nền tảng vẽ
+một kiểu nên bàn cờ sẽ lệch tông. Asset được server phục vụ tại `/asset/chibi/:name.svg`
+(cache 30 ngày) và tải lại bằng:
+
+```bash
+node apps/server/scripts/fetch-assets.mjs
+```
+
+Cosmetic trong shop vẫn vẽ bằng gradient nên thêm item mới chỉ cần một dòng cấu hình màu.
 
 ---
 

@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Chip, Txt } from '../components/ui';
+import { Chibi } from '../components/Chibi';
 import { C, R, S, SEAT_COLORS } from '../theme';
 import { BoardProps, GameLog } from './shared';
 
-const ARENA = 320;
-
-export default function SheepArena({ view, mySeat, send }: BoardProps) {
+export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
+  // Chừa chỗ cho D-pad phía dưới.
+  const ARENA = Math.max(220, Math.min(space.width - 20, space.height - 250));
   const cell = ARENA / view.width;
   const [left, setLeft] = useState(view.remainingMs ?? 0);
 
@@ -56,7 +57,7 @@ export default function SheepArena({ view, mySeat, send }: BoardProps) {
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ fontSize: cell * 0.55 }}>🏠</Text>
+              <Chibi name="house" size={cell * 0.66} />
             </View>
           ))}
           {/* Cừu */}
@@ -64,7 +65,7 @@ export default function SheepArena({ view, mySeat, send }: BoardProps) {
             .filter((s: any) => !s.penned)
             .map((s: any) => (
               <View key={s.id} style={{ position: 'absolute', left: s.x * cell, top: s.y * cell, width: cell, height: cell, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: cell * 0.7 }}>{s.golden ? '🐏' : '🐑'}</Text>
+                <Chibi name={s.golden ? 'sheep-golden' : 'sheep'} size={cell * 0.86} />
               </View>
             ))}
           {/* Người chơi */}
@@ -85,27 +86,30 @@ export default function SheepArena({ view, mySeat, send }: BoardProps) {
                 borderColor: a.seat === mySeat ? '#fff' : 'rgba(0,0,0,0.2)',
               }}
             >
-              <Text style={{ fontSize: cell * 0.55 }}>{a.carrying != null ? '🧑‍🌾' : '🏃'}</Text>
+              <Chibi name={a.carrying != null ? 'farmer' : 'runner'} size={cell * 0.66} />
             </View>
           ))}
         </View>
       </View>
 
-      <Txt size={12} color={C.inkSoft} center>
-        {me?.carrying != null ? 'Đang vác cừu — chạy về chuồng của bạn! 🏠' : 'Đi tới ô có cừu để bắt 🐑 · Cừu vàng 🐏 = 3 điểm'}
-      </Txt>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+        <Chibi name={me?.carrying != null ? 'house' : 'sheep-golden'} size={18} />
+        <Txt size={12} color={C.inkSoft}>
+          {me?.carrying != null ? 'Đang vác cừu — chạy về chuồng của bạn!' : 'Đi tới ô có cừu để bắt · Cừu vàng = 3 điểm'}
+        </Txt>
+      </View>
 
       {/* D-pad chibi */}
       <View style={{ alignItems: 'center', gap: 6 }}>
-        <DPadBtn label="⬆️" onPress={() => send('move', { dir: 'up' })} />
+        <DPadBtn label="▲" onPress={() => send('move', { dir: 'up' })} />
         <View style={{ flexDirection: 'row', gap: 6 }}>
-          <DPadBtn label="⬅️" onPress={() => send('move', { dir: 'left' })} />
+          <DPadBtn label="◀" onPress={() => send('move', { dir: 'left' })} />
           <View style={{ width: 62, height: 62, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 24 }}>{me?.carrying != null ? '🐑' : '·'}</Text>
+            {me?.carrying != null ? <Chibi name="sheep" size={30} /> : <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.line }} />}
           </View>
-          <DPadBtn label="➡️" onPress={() => send('move', { dir: 'right' })} />
+          <DPadBtn label="▶" onPress={() => send('move', { dir: 'right' })} />
         </View>
-        <DPadBtn label="⬇️" onPress={() => send('move', { dir: 'down' })} />
+        <DPadBtn label="▼" onPress={() => send('move', { dir: 'down' })} />
       </View>
       <GameLog log={view.log} />
     </View>
@@ -117,18 +121,22 @@ function DPadBtn({ label, onPress }: { label: string; onPress: () => void }) {
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
-        width: 62,
-        height: 62,
-        borderRadius: R.md,
-        backgroundColor: pressed ? C.primarySoft : C.surface,
+        width: 64,
+        height: 64,
+        borderRadius: R.lg,
+        backgroundColor: pressed ? C.mint : C.surface,
         borderWidth: 2,
-        borderColor: C.line,
+        borderColor: pressed ? C.mint : C.line,
         alignItems: 'center',
         justifyContent: 'center',
-        transform: [{ translateY: pressed ? 2 : 0 }],
+        transform: [{ translateY: pressed ? 3 : 0 }],
       })}
     >
-      <Text style={{ fontSize: 26 }}>{label}</Text>
+      {({ pressed }: any) => (
+        <Txt size={24} weight="display" color={pressed ? '#fff' : C.mint}>
+          {label}
+        </Txt>
+      )}
     </Pressable>
   );
 }

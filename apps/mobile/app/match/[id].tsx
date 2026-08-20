@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Avatar, Btn, Card, Chip, Txt } from '../../src/components/ui';
-import { C, GAME_GRADIENT, R, S, SEAT_COLORS } from '../../src/theme';
+import { Btn, Card, Txt } from '../../src/components/ui';
+import { Chibi } from '../../src/components/Chibi';
+import { GAME_ART } from '../../src/lib/assets';
+import { C, GAME_GRADIENT, R, S, softShadow } from '../../src/theme';
 import { BOARDS } from '../../src/games';
 import { friendlyError } from '../../src/lib/api';
 import { emitAck, newActionId } from '../../src/lib/socket';
@@ -20,41 +23,45 @@ const GAME_NAMES: Record<string, string> = {
   werewolf: 'Ma Sói',
 };
 
+const FLASH: Record<string, { art: string; text: string }> = {
+  win: { art: 'trophy', text: 'Thắng rồi!' },
+  kick: { art: 'explosion', text: 'Đá ngựa!' },
+  bump: { art: 'explosion', text: 'Húc trúng!' },
+  score: { art: 'star', text: 'Ghi điểm!' },
+  rent: { art: 'coin', text: 'Thu tô!' },
+  bankrupt: { art: 'explosion', text: 'Phá sản!' },
+  chance: { art: 'question', text: 'Cơ hội!' },
+};
+
 export default function MatchScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
   const { socket, profile, showToast, connected } = useStore();
   const [state, setState] = useState<any>(null);
   const [result, setResult] = useState<any>(null);
-  const [events, setEvents] = useState<string[]>([]);
+  const [flash, setFlash] = useState<string | null>(null);
+  const [menu, setMenu] = useState(false);
   const flashTimer = useRef<any>(null);
 
   useEffect(() => {
     if (!socket) return;
-    const onState = (s: any) => {
-      if (s.matchId !== id) return;
-      setState(s);
-    };
-    const onResult = (r: any) => {
-      if (r.matchId !== id) return;
-      setResult(r);
-    };
+    const onState = (s: any) => s.matchId === id && setState(s);
+    const onResult = (r: any) => r.matchId === id && setResult(r);
     const onEvent = (e: any) => {
       if (e.matchId !== id) return;
-      const labels = e.events.map((x: any) => x.type).filter((t: string) => ['win', 'kick', 'bump', 'score', 'rent', 'bankrupt', 'chance'].includes(t));
-      if (labels.length) {
-        setEvents(labels);
+      const hit = e.events.map((x: any) => x.type).find((t: string) => FLASH[t]);
+      if (hit) {
+        setFlash(hit);
         clearTimeout(flashTimer.current);
-        flashTimer.current = setTimeout(() => setEvents([]), 1400);
+        flashTimer.current = setTimeout(() => setFlash(null), 1300);
       }
     };
     socket.on('game.state', onState);
     socket.on('match.result', onResult);
     socket.on('game.event', onEvent);
-    emitAck('game.sync', { matchId: id }).then((res: any) => {
-      if (res?.ok) setState(res.state);
-    });
+    emitAck('game.sync', { matchId: id }).then((res: any) => res?.ok && setState(res.state));
     return () => {
       socket.off('game.state', onState);
       socket.off('match.result', onResult);
@@ -70,10 +77,11 @@ export default function MatchScreen() {
 
   if (!state) {
     return (
-      <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-        <Text style={{ fontSize: 44 }}>🎲</Text>
+      <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+        <StatusBar hidden />
+        <Chibi name="dice" size={54} />
         <Txt size={15} weight="heading" color={C.inkSoft}>
-          Đang tải trận đấu...
+          Đang vào trận...
         </Txt>
       </View>
     );
@@ -84,81 +92,176 @@ export default function MatchScreen() {
   const mySeat = view.mySeat ?? view.players?.findIndex((p: any) => p.id === profile?.id) ?? 0;
   const grad = (GAME_GRADIENT[state.gameType] ?? ['#FF8A65', '#FF5E7D']) as [string, string];
 
+  // Full screen: chỉ chừa HUD trên (48px) và safe area — phần còn lại là bàn chơi.
+  const HUD = 46;
+  const space = {
+    width: width - S.md * 2,
+    height: height - HUD - insets.top - insets.bottom - S.md * 2,
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <LinearGradient colors={grad} style={{ paddingTop: insets.top + S.sm, paddingBottom: S.md, paddingHorizontal: S.lg, flexDirection: 'row', alignItems: 'center', gap: S.md }}>
-        <Pressable onPress={() => router.replace('/')}>
-          <Txt size={20} weight="heading" color="rgba(255,255,255,0.95)">
+      <StatusBar hidden />
+
+      {/* HUD mỏng, không chiếm chỗ của bàn chơi */}
+      <LinearGradient
+        colors={grad}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={{
+          paddingTop: insets.top,
+          height: HUD + insets.top,
+          paddingHorizontal: S.md,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <Pressable onPress={() => setMenu(true)} hitSlop={12} style={{ paddingRight: 4 }}>
+          <Txt size={22} weight="heading" color="rgba(255,255,255,0.95)">
             ‹
           </Txt>
         </Pressable>
-        <View style={{ flex: 1 }}>
-          <Txt size={17} weight="display" color="#fff">
-            {GAME_NAMES[state.gameType]}
-          </Txt>
-          <Txt size={11} weight="medium" color="rgba(255,255,255,0.85)">
-            v{state.version} · {connected ? 'đã kết nối' : 'đang kết nối lại...'}
+        <Chibi name={GAME_ART[state.gameType] ?? 'gamepad'} size={24} />
+        <Txt size={15} weight="display" color="#fff" style={{ flex: 1 }}>
+          {GAME_NAMES[state.gameType]}
+        </Txt>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 5,
+            backgroundColor: connected ? 'rgba(255,255,255,0.25)' : C.danger,
+            paddingHorizontal: 9,
+            paddingVertical: 4,
+            borderRadius: R.pill,
+          }}
+        >
+          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: connected ? '#6BFF9E' : '#fff' }} />
+          <Txt size={10} weight="bold" color="#fff">
+            {connected ? 'LIVE' : 'Mất kết nối'}
           </Txt>
         </View>
-        <Chip label={connected ? 'LIVE' : 'OFF'} color={connected ? '#fff' : '#fff'} soft={connected ? 'rgba(255,255,255,0.28)' : C.danger} size={10} />
       </LinearGradient>
 
-      <ScrollView contentContainerStyle={{ padding: S.lg, paddingBottom: insets.bottom + 40, gap: S.md }}>
-        {Board ? <Board view={view} mySeat={mySeat} send={send} deadline={state.deadline} /> : <Txt>Game chưa hỗ trợ</Txt>}
+      {/* Bàn chơi chiếm toàn bộ phần còn lại */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          flexGrow: 1,
+          padding: S.md,
+          paddingBottom: insets.bottom + S.md,
+          // Nội dung bám sát HUD; bàn cờ vuông trên màn hình dọc luôn thừa
+          // chiều cao nên căn giữa sẽ tạo khoảng trống lớn ở trên.
+          justifyContent: 'flex-start',
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {Board ? (
+          <Board view={view} mySeat={mySeat} send={send} deadline={state.deadline} space={space} />
+        ) : (
+          <Txt center>Game chưa hỗ trợ</Txt>
+        )}
       </ScrollView>
 
-      {events.length ? (
-        <View pointerEvents="none" style={{ position: 'absolute', top: '40%', left: 0, right: 0, alignItems: 'center' }}>
-          <View style={{ backgroundColor: 'rgba(46,37,69,0.88)', paddingHorizontal: 22, paddingVertical: 12, borderRadius: R.pill }}>
+      {/* Hiệu ứng khoảnh khắc */}
+      {flash ? (
+        <View pointerEvents="none" style={{ position: 'absolute', top: '42%', left: 0, right: 0, alignItems: 'center' }}>
+          <View
+            style={[
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                backgroundColor: 'rgba(46,37,69,0.9)',
+                paddingHorizontal: 22,
+                paddingVertical: 12,
+                borderRadius: R.pill,
+              },
+              softShadow(0.3, 20, 8),
+            ]}
+          >
+            <Chibi name={FLASH[flash].art} size={28} />
             <Txt size={20} weight="display" color="#fff">
-              {events.includes('win') ? '🎉 Thắng rồi!' : events.includes('kick') ? '💥 Đá ngựa!' : events.includes('bump') ? '💢 Húc!' : events.includes('score') ? '⭐ Ghi điểm!' : events.includes('bankrupt') ? '💸 Phá sản!' : '💰 Thu tô!'}
+              {FLASH[flash].text}
             </Txt>
           </View>
         </View>
       ) : null}
 
+      {/* Thoát trận */}
+      <Modal visible={menu} transparent animationType="fade" onRequestClose={() => setMenu(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: C.overlay, alignItems: 'center', justifyContent: 'center', padding: S.lg }} onPress={() => setMenu(false)}>
+          <Card style={{ width: '100%', maxWidth: 340, gap: S.md }}>
+            <Txt size={17} weight="heading">
+              Rời trận đấu?
+            </Txt>
+            <Txt size={13} color={C.inkSoft}>
+              Trận vẫn tiếp tục chạy trên máy chủ. Nếu bạn không quay lại trong 60 giây, hệ thống sẽ xử thua theo luật.
+            </Txt>
+            <View style={{ flexDirection: 'row', gap: S.sm }}>
+              <Btn label="Chơi tiếp" tone="mint" style={{ flex: 1 }} full onPress={() => setMenu(false)} />
+              <Btn label="Rời trận" tone="danger" onPress={() => router.replace('/')} />
+            </View>
+          </Card>
+        </Pressable>
+      </Modal>
+
+      {/* Kết quả */}
       <Modal visible={!!result} transparent animationType="fade">
         <View style={{ flex: 1, backgroundColor: C.overlay, alignItems: 'center', justifyContent: 'center', padding: S.lg }}>
           <Card style={{ width: '100%', maxWidth: 400, gap: S.md, alignItems: 'center' }}>
             {(() => {
               const mine = result?.rows.find((r: any) => r.userId === profile?.id);
               const win = mine?.result === 'win';
+              const draw = mine?.result === 'draw';
               return (
                 <>
-                  <Text style={{ fontSize: 60 }}>{win ? '🏆' : mine?.result === 'draw' ? '🤝' : '🌧️'}</Text>
-                  <Txt size={26} weight="display" color={win ? C.mint : mine?.result === 'draw' ? C.sun : C.inkSoft}>
-                    {win ? 'Chiến thắng!' : mine?.result === 'draw' ? 'Hoà rồi!' : 'Thua mất rồi'}
+                  <Chibi name={win ? 'trophy' : draw ? 'handshake' : 'droplet'} size={64} />
+                  <Txt size={26} weight="display" color={win ? C.mint : draw ? C.sun : C.inkSoft}>
+                    {win ? 'Chiến thắng!' : draw ? 'Hoà rồi!' : 'Thua mất rồi'}
                   </Txt>
                   <View style={{ flexDirection: 'row', gap: S.md }}>
-                    <Reward label="EXP" value={`+${mine?.xpGain ?? 0}`} color={C.secondary} />
-                    <Reward label="Coin" value={`+${mine?.coinGain ?? 0}`} color={C.sun} />
+                    <Reward art="star" label="EXP" value={`+${mine?.xpGain ?? 0}`} color={C.secondary} />
+                    <Reward art="coin" label="Coin" value={`+${mine?.coinGain ?? 0}`} color={C.sun} />
                     {mine?.ratingDelta ? (
-                      <Reward label="Rank" value={`${mine.ratingDelta > 0 ? '+' : ''}${mine.ratingDelta}`} color={mine.ratingDelta > 0 ? C.mint : C.danger} />
+                      <Reward
+                        art="medal-1"
+                        label="Rank"
+                        value={`${mine.ratingDelta > 0 ? '+' : ''}${mine.ratingDelta}`}
+                        color={mine.ratingDelta > 0 ? C.mint : C.danger}
+                      />
                     ) : null}
                   </View>
                   {mine && mine.levelAfter > mine.levelBefore ? (
-                    <Chip label={`Lên cấp ${mine.levelAfter}! 🎊`} color="#9A6B00" soft={C.sunSoft} />
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.sunSoft, paddingHorizontal: 12, paddingVertical: 6, borderRadius: R.pill }}>
+                      <Chibi name="party" size={16} />
+                      <Txt size={12} weight="bold" color="#9A6B00">
+                        Lên cấp {mine.levelAfter}!
+                      </Txt>
+                    </View>
                   ) : null}
 
                   <View style={{ width: '100%', gap: 6, marginTop: 6 }}>
                     {result?.rows
                       .slice()
                       .sort((a: any, b: any) => a.place - b.place)
-                      .map((r: any, i: number) => {
+                      .map((r: any) => {
                         const p = view.players?.find((x: any) => x.id === r.userId);
                         return (
                           <View key={r.userId} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.surfaceAlt, borderRadius: R.md, padding: S.sm }}>
-                            <Txt size={14} weight="display" color={SEAT_COLORS[i]} style={{ width: 22 }}>
-                              #{r.place}
-                            </Txt>
+                            {r.place <= 3 ? (
+                              <Chibi name={`medal-${r.place}`} size={20} />
+                            ) : (
+                              <Txt size={13} weight="display" color={C.inkFaint} style={{ width: 20 }} center>
+                                {r.place}
+                              </Txt>
+                            )}
                             <Txt size={13} weight="bold" style={{ flex: 1 }}>
                               {p?.name ?? r.userId}
                             </Txt>
                             <Txt size={12} weight="medium" color={C.inkSoft}>
                               {r.score} điểm
-                            </Txt>
-                            <Txt size={12} weight="bold" color={r.result === 'win' ? C.mint : C.inkFaint}>
-                              {r.result === 'win' ? 'Thắng' : r.result === 'draw' ? 'Hoà' : 'Thua'}
                             </Txt>
                           </View>
                         );
@@ -179,13 +282,14 @@ export default function MatchScreen() {
   );
 }
 
-function Reward({ label, value, color }: { label: string; value: string; color: string }) {
+function Reward({ art, label, value, color }: { art: string; label: string; value: string; color: string }) {
   return (
-    <View style={{ alignItems: 'center', backgroundColor: C.surfaceAlt, paddingHorizontal: 16, paddingVertical: 8, borderRadius: R.md }}>
-      <Txt size={18} weight="display" color={color}>
+    <View style={{ alignItems: 'center', backgroundColor: C.surfaceAlt, paddingHorizontal: 14, paddingVertical: 8, borderRadius: R.md, gap: 2 }}>
+      <Chibi name={art} size={20} />
+      <Txt size={17} weight="display" color={color}>
         {value}
       </Txt>
-      <Txt size={11} color={C.inkFaint}>
+      <Txt size={10} color={C.inkFaint}>
         {label}
       </Txt>
     </View>

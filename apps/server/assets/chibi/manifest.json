@@ -1,0 +1,279 @@
+{
+  "source": "https://github.com/googlefonts/noto-emoji",
+  "license": "Apache-2.0",
+  "note": "Tải bằng apps/server/scripts/fetch-assets.mjs",
+  "assets": {
+    "game-caro": {
+      "file": "game-caro.svg",
+      "codepoint": "2b55"
+    },
+    "game-caro-x": {
+      "file": "game-caro-x.svg",
+      "codepoint": "274c"
+    },
+    "game-battleship": {
+      "file": "game-battleship.svg",
+      "codepoint": "1f6a2"
+    },
+    "game-oanquan": {
+      "file": "game-oanquan.svg",
+      "codepoint": "1faa8"
+    },
+    "game-sheep": {
+      "file": "game-sheep.svg",
+      "codepoint": "1f411"
+    },
+    "game-monopoly": {
+      "file": "game-monopoly.svg",
+      "codepoint": "1f3e6"
+    },
+    "game-ludo": {
+      "file": "game-ludo.svg",
+      "codepoint": "1f434"
+    },
+    "game-werewolf": {
+      "file": "game-werewolf.svg",
+      "codepoint": "1f43a"
+    },
+    "sheep": {
+      "file": "sheep.svg",
+      "codepoint": "1f411"
+    },
+    "sheep-golden": {
+      "file": "sheep-golden.svg",
+      "codepoint": "1f40f"
+    },
+    "horse": {
+      "file": "horse.svg",
+      "codepoint": "1f434"
+    },
+    "wolf": {
+      "file": "wolf.svg",
+      "codepoint": "1f43a"
+    },
+    "dice": {
+      "file": "dice.svg",
+      "codepoint": "1f3b2"
+    },
+    "anchor": {
+      "file": "anchor.svg",
+      "codepoint": "2693"
+    },
+    "ship": {
+      "file": "ship.svg",
+      "codepoint": "1f6a2"
+    },
+    "explosion": {
+      "file": "explosion.svg",
+      "codepoint": "1f4a5"
+    },
+    "fire": {
+      "file": "fire.svg",
+      "codepoint": "1f525"
+    },
+    "droplet": {
+      "file": "droplet.svg",
+      "codepoint": "1f4a7"
+    },
+    "house": {
+      "file": "house.svg",
+      "codepoint": "1f3e0"
+    },
+    "flag-finish": {
+      "file": "flag-finish.svg",
+      "codepoint": "1f3c1"
+    },
+    "flag-red": {
+      "file": "flag-red.svg",
+      "codepoint": "1f6a9"
+    },
+    "target": {
+      "file": "target.svg",
+      "codepoint": "1f3af"
+    },
+    "police": {
+      "file": "police.svg",
+      "codepoint": "1f694"
+    },
+    "parking": {
+      "file": "parking.svg",
+      "codepoint": "1f17f"
+    },
+    "receipt": {
+      "file": "receipt.svg",
+      "codepoint": "1f9fe"
+    },
+    "question": {
+      "file": "question.svg",
+      "codepoint": "2753"
+    },
+    "rock": {
+      "file": "rock.svg",
+      "codepoint": "1faa8"
+    },
+    "runner": {
+      "file": "runner.svg",
+      "codepoint": "1f3c3"
+    },
+    "farmer": {
+      "file": "farmer.svg",
+      "codepoint": "1f9d1_200d_1f33e"
+    },
+    "moon": {
+      "file": "moon.svg",
+      "codepoint": "1f319"
+    },
+    "sun": {
+      "file": "sun.svg",
+      "codepoint": "2600"
+    },
+    "ballot": {
+      "file": "ballot.svg",
+      "codepoint": "1f5f3"
+    },
+    "skull": {
+      "file": "skull.svg",
+      "codepoint": "1f480"
+    },
+    "shield": {
+      "file": "shield.svg",
+      "codepoint": "1f6e1"
+    },
+    "crystal": {
+      "file": "crystal.svg",
+      "codepoint": "1f52e"
+    },
+    "potion": {
+      "file": "potion.svg",
+      "codepoint": "1f9ea"
+    },
+    "bow": {
+      "file": "bow.svg",
+      "codepoint": "1f3f9"
+    },
+    "smile": {
+      "file": "smile.svg",
+      "codepoint": "1f642"
+    },
+    "coin": {
+      "file": "coin.svg",
+      "codepoint": "1fa99"
+    },
+    "gem": {
+      "file": "gem.svg",
+      "codepoint": "1f48e"
+    },
+    "trophy": {
+      "file": "trophy.svg",
+      "codepoint": "1f3c6"
+    },
+    "medal-1": {
+      "file": "medal-1.svg",
+      "codepoint": "1f947"
+    },
+    "medal-2": {
+      "file": "medal-2.svg",
+      "codepoint": "1f948"
+    },
+    "medal-3": {
+      "file": "medal-3.svg",
+      "codepoint": "1f949"
+    },
+    "crown": {
+      "file": "crown.svg",
+      "codepoint": "1f451"
+    },
+    "star": {
+      "file": "star.svg",
+      "codepoint": "2b50"
+    },
+    "sparkles": {
+      "file": "sparkles.svg",
+      "codepoint": "2728"
+    },
+    "party": {
+      "file": "party.svg",
+      "codepoint": "1f389"
+    },
+    "gift": {
+      "file": "gift.svg",
+      "codepoint": "1f381"
+    },
+    "bolt": {
+      "file": "bolt.svg",
+      "codepoint": "26a1"
+    },
+    "clipboard": {
+      "file": "clipboard.svg",
+      "codepoint": "1f4cb"
+    },
+    "bell": {
+      "file": "bell.svg",
+      "codepoint": "1f514"
+    },
+    "shop": {
+      "file": "shop.svg",
+      "codepoint": "1f6cd"
+    },
+    "chick": {
+      "file": "chick.svg",
+      "codepoint": "1f425"
+    },
+    "speech-bubble": {
+      "file": "speech-bubble.svg",
+      "codepoint": "1f4ac"
+    },
+    "joystick": {
+      "file": "joystick.svg",
+      "codepoint": "1f579"
+    },
+    "gamepad": {
+      "file": "gamepad.svg",
+      "codepoint": "1f3ae"
+    },
+    "door": {
+      "file": "door.svg",
+      "codepoint": "1f6aa"
+    },
+    "key": {
+      "file": "key.svg",
+      "codepoint": "1f511"
+    },
+    "lock": {
+      "file": "lock.svg",
+      "codepoint": "1f512"
+    },
+    "handshake": {
+      "file": "handshake.svg",
+      "codepoint": "1f91d"
+    },
+    "wave": {
+      "file": "wave.svg",
+      "codepoint": "1f44b"
+    },
+    "chart": {
+      "file": "chart.svg",
+      "codepoint": "1f4c8"
+    },
+    "circus": {
+      "file": "circus.svg",
+      "codepoint": "1f3aa"
+    },
+    "backpack": {
+      "file": "backpack.svg",
+      "codepoint": "1f392"
+    },
+    "frame": {
+      "file": "frame.svg",
+      "codepoint": "1f5bc"
+    },
+    "label": {
+      "file": "label.svg",
+      "codepoint": "1f3f7"
+    },
+    "seedling": {
+      "file": "seedling.svg",
+      "codepoint": "1f331"
+    }
+  }
+}

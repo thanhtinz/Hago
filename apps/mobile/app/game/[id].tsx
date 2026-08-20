@@ -4,6 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Card, Chip, Empty, SectionTitle, Txt } from '../../src/components/ui';
+import { Chibi } from '../../src/components/Chibi';
+import { GAME_ART } from '../../src/lib/assets';
 import { C, GAME_GRADIENT, R, S } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
 import { emitAck } from '../../src/lib/socket';
@@ -38,6 +40,8 @@ export default function GameDetail() {
   if (!game) return <View style={{ flex: 1, backgroundColor: C.bg }} />;
   const grad = (GAME_GRADIENT[game.id] ?? ['#FF8A65', '#FF5E7D']) as [string, string];
 
+  const openRoomBuilder = () => router.push(`/rooms?tab=create&gameType=${game.id}`);
+
   const createRoom = async () => {
     const res: any = await emitAck('room.create', {
       gameType: game.id,
@@ -56,7 +60,7 @@ export default function GameDetail() {
             ‹ Quay lại
           </Txt>
         </Pressable>
-        <Text style={{ fontSize: 54 }}>{game.emoji}</Text>
+        <Chibi name={GAME_ART[game.id] ?? 'gamepad'} size={64} />
         <Txt size={30} weight="display" color="#fff">
           {game.name}
         </Txt>
@@ -91,7 +95,12 @@ export default function GameDetail() {
               <Switch value={ranked} onValueChange={setRanked} trackColor={{ true: C.secondary }} />
             </View>
           ) : null}
-          <Btn label="Tạo phòng" icon="🏠" tone="secondary" full onPress={createRoom} />
+          <Btn label="Tạo phòng nhanh" icon="🏠" tone="secondary" full onPress={createRoom} />
+          <Pressable onPress={openRoomBuilder} style={{ alignItems: 'center', paddingTop: 2 }}>
+            <Txt size={12} weight="bold" color={C.secondary}>
+              Tuỳ chỉnh chi tiết hơn →
+            </Txt>
+          </Pressable>
         </Card>
 
         <SectionTitle title="Phòng đang mở" emoji="🚪" />

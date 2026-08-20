@@ -1,10 +1,10 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Btn, Chip, Txt } from '../components/ui';
+import { Chibi } from '../components/Chibi';
 import { C, R, S, SEAT_COLORS } from '../theme';
 import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
 
-const BOARD = 300;
 const RING = 13; // 13 ô mỗi cạnh → 52 ô vòng ngoài
 
 /** Ánh xạ chỉ số ô (0..51) sang toạ độ trên khung vuông. */
@@ -25,21 +25,23 @@ function trackPos(i: number, cell: number): { x: number; y: number } {
   }
 }
 
-export default function LudoBoard({ view, mySeat, send, deadline }: BoardProps) {
-  const cell = BOARD / RING;
+export default function LudoBoard({ view, mySeat, send, deadline, space }: BoardProps) {
+  const BOARD = Math.max(240, Math.min(space.width - 20, space.height - 150));
+  // Trừ viền 3px mỗi bên để ô ngoài cùng không tràn khỏi khung.
+  const cell = (BOARD - 6) / RING;
   const yourTurn = view.turnSeat === mySeat && !view.over;
   const canRoll = yourTurn && !view.rolled;
   const moves: number[] = view.moves ?? [];
 
   return (
     <View style={{ gap: S.md }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <PlayerStrip
           players={view.players}
           activeSeat={view.turnSeat}
           mySeat={mySeat}
           extra={(seat) => (
-            <Chip label={`${view.pieces.filter((p: any) => p.seat === seat && p.state === 'done').length}/4 🏁`} color={C.inkSoft} soft={C.surfaceAlt} size={10} />
+            <Chip label={`${view.pieces.filter((p: any) => p.seat === seat && p.state === 'done').length}/4`} icon="🏁" color={C.inkSoft} soft={C.surfaceAlt} size={10} />
           )}
         />
         <TurnTimer deadline={deadline} total={20} />
@@ -106,7 +108,7 @@ export default function LudoBoard({ view, mySeat, send, deadline }: BoardProps) 
                     borderColor: selectable ? '#fff' : 'rgba(0,0,0,0.15)',
                   }}
                 >
-                  <Text style={{ fontSize: cell * 0.5 }}>🐴</Text>
+                  <Chibi name="horse" size={cell * 0.64} />
                 </Pressable>
               );
             })}
@@ -121,21 +123,28 @@ export default function LudoBoard({ view, mySeat, send, deadline }: BoardProps) 
                 <View key={seat} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: SEAT_COLORS[seat] }} />
                   <View style={{ flexDirection: 'row', gap: 2, flex: 1 }}>
-                    {home.map((p: any) => (
-                      <Pressable
-                        key={p.id}
-                        disabled={!(yourTurn && moves.includes(p.id))}
-                        onPress={() => send('move', { pieceId: p.id })}
-                        style={{
-                          width: 16,
-                          height: 16,
-                          borderRadius: 8,
-                          backgroundColor: SEAT_COLORS[seat] + (yourTurn && moves.includes(p.id) ? 'FF' : '66'),
-                          borderWidth: yourTurn && moves.includes(p.id) ? 2 : 0,
-                          borderColor: C.ink,
-                        }}
-                      />
-                    ))}
+                    {home.map((p: any) => {
+                      const can = yourTurn && moves.includes(p.id);
+                      return (
+                        <Pressable
+                          key={p.id}
+                          disabled={!can}
+                          onPress={() => send('move', { pieceId: p.id })}
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: 11,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: SEAT_COLORS[seat] + (can ? 'FF' : '55'),
+                            borderWidth: can ? 2 : 0,
+                            borderColor: C.ink,
+                          }}
+                        >
+                          <Chibi name="horse" size={14} opacity={can ? 1 : 0.75} />
+                        </Pressable>
+                      );
+                    })}
                     {lane.map((p: any) => (
                       <Pressable
                         key={p.id}
@@ -149,9 +158,7 @@ export default function LudoBoard({ view, mySeat, send, deadline }: BoardProps) 
                       </Pressable>
                     ))}
                     {done.map((p: any) => (
-                      <Text key={p.id} style={{ fontSize: 12 }}>
-                        🏁
-                      </Text>
+                      <Chibi key={p.id} name="flag-finish" size={14} />
                     ))}
                   </View>
                 </View>
@@ -174,9 +181,13 @@ export default function LudoBoard({ view, mySeat, send, deadline }: BoardProps) 
             justifyContent: 'center',
           }}
         >
-          <Txt size={30} weight="display" color={C.primary}>
-            {view.dice ?? '–'}
-          </Txt>
+          {view.dice ? (
+            <Txt size={30} weight="display" color={C.primary}>
+              {view.dice}
+            </Txt>
+          ) : (
+            <Chibi name="dice" size={34} opacity={0.45} />
+          )}
         </View>
         {canRoll ? <Btn label="Tung xúc xắc" icon="🎲" size="lg" onPress={() => send('roll', {})} /> : null}
         {yourTurn && view.rolled && moves.length ? (

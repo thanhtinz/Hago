@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Btn, Chip, Txt } from '../components/ui';
+import { Chibi } from '../components/Chibi';
 import { C, R, S, SEAT_COLORS } from '../theme';
 import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
 
@@ -65,7 +66,11 @@ export default function OanQuanBoard({ view, mySeat, send, deadline }: BoardProp
         borderColor: '#B98A2E',
       }}
     >
-      <Text style={{ fontSize: 26 }}>{view.quan[side] ? '🪨' : '⚪'}</Text>
+      {view.quan[side] ? (
+        <Chibi name="rock" size={30} />
+      ) : (
+        <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.6)' }} />
+      )}
       <Txt size={11} weight="bold" color="#6B4423">
         {view.quan[side] ? `Quan ${view.quanValue}đ` : 'Quan đã bị ăn'}
       </Txt>
@@ -77,7 +82,7 @@ export default function OanQuanBoard({ view, mySeat, send, deadline }: BoardProp
 
   return (
     <View style={{ gap: S.md }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <PlayerStrip
           players={view.players}
           activeSeat={view.turnSeat}

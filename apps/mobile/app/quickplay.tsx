@@ -4,6 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Card, Chip, Txt } from '../src/components/ui';
+import { Chibi } from '../src/components/Chibi';
+import { GAME_ART } from '../src/lib/assets';
 import { C, GAME_GRADIENT, R, S } from '../src/theme';
 import { api, friendlyError } from '../src/lib/api';
 import { emitAck } from '../src/lib/socket';
@@ -79,7 +81,7 @@ export default function QuickPlayScreen() {
             colors={(GAME_GRADIENT[selected ?? 'caro'] ?? ['#FF8A65', '#FF5E7D']) as [string, string]}
             style={{ width: 170, height: 170, borderRadius: 85, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Text style={{ fontSize: 62 }}>{meta?.emoji ?? '🎮'}</Text>
+            <Chibi name={GAME_ART[selected ?? ''] ?? 'gamepad'} size={82} />
           </LinearGradient>
           <ActivityIndicator size="large" color={C.primary} />
           <Txt size={22} weight="display">
@@ -144,8 +146,8 @@ export default function QuickPlayScreen() {
                       backgroundColor: selected === g.id ? C.primarySoft : C.surface,
                     }}
                   >
-                    <LinearGradient colors={(GAME_GRADIENT[g.id] ?? ['#eee', '#ddd']) as [string, string]} style={{ width: 46, height: 46, borderRadius: R.md, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ fontSize: 24 }}>{g.emoji}</Text>
+                    <LinearGradient colors={(GAME_GRADIENT[g.id] ?? ['#eee', '#ddd']) as [string, string]} style={{ width: 48, height: 48, borderRadius: R.md, alignItems: 'center', justifyContent: 'center' }}>
+                      <Chibi name={GAME_ART[g.id] ?? 'gamepad'} size={30} />
                     </LinearGradient>
                     <View style={{ flex: 1 }}>
                       <Txt size={15} weight="bold">

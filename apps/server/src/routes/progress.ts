@@ -7,7 +7,8 @@ import { listNotifications, markRead, unreadCount } from '../services/notificati
 import { balanceOf } from '../services/economy';
 import { track } from '../services/analytics';
 import { matchHistory } from '../realtime/match';
-import { listPublicRooms, toRoomView } from '../realtime/rooms';
+import { allRooms, listPublicRooms, toRoomView } from '../realtime/rooms';
+import { activeMatches } from '../realtime/match';
 
 export const progressRouter = Router();
 
@@ -86,8 +87,21 @@ progressRouter.get('/home', requireAuth, (req, res) => {
     .prepare('SELECT * FROM events WHERE active = 1 AND start_at <= ? AND end_at >= ? ORDER BY start_at LIMIT 5')
     .all(now, now) as any[];
 
+  // Số người đang thực sự ở trong trận / trong phòng của từng game — dùng cho
+  // nhãn "đang chơi" ở khu Game đang hot.
+  const livePlayers: Record<string, number> = {};
+  for (const m of activeMatches()) {
+    if (m.finished) continue;
+    livePlayers[m.gameType] = (livePlayers[m.gameType] ?? 0) + m.players.length;
+  }
+  for (const r of allRooms()) {
+    if (r.status === 'playing') continue;
+    livePlayers[r.gameType] = (livePlayers[r.gameType] ?? 0) + r.seats.length;
+  }
+
   track(userId, 'app_open', {});
   res.json({
+    livePlayers,
     friendsOnline: friendsOnline.map((r) => ({
       id: r.id,
       displayName: r.display_name,

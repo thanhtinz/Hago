@@ -4,7 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Bar, Btn, Card, Chip, CoinPill, Empty, SectionTitle, Txt } from '../../src/components/ui';
-import { GameCard, GameMeta } from '../../src/components/GameCard';
+import { GameCard, GameMeta, HotGameCard } from '../../src/components/GameCard';
+import { Chibi, ChibiBadge } from '../../src/components/Chibi';
 import { C, R, S, softShadow } from '../../src/theme';
 import { api } from '../../src/lib/api';
 import { useStore } from '../../src/state/store';
@@ -12,6 +13,7 @@ import { useStore } from '../../src/state/store';
 interface HomeData {
   friendsOnline: any[];
   hotGames: { gameType: string; matches: number }[];
+  livePlayers: Record<string, number>;
   events: any[];
   quests: any[];
   recent: any[];
@@ -52,6 +54,9 @@ export default function HomeScreen() {
   const xpInto = profile ? profile.xp - LEVEL_CURVE(profile.level) : 0;
   const xpNeed = profile ? LEVEL_CURVE(profile.level + 1) - LEVEL_CURVE(profile.level) : 1;
   const hotMap = new Map(data?.hotGames.map((h) => [h.gameType, h.matches]));
+  // Ưu tiên game có người đang chơi, sau đó tới số trận trong 24 giờ.
+  const heat = (id: string) => (data?.livePlayers?.[id] ?? 0) * 10 + (hotMap.get(id) ?? 0);
+  const hotOrder = [...games].sort((a, b) => heat(b.id) - heat(a.id));
 
   return (
     <ScrollView
@@ -179,24 +184,68 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* Game catalog */}
-      <View style={{ paddingHorizontal: S.lg, paddingBottom: S.lg }}>
-        <SectionTitle
-          title="Game đang hot"
-          emoji="🔥"
-          action={
-            <Pressable onPress={() => router.push('/games')}>
-              <Txt size={12} weight="bold" color={C.secondary}>
-                Tất cả {games.length} game
-              </Txt>
-            </Pressable>
-          }
-        />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.md, paddingRight: S.lg }}>
-          {games.map((g) => (
-            <GameCard key={g.id} game={g} hotCount={hotMap.get(g.id)} onPress={() => router.push(`/game/${g.id}`)} />
+      {/* Game đang hot — xếp theo số trận 24h, kèm số người đang chơi */}
+      <View style={{ paddingBottom: S.lg }}>
+        <View style={{ paddingHorizontal: S.lg }}>
+          <SectionTitle
+            title="Game đang hot"
+            emoji="🔥"
+            action={
+              <Pressable onPress={() => router.push('/games')}>
+                <Txt size={12} weight="bold" color={C.secondary}>
+                  Tất cả {games.length} game
+                </Txt>
+              </Pressable>
+            }
+          />
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: S.md, paddingHorizontal: S.lg, paddingBottom: 6 }}
+          snapToInterval={208 + S.md}
+          decelerationRate="fast"
+        >
+          {hotOrder.map((g, i) => (
+            <HotGameCard
+              key={g.id}
+              game={g}
+              rank={i + 1}
+              livePlayers={data?.livePlayers?.[g.id]}
+              onPress={() => router.push(`/game/${g.id}`)}
+            />
           ))}
         </ScrollView>
+
+        {/* Lối tắt tới phòng chơi */}
+        <View style={{ flexDirection: 'row', gap: S.md, paddingHorizontal: S.lg, marginTop: S.md }}>
+          <Pressable style={{ flex: 1 }} onPress={() => router.push('/rooms?tab=find')}>
+            <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: S.md }}>
+              <ChibiBadge name="door" size={40} bg={C.skySoft} />
+              <View style={{ flex: 1 }}>
+                <Txt size={13} weight="bold">
+                  Tìm phòng
+                </Txt>
+                <Txt size={11} color={C.inkFaint}>
+                  {data?.openRooms?.length ?? 0} phòng đang mở
+                </Txt>
+              </View>
+            </Card>
+          </Pressable>
+          <Pressable style={{ flex: 1 }} onPress={() => router.push('/rooms?tab=create')}>
+            <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: S.md }}>
+              <ChibiBadge name="key" size={40} bg={C.sunSoft} />
+              <View style={{ flex: 1 }}>
+                <Txt size={13} weight="bold">
+                  Tạo phòng
+                </Txt>
+                <Txt size={11} color={C.inkFaint}>
+                  Rủ bạn bè vào chơi
+                </Txt>
+              </View>
+            </Card>
+          </Pressable>
+        </View>
       </View>
 
       {/* Nhiệm vụ */}

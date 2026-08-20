@@ -8,6 +8,8 @@ export interface BoardProps {
   mySeat: number;
   send: (type: string, payload?: any) => void;
   deadline: number | null;
+  /** Không gian còn lại cho bàn chơi sau khi trừ HUD — dùng để co giãn full screen. */
+  space: { width: number; height: number };
 }
 
 /** Đồng hồ đếm ngược lượt, dùng chung cho mọi game. */

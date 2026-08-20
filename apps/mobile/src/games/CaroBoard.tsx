@@ -1,19 +1,21 @@
 import React, { useMemo } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Txt } from '../components/ui';
+import { Chibi } from '../components/Chibi';
 import { C, R, S, SEAT_COLORS } from '../theme';
 import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
 
-export default function CaroBoard({ view, mySeat, send, deadline }: BoardProps) {
+export default function CaroBoard({ view, mySeat, send, deadline, space }: BoardProps) {
   const size = view.size ?? 15;
-  const cell = Math.min(26, Math.floor(330 / size));
+  // Bàn cờ chiếm trọn phần không gian còn lại, giới hạn để ô không quá to.
+  const cell = Math.max(14, Math.min(34, Math.floor(Math.min(space.width - 26, space.height - 30) / size)));
   const yourTurn = view.turnSeat === mySeat && !view.over;
   const winSet = useMemo(() => new Set<number>(view.winLine ?? []), [view.winLine]);
   const last = view.lastMove ? view.lastMove.y * size + view.lastMove.x : -1;
 
   return (
     <View style={{ gap: S.md }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <PlayerStrip players={view.players} activeSeat={view.turnSeat} mySeat={mySeat} />
         <TurnTimer deadline={deadline} total={30} />
       </View>
