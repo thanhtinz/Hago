@@ -15,6 +15,12 @@ import { BoardProps } from './shared';
  */
 const MAP_LANES = { x: 113, width: 418, full: 540 };
 
+/**
+ * Dải trời và nông trại nằm ở y 0–190 của ảnh gốc. Cắt bỏ để cừu không đi lên
+ * cả bầu trời; giữ từ đầu làn cỏ (y 190) xuống hết đồng hoa (y 960).
+ */
+const MAP_ROWS = { y: 190, height: 770, full: 960 };
+
 /** Cừu càng cấp cao càng to và nhiều chi tiết (sừng, gạc, vương miện). */
 const LEVEL_SCALE = [0.74, 0.74, 0.86, 0.98, 1.1, 1.24];
 
@@ -104,9 +110,9 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
             style={{
               position: 'absolute',
               width: (fieldW / MAP_LANES.width) * MAP_LANES.full,
-              height: fieldH,
+              height: (fieldH / MAP_ROWS.height) * MAP_ROWS.full,
               left: (-MAP_LANES.x / MAP_LANES.width) * fieldW,
-              top: 0,
+              top: (-MAP_ROWS.y / MAP_ROWS.height) * fieldH,
             }}
           />
         </View>
@@ -250,10 +256,6 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
         })}
       </View>
 
-      {/* Trận realtime nên bỏ nhật ký chữ: mọi diễn biến đã thấy ngay trên sân. */}
-      <Txt size={11} color={C.inkFaint} center style={{ maxWidth: space.width - 20 }}>
-        Chạm vào làn để thả cừu · trùng cấp thì hợp thể · lọt sân đối thủ là ghi điểm
-      </Txt>
     </View>
   );
 }

@@ -91,23 +91,17 @@ function decide(gameType, view, mySeat) {
       const occupied = new Map();
       for (const u of view.units ?? []) if (u.pos === spawn) occupied.set(u.lane, u);
 
-      // Ưu tiên thả chồng lên cừu cùng cấp để tiến hoá, sau đó tới làn trống,
-      // ưu tiên làn đang bị địch áp đảo.
-      const merges = [];
+      // Ô xuất phát trống mới thả được; ưu tiên làn đang thua sức đẩy nhất.
       const empties = [];
-      for (let lane = 0; lane < view.lanes; lane++) {
-        const at = occupied.get(lane);
-        if (!at) empties.push(lane);
-        else if (at.seat === mySeat && at.level === level && at.level < view.maxLevel) merges.push(lane);
-      }
-      if (merges.length) return { type: 'deploy', payload: { lane: pick(merges) } };
+      for (let lane = 0; lane < view.lanes; lane++) if (!occupied.has(lane)) empties.push(lane);
       if (!empties.length) return null;
-      const threat = (lane) =>
+      const weight = (lane, seat) =>
         (view.units ?? [])
-          .filter((u) => u.lane === lane && u.seat !== mySeat)
+          .filter((u) => u.lane === lane && u.seat === seat)
           .reduce((sum, u) => sum + u.level, 0);
-      empties.sort((a, b) => threat(b) - threat(a));
-      const lane = threat(empties[0]) > 0 ? empties[0] : pick(empties);
+      const deficit = (lane) => weight(lane, 1 - mySeat) - weight(lane, mySeat);
+      empties.sort((a, b) => deficit(b) - deficit(a));
+      const lane = deficit(empties[0]) > 0 ? empties[0] : pick(empties);
       return { type: 'deploy', payload: { lane } };
     }
     case 'werewolf': {

@@ -97,7 +97,7 @@ Mobile (RN/Expo) ──REST──> Express API ──> SQLite (WAL)
 | Cờ Caro | 2 | Board strategy | Normal/Ranked/Custom | Bàn cấu hình 9–19, luật đúng-5-quân |
 | Bắn Tàu | 2 | Turn-based | Normal/Ranked/Custom | Hidden board, trúng được bắn tiếp |
 | Ô Ăn Quan | 2 | Board dân gian | Normal/Ranked/Custom | Rải, ăn dây, rải lại khi hết dân |
-| Sheep Battle | 2 | Realtime lane battle | Normal/Ranked/Custom | Thả cừu theo làn, hợp thể 5 cấp, chạm nhau trừ cấp |
+| Sheep Battle | 2 | Realtime lane battle | Normal/Ranked/Custom | Thả cừu theo làn, cấp 1–5 bốc ngẫu nhiên, bên nặng hơn đẩy lùi bên nhẹ |
 | Cờ Tỷ Phú | 2–4 | Board/economy | Normal/Custom | Bàn 24 ô, độc quyền x2 tô, tù, phá sản |
 | Cờ Cá Ngựa | 2–4 | Board casual | Normal/Ranked/Custom | Ô an toàn, đá ngựa, ra 6 đi tiếp |
 | Ma Sói | 4–16 | Social deduction | Normal/Custom | State machine đêm/ngày/vote, 6 vai |
@@ -139,10 +139,13 @@ báo cáo người chơi, lọc từ ngữ tục tĩu, rate limit chống spam.
 Trong phòng: kick, mời bạn bè, đánh dấu sẵn sàng, chat phòng. Quick Match ghép theo
 game + mode + region với cửa sổ Elo nới dần theo thời gian chờ.
 
-**Sheep Battle** — bản đấu cừu theo làn giống hệt game gốc: hàng chờ cừu tự hồi,
-chạm vào làn để thả, thả trúng cừu cùng cấp thì hợp thể (cừu → cừu sừng → dê → hươu →
-kỳ lân), cừu hai bên chạm nhau trừ cấp lẫn nhau, cừu lọt qua sân đối thủ ghi điểm bằng
-đúng cấp của nó. Ai chạm mốc 20 điểm trước hoặc dẫn điểm khi hết 2 phút là thắng.
+**Sheep Battle** — đúng luật game gốc: hàng chờ cừu tự hồi, mỗi con bốc ngẫu nhiên
+cấp 1–5 (40/30/17/9/4 %), chạm vào làn để thả — làn đang có cừu đứng ngay ô xuất
+phát thì không thả được. Hai đàn gặp nhau trong một làn thì **ghì nhau**: mỗi bên
+cộng cấp của cả dây cừu liền nhau thành trọng lượng, bên nặng hơn đẩy nguyên cụm
+lùi một ô mỗi 700ms, ngang cân thì đứng im. Cừu lọt qua vạch cuối sân đối thủ ghi
+điểm bằng đúng cấp của nó — bị đẩy ngược qua vạch nhà mình thì đối thủ được điểm.
+Ai chạm mốc 20 điểm trước hoặc dẫn điểm khi hết 2 phút là thắng.
 
 **Realtime** — Socket.IO, idempotency theo `action_id`, version state tăng dần,
 reconnect tự động khôi phục ván đang chơi, grace period 60s trước khi xử thua AFK.
@@ -257,7 +260,7 @@ giấy phép) rồi sinh `src/art/gameArt.ts` — dữ liệu vector đã bỏ n
 chỗ ăn màu, để `<Art>` vẽ bằng `react-native-svg` và tô theo phe / theo trạng thái.
 Muốn đổi hình cho game nào chỉ cần sửa một dòng trong bảng `ART` của script.
 
-Sheep Battle dùng **art gốc của game Sheep Fight**: mỗi bậc hợp thể là một giống
+Sheep Battle dùng **art gốc của game Sheep Fight**: mỗi cấp cừu là một giống
 cừu riêng — cừu non chưa có sừng, nhú sừng, sừng xoắn, đeo băng đầu, cừu chúa
 sừng vàng mặt dữ — và hai phe khác hẳn nhau chứ không chỉ đổi màu: đàn trắng
 nhìn từ sau lưng (đang đi lên), đàn đen nhìn chính diện (đang đi xuống).
@@ -271,6 +274,8 @@ nhìn từ sau lưng (đang đi lên), đàn đen nhìn chính diện (đang đi
   đàn cừu đi mượt thay vì nhảy cóc mỗi lần tick; lúc húc thì nảy gấp đôi nhịp.
 - Kích thước từng khung đọc thẳng từ file `.meta` của Unity đi kèm sprite —
   vài strip lẻ 1–2px nên chia đều chiều ngang là lệch khung.
+- Sàn đấu là ảnh `map.png` gốc, cắt đúng vùng 5 làn (`MAP_LANES`) và bỏ dải trời
+  cùng nông trại phía xa (`MAP_ROWS`) để cừu không đi lên cả bầu trời.
 
 Tải lại bộ art: `node apps/mobile/scripts/fetch-sheep-fight.mjs`.
 

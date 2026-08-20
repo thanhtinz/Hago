@@ -3,7 +3,7 @@
  * Tải art của Sheep Battle từ kho TomoSheepFight (MIT, © 2019 Do Trung Kien):
  * https://github.com/dotrungkien/TomoSheepFight/tree/master/sheep-fight
  *
- * Bộ này có đúng thứ game cần: 5 giống cừu theo bậc hợp thể (cừu non không sừng
+ * Bộ này có đúng thứ game cần: 5 giống cừu theo cấp (cừu non không sừng
  * → cừu chúa sừng vàng), hai phe trắng/đen, mỗi con có animation đi và animation
  * húc, kèm icon cấp và hiệu ứng.
  *
@@ -144,7 +144,7 @@ Sheep Fight của **Do Trung Kien**, phát hành theo giấy phép **MIT**
 
 | Tệp | Nội dung |
 |---|---|
-| \`sheep-{1..5}-{w,b}-{walk,push}.png\` | 5 giống cừu theo bậc hợp thể × 2 phe × 2 animation, mỗi strip 6 khung |
+| \`sheep-{1..5}-{w,b}-{walk,push}.png\` | 5 giống cừu theo cấp × 2 phe × 2 animation, mỗi strip 6 khung |
 | \`lvl{1..5}{W,B}.png\` | Icon cấp cừu cho hàng chờ |
 | \`sheep-ready.png\` | Dấu cừu sẵn sàng |
 | \`push-effect.png\` | Hiệu ứng bụi khi hai con húc nhau, 8 khung |

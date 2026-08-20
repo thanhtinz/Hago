@@ -60,9 +60,17 @@ const REFILL_MS = 1400;
 const dirOf = (seat: number) => (seat === 0 ? 1 : -1);
 const spawnPos = (seat: number, laneLength: number) => (seat === 0 ? 0 : laneLength - 1);
 
-/** Cừu mới chủ yếu là cấp 1, thỉnh thoảng được cấp 2 cho đỡ nhàm. */
+/**
+ * Cấp cừu trong hàng chờ bốc ngẫu nhiên như bản gốc (rand % 5), nghiêng về cừu
+ * nhỏ để cừu chúa vẫn là của hiếm.
+ */
 function rollLevel(rng: Rng): number {
-  return rng.next() < 0.18 ? 2 : 1;
+  const r = rng.next();
+  if (r < 0.4) return 1;
+  if (r < 0.7) return 2;
+  if (r < 0.87) return 3;
+  if (r < 0.96) return 4;
+  return 5;
 }
 
 export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
@@ -96,7 +104,7 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
       turnStartedAt: now,
       winnerIds: [],
       over: false,
-      log: ['Thả cừu vào làn — hai cừu cùng cấp chồng lên nhau sẽ tiến hoá!'],
+      log: ['Thả cừu vào làn — làn nào nặng hơn thì đẩy được đàn địch lùi về!'],
       turnSeconds: 0,
     };
   },
@@ -122,26 +130,18 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
     const log: string[] = [];
     const events: any[] = [];
 
-    if (occupant) {
-      if (occupant.seat !== seat) return err('LANE_BLOCKED');
-      if (occupant.level !== level) return err('LANE_BLOCKED');
-      if (occupant.level >= MAX_LEVEL) return err('MAX_LEVEL_REACHED');
-      // Thả trúng cừu cùng cấp ở ô xuất phát → tiến hoá tại chỗ.
-      const target = units.find((u) => u.id === occupant.id)!;
-      target.level += 1;
-      log.push(`${state.players[seat].name} tiến hoá cừu lên cấp ${target.level}`);
-      events.push({ type: 'merge', payload: { seat, lane, level: target.level } });
-    } else {
-      units.push({
-        id: state.nextUnitId,
-        seat,
-        lane,
-        pos,
-        level,
-        lastMoveAt: now,
-      });
-      events.push({ type: 'deploy', payload: { seat, lane, level } });
-    }
+    // Ô xuất phát còn cừu thì chờ nó đi đã — không có luật hợp thể.
+    if (occupant) return err('LANE_BLOCKED');
+
+    units.push({
+      id: state.nextUnitId,
+      seat,
+      lane,
+      pos,
+      level,
+      lastMoveAt: now,
+    });
+    events.push({ type: 'deploy', payload: { seat, lane, level } });
 
     queues[seat] = queue.slice(1);
 
@@ -150,7 +150,7 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
         ...state,
         units,
         queues,
-        nextUnitId: state.nextUnitId + (occupant ? 0 : 1),
+        nextUnitId: state.nextUnitId + 1,
         log: [...state.log, ...log].slice(-20),
       },
       events,
@@ -178,75 +178,112 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
       }
     });
 
-    // Cừu đi trước là cừu đang tiến sâu nhất vào phần sân đối phương.
-    const advance = (u: SheepUnit) => (u.seat === 0 ? u.pos : state.laneLength - 1 - u.pos);
-    const order = units.slice().sort((a, b) => advance(b) - advance(a));
     const dead = new Set<number>();
 
-    for (const mover of order) {
-      if (dead.has(mover.id)) continue;
-      // Đang ghì nhau: đứng tại chỗ đẩy, chưa đi và chưa phân thắng bại.
-      if (mover.lockUntil && now < mover.lockUntil) continue;
-      if (now - mover.lastMoveAt < MOVE_MS) continue;
-      mover.lastMoveAt = now;
-      dirty = true;
+    /**
+     * Ghi điểm khi một con vượt qua vạch cuối. Vượt vạch sân địch là mình ghi;
+     * bị đẩy lùi qua vạch sân nhà thì đối thủ ghi — đúng như bản gốc, nơi cừu
+     * chạm vạch nào cũng trừ điểm của bên giữ vạch đó.
+     */
+    const crossLine = (u: SheepUnit) => {
+      if (u.pos >= 0 && u.pos < state.laneLength) return false;
+      // Vạch dưới (pos < 0) là sân của ghế 0, vạch trên là sân của ghế 1.
+      const owner = u.pos < 0 ? 0 : 1;
+      const scorer = u.seat === owner ? 1 - owner : u.seat;
+      score[scorer] += u.level;
+      dead.add(u.id);
+      log.push(`${state.players[scorer].name} ghi ${u.level} điểm`);
+      events.push({ type: 'score', payload: { seat: scorer, points: u.level } });
+      return true;
+    };
 
-      const dir = dirOf(mover.seat);
-      const next = mover.pos + dir;
+    // Xử lý từng làn một: trong một làn, cả đàn dính nhau thành một khối đẩy.
+    const byLane = new Map<number, SheepUnit[]>();
+    for (const u of units) {
+      const list = byLane.get(u.lane) ?? [];
+      list.push(u);
+      byLane.set(u.lane, list);
+    }
 
-      // Lọt qua đầu sân đối thủ → ghi điểm bằng đúng cấp của cừu.
-      if (next < 0 || next >= state.laneLength) {
-        score[mover.seat] += mover.level;
-        dead.add(mover.id);
-        log.push(`${state.players[mover.seat].name} ghi ${mover.level} điểm`);
-        events.push({ type: 'score', payload: { seat: mover.seat, points: mover.level } });
-        continue;
+    for (const laneUnits of byLane.values()) {
+      laneUnits.sort((a, b) => a.pos - b.pos);
+
+      // Điểm chạm: hai con sát nhau nhưng khác phe.
+      let contact: [SheepUnit, SheepUnit] | null = null;
+      for (let i = 0; i + 1 < laneUnits.length; i++) {
+        const a = laneUnits[i];
+        const b = laneUnits[i + 1];
+        if (a.seat !== b.seat && b.pos - a.pos === 1) {
+          contact = [a, b];
+          break;
+        }
       }
 
-      const target = units.find((u) => !dead.has(u.id) && u.id !== mover.id && u.lane === mover.lane && u.pos === next);
+      if (contact) {
+        const [low, high] = contact;
+        // Chuỗi cừu cùng phe đứng liền sau con đầu — cả chuỗi cùng góp sức đẩy.
+        const chainOf = (head: SheepUnit, step: 1 | -1) => {
+          const chain = [head];
+          let p = head.pos;
+          for (;;) {
+            const behind = laneUnits.find((u) => u.seat === head.seat && u.pos === p + step);
+            if (!behind) break;
+            chain.push(behind);
+            p += step;
+          }
+          return chain;
+        };
+        const lowChain = chainOf(low, -1);
+        const highChain = chainOf(high, 1);
+        const lowWeight = lowChain.reduce((sum, u) => sum + u.level, 0);
+        const highWeight = highChain.reduce((sum, u) => sum + u.level, 0);
+        const both = [...lowChain, ...highChain];
 
-      if (!target) {
-        mover.pos = next;
-        continue;
-      }
+        // Đang tì nhau thì đi chậm hơn lúc chạy không.
+        const lastPush = Math.max(...both.map((u) => u.lastMoveAt));
+        if (now - lastPush < PUSH_MS) {
+          for (const u of both) u.clashAt = now;
+          continue;
+        }
 
-      if (target.seat === mover.seat) {
-        // Cừu nhà: cùng cấp thì hợp nhất, khác cấp thì đứng chờ.
-        if (target.level === mover.level && target.level < MAX_LEVEL) {
-          target.level += 1;
-          dead.add(mover.id);
-          events.push({ type: 'merge', payload: { seat: mover.seat, lane: mover.lane, level: target.level } });
+        for (const u of both) {
+          u.lastMoveAt = now;
+          u.clashAt = now;
+        }
+        dirty = true;
+
+        // Bên nặng hơn đẩy cả khối về phía sân bên nhẹ; cân sức thì giậm chân.
+        const shift = lowWeight > highWeight ? 1 : highWeight > lowWeight ? -1 : 0;
+        if (shift === 0) continue;
+
+        const winnerSeat = shift === 1 ? low.seat : high.seat;
+        events.push({ type: 'push', payload: { lane: low.lane, seat: winnerSeat } });
+        for (const u of both) {
+          u.pos += shift;
+          crossLine(u);
         }
         continue;
       }
 
-      // Chạm cừu địch: ghì nhau một nhịp cho thấy hai bên đang đẩy, hết nhịp
-      // mới trừ cấp. Không có nhịp này thì va chạm xong trong một tick, người
-      // chơi chỉ thấy cừu biến mất.
-      if (!mover.lockUntil || !target.lockUntil) {
-        mover.lockUntil = now + PUSH_MS;
-        target.lockUntil = now + PUSH_MS;
-        mover.clashAt = now;
-        target.clashAt = now;
-        events.push({ type: 'clash', payload: { lane: mover.lane, pos: next, by: mover.seat } });
-        continue;
-      }
+      // Không chạm địch: ai tới nhịp thì đi, con trước đi trước để cả hàng dồn lên.
+      const advance = (u: SheepUnit) => (u.seat === 0 ? u.pos : state.laneLength - 1 - u.pos);
+      const order = laneUnits.slice().sort((a, b) => advance(b) - advance(a));
+      for (const mover of order) {
+        if (dead.has(mover.id)) continue;
+        if (now - mover.lastMoveAt < MOVE_MS) continue;
+        mover.lastMoveAt = now;
+        dirty = true;
 
-      const damage = Math.min(mover.level, target.level);
-      mover.level -= damage;
-      target.level -= damage;
-      mover.clashAt = now;
-      target.clashAt = now;
-      events.push({
-        type: 'clash',
-        payload: { lane: mover.lane, pos: next, by: mover.seat },
-      });
-      mover.lockUntil = undefined;
-      target.lockUntil = undefined;
-      if (target.level <= 0) dead.add(target.id);
-      if (mover.level <= 0) dead.add(mover.id);
-      // Thắng giao tranh thì tràn lên ô vừa dọn sạch.
-      if (mover.level > 0 && target.level <= 0) mover.pos = next;
+        const next = mover.pos + dirOf(mover.seat);
+        if (next < 0 || next >= state.laneLength) {
+          mover.pos = next;
+          crossLine(mover);
+          continue;
+        }
+        // Ô trước mặt còn người thì đứng chờ — chạm địch sẽ thành thế đẩy ở tick sau.
+        if (laneUnits.some((u) => !dead.has(u.id) && u.id !== mover.id && u.pos === next)) continue;
+        mover.pos = next;
+      }
     }
 
     units = units.filter((u) => !dead.has(u.id));

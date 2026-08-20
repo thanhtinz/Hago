@@ -3,8 +3,8 @@ import { Animated, Easing, Image, View } from 'react-native';
 import { SHEEP_STRIPS, SheepAnim, SheepTeam, sheepBadge, sheepStrip } from '../art/sheepFight';
 
 /**
- * Cừu trong Sheep Battle — sprite thật của game Sheep Fight, mỗi bậc hợp thể là
- * một giống cừu riêng: cừu non chưa có sừng, nhú sừng, sừng xoắn, đeo băng đầu,
+ * Cừu trong Sheep Battle — sprite thật của game Sheep Fight, mỗi cấp là một giống
+ * cừu riêng: cừu non chưa có sừng, nhú sừng, sừng xoắn, đeo băng đầu,
  * cừu chúa sừng vàng mặt dữ. Hai phe khác hẳn nhau chứ không chỉ đổi màu: đàn
  * trắng nhìn từ sau lưng (đang đi lên), đàn đen nhìn chính diện (đang đi xuống).
  *

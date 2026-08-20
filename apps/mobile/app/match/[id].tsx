@@ -36,7 +36,7 @@ const FLASH: Record<string, { icon: IconName; text: string }> = {
   rent: { icon: 'coin', text: 'Thu tô!' },
   bankrupt: { icon: 'flame', text: 'Phá sản!' },
   chance: { icon: 'question', text: 'Cơ hội!' },
-  merge: { icon: 'sparkle', text: 'Tiến hoá!' },
+  push: { icon: 'flame', text: 'Đẩy lùi!' },
 };
 
 export default function MatchScreen() {
