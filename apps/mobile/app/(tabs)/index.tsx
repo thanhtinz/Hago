@@ -7,12 +7,13 @@ import { Avatar, Bar, Card, Empty, Txt } from '../../src/components/ui';
 import { HotGameCard, GameMeta } from '../../src/components/GameCard';
 import { Icon, IconName } from '../../src/components/Icon';
 import { ArtToken } from '../../src/components/ArtToken';
-import { ArtName } from '../../src/components/Art';
+import { Art, ArtName } from '../../src/components/Art';
 import { BannerCarousel, BannerItem } from '../../src/components/Banner';
 import { Bubbles, DotPattern, Gloss } from '../../src/components/decor';
 import { ACTION_GRADIENT, C, HERO_GRADIENT, R, S, glowShadow, softShadow } from '../../src/theme';
 import { api } from '../../src/lib/api';
 import { useStore } from '../../src/state/store';
+import { rankArt } from '../../src/lib/rank';
 
 interface HomeData {
   friendsOnline: any[];
@@ -124,7 +125,7 @@ export default function HomeScreen() {
             </Txt>
             <View style={{ flexDirection: 'row', gap: 5, marginTop: 3 }}>
               <HeroChip label={`Lv.${profile?.level}`} />
-                <HeroChip label={`${profile?.rank} · ${profile?.rating}`} icon="medal" />
+              <HeroChip label={`${profile?.rank} · ${profile?.rating}`} art={rankArt(profile?.rank)} />
             </View>
           </View>
           <Pressable onPress={() => router.push('/notifications')}>
@@ -383,7 +384,7 @@ export default function HomeScreen() {
   );
 }
 
-function HeroChip({ label, icon }: { label: string; icon?: IconName }) {
+function HeroChip({ label, icon, art }: { label: string; icon?: IconName; art?: ArtName }) {
   return (
     <View
       style={{
@@ -396,7 +397,7 @@ function HeroChip({ label, icon }: { label: string; icon?: IconName }) {
         borderRadius: R.pill,
       }}
     >
-      {icon ? <Icon name={icon} size={12} color="#fff" strokeWidth={2.3} /> : null}
+      {art ? <Art name={art} size={14} color="#fff" /> : icon ? <Icon name={icon} size={12} color="#fff" strokeWidth={2.3} /> : null}
       <Txt size={11} weight="bold" color="#fff">
         {label}
       </Txt>

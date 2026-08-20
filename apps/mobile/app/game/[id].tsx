@@ -12,6 +12,7 @@ import { C, GAME_GRADIENT, R, S } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
 import { emitAck } from '../../src/lib/socket';
 import { useStore } from '../../src/state/store';
+import { rankArt } from '../../src/lib/rank';
 
 export default function GameDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -161,7 +162,7 @@ export default function GameDetail() {
                 <Txt size={13} weight="bold" style={{ flex: 1 }}>
                   {e.user.displayName}
                 </Txt>
-                <Chip label={String(e.user.rating)} icon="medal" color={C.secondaryDark} soft={C.secondarySoft} size={11} />
+                <Chip label={String(e.user.rating)} art={rankArt(e.user.rank)} color={C.secondaryDark} soft={C.secondarySoft} size={11} />
               </View>
             ))
           ) : (

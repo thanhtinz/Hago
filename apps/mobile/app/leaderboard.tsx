@@ -10,6 +10,8 @@ import { GameIcon, GameIconName } from '../src/components/GameIcon';
 import { C, R, S } from '../src/theme';
 import { api } from '../src/lib/api';
 import { useStore } from '../src/state/store';
+import { Art } from '../src/components/Art';
+import { placeArt, rankArt } from '../src/lib/rank';
 
 export default function LeaderboardScreen() {
   const router = useRouter();
@@ -76,7 +78,7 @@ export default function LeaderboardScreen() {
               const heights = [104, 78, 62];
                         return (
                 <Pressable key={e.user.id} onPress={() => router.push(`/user/${e.user.id}`)} style={{ alignItems: 'center', gap: 4, width: 100 }}>
-                  <Icon name="medal" size={26} color={i === 0 ? '#E0A100' : i === 1 ? '#9AA6B4' : '#B4784B'} strokeWidth={2} />
+                  <Art name={placeArt(i + 1)} size={30} color={i === 0 ? '#E0A100' : i === 1 ? '#9AA6B4' : '#B4784B'} shadow />
                   <View style={{ height: 66, justifyContent: 'flex-end' }}>
                     <Avatar seed={e.user.avatarSeed} styleName={e.user.avatarStyle} frameId={e.user.frameId} size={i === 0 ? 60 : 48} />
                   </View>
@@ -122,7 +124,7 @@ export default function LeaderboardScreen() {
                   Lv.{e.user.level} · {e.wins}/{e.matches} thắng
                 </Txt>
               </View>
-              <Chip label={String(e.user.rating)} icon="medal" color={C.secondaryDark} soft={C.secondarySoft} size={11} />
+              <Chip label={String(e.user.rating)} art={rankArt(e.user.rank)} color={C.secondaryDark} soft={C.secondarySoft} size={11} />
             </Card>
           </Pressable>
         ))}

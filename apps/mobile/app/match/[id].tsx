@@ -9,6 +9,8 @@ import { Icon, IconName } from '../../src/components/Icon';
 import { GameIcon, GameIconName } from '../../src/components/GameIcon';
 import { DotPattern } from '../../src/components/decor';
 import { StickerArt } from '../../src/components/Piece';
+import { Art } from '../../src/components/Art';
+import { placeArt } from '../../src/lib/rank';
 
 import { C, GAME_GRADIENT, R, S, softShadow } from '../../src/theme';
 import { BOARDS } from '../../src/games';
@@ -267,7 +269,7 @@ export default function MatchScreen() {
                         return (
                           <View key={r.userId} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.surfaceAlt, borderRadius: R.md, padding: S.sm }}>
                             {r.place <= 3 ? (
-                              <Icon name="medal" size={19} color={r.place === 1 ? C.sun : r.place === 2 ? '#A9B4C2' : '#C4854B'} strokeWidth={2} />
+                              <Art name={placeArt(r.place)} size={22} color={r.place === 1 ? C.sun : r.place === 2 ? '#A9B4C2' : '#C4854B'} />
                             ) : (
                               <Txt size={13} weight="display" color={C.inkFaint} style={{ width: 20 }} center>
                                 {r.place}

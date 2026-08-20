@@ -61,6 +61,9 @@ chỉ bỏ nền đen và tô màu theo ngữ cảnh.
 | `ui-profile` | person | delapouite |
 | `ui-calendar` | calendar | delapouite |
 | `ui-friends` | team-idea | delapouite |
+| `medal-1` | medal | lorc |
+| `medal-2` | sport-medal | delapouite |
+| `medal-3` | ribbon-medal | delapouite |
 | `win` | trophy | lorc |
 | `draw` | laurels | lorc |
 | `lose` | sad | badges |

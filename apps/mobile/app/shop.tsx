@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Card, Chip, CoinPill, Empty, SectionTitle, Txt } from '../src/components/ui';
 import { HeaderTabs, ScreenHeader } from '../src/components/ScreenHeader';
 import { Icon, IconName } from '../src/components/Icon';
+import { Art, ArtName } from '../src/components/Art';
 import { C, R, RARITY, S, softShadow } from '../src/theme';
 import { api, friendlyError } from '../src/lib/api';
 import { useStore } from '../src/state/store';
@@ -97,7 +98,15 @@ export default function ShopScreen() {
       </ScreenHeader>
 
       {mode === 'shop' ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, height: 46, marginTop: S.md }} contentContainerStyle={{ paddingHorizontal: S.lg, gap: 8, alignItems: 'center' }}>
+        // Bọc trong View có chiều cao: ScrollView ngang của react-native-web
+        // cắt phần tràn theo trục dọc, chip cao hơn dòng chữ sẽ bị xén mất viền.
+        <View style={{ height: 54, marginTop: S.md }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingHorizontal: S.lg, gap: 8, alignItems: 'center' }}
+        >
           {TYPES.map((t) => (
             <Pressable
               key={t.id}
@@ -120,6 +129,7 @@ export default function ShopScreen() {
             </Pressable>
           ))}
         </ScrollView>
+        </View>
       ) : null}
 
       <ScrollView
@@ -201,42 +211,76 @@ export default function ShopScreen() {
   );
 }
 
-/** Biểu tượng đại diện khi vật phẩm chỉ là một dải màu. */
-/** Asset đại diện khi vật phẩm chỉ là một dải màu. Nền thì để nguyên gradient. */
-function previewArt(item: any): IconName | null {
-  if (item.type === 'victory') return 'sparkle';
-  if (item.type === 'entry') return 'star';
-  if (item.type === 'boardtheme') return 'dice';
-  if (item.type === 'bubble') return 'chat';
-  return null;
-}
+/** Mỗi loại cosmetic có một cách dựng preview riêng, thay vì ô màu trơn. */
+const TYPE_ART: Record<string, ArtName> = {
+  victory: 'star',
+  entry: 'ui-quick',
+  boardtheme: 'die-5',
+  bubble: 'ui-chat',
+  emote: 'happy',
+  background: 'moon',
+};
 
 function ItemPreview({ item, size = 62 }: { item: any; size?: number }) {
   const p = item.payload ?? {};
+  const radius = item.type === 'frame' ? size / 2 : R.md;
+  const colors = [p.from ?? p.bg ?? C.primarySoft, p.to ?? p.bg ?? C.primary] as [string, string];
+
   if (item.type === 'title') {
     return (
-      <View style={{ width: size, height: size, borderRadius: R.md, backgroundColor: C.surfaceAlt, alignItems: 'center', justifyContent: 'center', padding: 4 }}>
+      <View
+        style={[
+          { width: size, height: size, borderRadius: R.md, backgroundColor: C.surfaceAlt, alignItems: 'center', justifyContent: 'center', padding: 4, borderWidth: 2, borderColor: C.line },
+          softShadow(0.08, 8, 3),
+        ]}
+      >
         <Txt size={10} weight="bold" color={p.color ?? C.ink} center numberOfLines={2}>
           {p.text ?? item.name}
         </Txt>
       </View>
     );
   }
-  if (item.type === 'emote') {
+
+  if (item.type === 'frame') {
+    // Khung avatar: cho luôn một avatar mẫu vào giữa để thấy khung ôm cái gì.
     return (
-      <View style={{ width: size, height: size, borderRadius: R.md, backgroundColor: C.surfaceAlt, alignItems: 'center', justifyContent: 'center' }}>
-        <Icon name="sparkle" size={size * 0.46} color="#8A5E00" strokeWidth={1.9} />
-      </View>
+      <LinearGradient colors={colors} style={[{ width: size, height: size, borderRadius: radius, alignItems: 'center', justifyContent: 'center' }, softShadow(0.12, 10, 4)]}>
+        <View style={{ width: size * 0.74, height: size * 0.74, borderRadius: size, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' }}>
+          <Art name="ui-profile" size={size * 0.42} color={C.inkFaint} />
+        </View>
+      </LinearGradient>
     );
   }
-  const colors = [p.from ?? p.bg ?? C.primarySoft, p.to ?? p.bg ?? C.primary];
+
+  if (item.type === 'boardtheme') {
+    // Bàn cờ: dựng lưới 3x3 nhỏ cho ra dáng mặt bàn.
+    const cell = size * 0.2;
+    return (
+      <LinearGradient colors={colors} style={[{ width: size, height: size, borderRadius: radius, alignItems: 'center', justifyContent: 'center', gap: 2 }, softShadow(0.12, 10, 4)]}>
+        {[0, 1, 2].map((r) => (
+          <View key={r} style={{ flexDirection: 'row', gap: 2 }}>
+            {[0, 1, 2].map((c) => (
+              <View
+                key={c}
+                style={{
+                  width: cell,
+                  height: cell,
+                  borderRadius: 3,
+                  backgroundColor: (r + c) % 2 ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.22)',
+                }}
+              />
+            ))}
+          </View>
+        ))}
+      </LinearGradient>
+    );
+  }
+
+  const art = TYPE_ART[item.type];
   return (
-    <LinearGradient colors={colors as [string, string]} style={{ width: size, height: size, borderRadius: item.type === 'frame' ? size / 2 : R.md, alignItems: 'center', justifyContent: 'center' }}>
-      {item.type === 'frame' ? (
-        <View style={{ width: size * 0.62, height: size * 0.62, borderRadius: size, backgroundColor: C.surface }} />
-      ) : previewArt(item) ? (
-        <Icon name={previewArt(item)!} size={size * 0.46} color="rgba(255,255,255,0.92)" strokeWidth={1.9} />
-      ) : null}
+    <LinearGradient colors={colors} style={[{ width: size, height: size, borderRadius: radius, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, softShadow(0.12, 10, 4)]}>
+      <View pointerEvents="none" style={{ position: 'absolute', top: -size * 0.3, left: -size * 0.2, width: size, height: size * 0.7, borderRadius: size, backgroundColor: 'rgba(255,255,255,0.18)' }} />
+      {art ? <Art name={art} size={size * 0.5} color="rgba(255,255,255,0.95)" glyph shadow /> : null}
     </LinearGradient>
   );
 }

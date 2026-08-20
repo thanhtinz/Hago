@@ -8,6 +8,7 @@ import { ScreenHeader } from '../../src/components/ScreenHeader';
 import { C, R, S } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
 import { useStore } from '../../src/state/store';
+import { rankArt } from '../../src/lib/rank';
 
 type Tab = 'friends' | 'requests' | 'chats' | 'find';
 
@@ -133,7 +134,7 @@ export default function SocialScreen() {
                   </Txt>
                   <View style={{ flexDirection: 'row', gap: 6, marginTop: 3 }}>
                     <Chip label={`Lv.${f.user.level}`} color="#9A6B00" soft={C.sunSoft} size={10} />
-                    <Chip label={f.user.rank} icon="medal" color={C.secondaryDark} soft={C.secondarySoft} size={10} />
+                    <Chip label={f.user.rank} art={rankArt(f.user.rank)} color={C.secondaryDark} soft={C.secondarySoft} size={10} />
                   </View>
                 </View>
                 <Btn label="Nhắn" size="sm" tone="ghost" icon="chat" onPress={() => router.push(`/chat/${f.user.id}`)} />

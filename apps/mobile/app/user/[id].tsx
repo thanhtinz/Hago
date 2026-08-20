@@ -9,6 +9,7 @@ import { C, R, S } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
 import { emitAck } from '../../src/lib/socket';
 import { useStore } from '../../src/state/store';
+import { rankArt } from '../../src/lib/rank';
 
 export default function UserProfile() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -57,7 +58,7 @@ export default function UserProfile() {
         </Txt>
         <View style={{ flexDirection: 'row', gap: 6 }}>
           <Chip label={`Lv.${p.level}`} color="#9A6B00" soft={C.sunSoft} />
-          <Chip label={`${p.rank} · ${p.rating}`} icon="medal" color={C.secondaryDark} soft={C.secondarySoft} />
+          <Chip label={`${p.rank} · ${p.rating}`} art={rankArt(p.rank)} color={C.secondaryDark} soft={C.secondarySoft} />
         </View>
         {p.bio ? (
           <Txt size={12} color={C.inkSoft} center style={{ maxWidth: 280 }}>

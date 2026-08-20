@@ -10,6 +10,7 @@ import { Bubbles, DotPattern } from '../../src/components/decor';
 import { C, HERO_GRADIENT, R, S, softShadow } from '../../src/theme';
 import { api } from '../../src/lib/api';
 import { useStore } from '../../src/state/store';
+import { rankArt } from '../../src/lib/rank';
 
 const GAME_NAMES: Record<string, string> = {
   caro: 'Cờ Caro',
@@ -89,7 +90,7 @@ export default function ProfileScreen() {
         </Txt>
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
           <Chip label={`Lv.${profile.level}`} color="#fff" soft="rgba(255,255,255,0.24)" />
-          <Chip label={`${profile.rank} · ${profile.rating}`} icon="medal" color="#fff" soft="rgba(255,255,255,0.24)" />
+          <Chip label={`${profile.rank} · ${profile.rating}`} art={rankArt(profile.rank)} color="#fff" soft="rgba(255,255,255,0.24)" />
           {profile.isAdmin ? <Chip label="Admin" icon="shield" color="#fff" soft="rgba(255,255,255,0.24)" /> : null}
         </View>
         <View style={{ width: '80%', gap: 4, marginTop: 8 }}>

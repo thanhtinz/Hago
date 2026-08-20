@@ -93,6 +93,9 @@ export const ART = {
   'ui-profile': 'delapouite/person',
   'ui-calendar': 'delapouite/calendar',
   'ui-friends': 'delapouite/team-idea',
+  'medal-1': 'lorc/medal',
+  'medal-2': 'delapouite/sport-medal',
+  'medal-3': 'delapouite/ribbon-medal',
 
   // kết quả trận + sticker chat
   win: 'lorc/trophy',

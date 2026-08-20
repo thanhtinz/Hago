@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { C, F, R, S, softShadow, toyShadow } from '../theme';
 import { avatarUrl } from '../lib/api';
 import { Icon, IconName } from './Icon';
+import { Art, ArtName } from './Art';
 
 /* --------------------------------- text --------------------------------- */
 
@@ -238,12 +239,15 @@ export function Chip({
   color = C.secondary,
   soft = C.secondarySoft,
   icon,
+  art,
   size = 12,
 }: {
   label: string;
   color?: string;
   soft?: string;
   icon?: IconName;
+  /** Asset thay cho icon nét — dùng cho hạng, huy chương, vật phẩm. */
+  art?: ArtName;
   size?: number;
 }) {
   return (
@@ -258,7 +262,7 @@ export function Chip({
         borderRadius: R.pill,
       }}
     >
-      {icon ? <Icon name={icon} size={size + 1} color={color} strokeWidth={2.4} /> : null}
+      {art ? <Art name={art} size={size + 4} color={color} /> : icon ? <Icon name={icon} size={size + 1} color={color} strokeWidth={2.4} /> : null}
       <Txt size={size} weight="bold" color={color}>
         {label}
       </Txt>
