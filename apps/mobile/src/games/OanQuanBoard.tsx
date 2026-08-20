@@ -1,13 +1,36 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Btn, Chip, Txt } from '../components/ui';
-import { Chibi } from '../components/Chibi';
+import { MandarinStone, StonePiece } from '../components/Piece';
 import { C, R, S, SEAT_COLORS } from '../theme';
 import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
 
+/** Rải sỏi thành các hàng cố định để không tràn khỏi ô. */
+function StoneCloud({ count, big }: { count: number; big: boolean }) {
+  const per = 3;
+  const shown = Math.min(count, big ? 9 : 6);
+  const size = big ? 11 : 9;
+  const rows: number[] = [];
+  for (let left = shown; left > 0; left -= per) rows.push(Math.min(per, left));
+  return (
+    <View style={{ alignItems: 'center', gap: 2 }}>
+      {rows.map((n, r) => (
+        <View key={r} style={{ flexDirection: 'row', gap: 2 }}>
+          {Array.from({ length: n }, (_, i) => (
+            <StonePiece key={i} size={size} />
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 /** Bố cục dân gian: hàng dưới là ô của người chơi ghế 0, hàng trên của ghế 1. */
-export default function OanQuanBoard({ view, mySeat, send, deadline }: BoardProps) {
+export default function OanQuanBoard({ view, mySeat, send, deadline, space }: BoardProps) {
   const [picked, setPicked] = React.useState<number | null>(null);
+  // Bàn dân gian nằm ngang nên chiều cao ô co giãn theo phần màn hình còn trống.
+  const cellH = Math.max(74, Math.min(170, Math.floor((space.height - 250) / 2)));
+  const quanH = cellH * 2 + 12;
   const yourTurn = view.turnSeat === mySeat && !view.over;
   const mine: number[] = view.own?.[mySeat] ?? [1, 2, 3, 4, 5];
   const topRow = [11, 10, 9, 8, 7];
@@ -30,7 +53,7 @@ export default function OanQuanBoard({ view, mySeat, send, deadline }: BoardProp
         onPress={() => setPicked(index)}
         style={{
           flex: 1,
-          height: 74,
+          height: cellH,
           margin: 3,
           borderRadius: R.md,
           alignItems: 'center',
@@ -40,11 +63,7 @@ export default function OanQuanBoard({ view, mySeat, send, deadline }: BoardProp
           borderColor: picked === index ? C.primary : own ? SEAT_COLORS[mine === view.own?.[0] ? 0 : 1] + '55' : '#E0C7A5',
         }}
       >
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: 44, justifyContent: 'center' }}>
-          {Array.from({ length: Math.min(count, 8) }, (_, i) => (
-            <View key={i} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#8C5A32', margin: 1 }} />
-          ))}
-        </View>
+        <StoneCloud count={count} big={cellH > 110} />
         <Txt size={13} weight="display" color="#6B4423">
           {count}
         </Txt>
@@ -56,7 +75,7 @@ export default function OanQuanBoard({ view, mySeat, send, deadline }: BoardProp
     <View
       style={{
         width: 62,
-        height: 158,
+        height: quanH,
         borderRadius: 40,
         backgroundColor: view.quan[side] ? '#E8B14D' : '#D8CFC2',
         alignItems: 'center',
@@ -67,9 +86,9 @@ export default function OanQuanBoard({ view, mySeat, send, deadline }: BoardProp
       }}
     >
       {view.quan[side] ? (
-        <Chibi name="rock" size={30} />
+        <MandarinStone size={32} />
       ) : (
-        <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.6)' }} />
+        <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.55)' }} />
       )}
       <Txt size={11} weight="bold" color="#6B4423">
         {view.quan[side] ? `Quan ${view.quanValue}đ` : 'Quan đã bị ăn'}
@@ -81,7 +100,7 @@ export default function OanQuanBoard({ view, mySeat, send, deadline }: BoardProp
   );
 
   return (
-    <View style={{ gap: S.md }}>
+    <View style={{ gap: S.md, flex: 1 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <PlayerStrip
           players={view.players}
@@ -96,6 +115,7 @@ export default function OanQuanBoard({ view, mySeat, send, deadline }: BoardProp
         text={view.over ? 'Tàn cuộc' : yourTurn ? (picked == null ? 'Chọn 1 ô của bạn' : 'Chọn hướng rải') : 'Đối thủ đang tính nước...'}
       />
 
+      <View style={{ flex: 1 }} />
       <View style={{ backgroundColor: '#EFD9B8', padding: 8, borderRadius: R.lg, borderWidth: 3, borderColor: '#C99C6B', flexDirection: 'row', alignItems: 'center' }}>
         <Quan index={0} side={0} />
         <View style={{ flex: 1 }}>
@@ -115,8 +135,8 @@ export default function OanQuanBoard({ view, mySeat, send, deadline }: BoardProp
 
       {picked != null ? (
         <View style={{ flexDirection: 'row', gap: S.md, justifyContent: 'center' }}>
-          <Btn label="Rải ngược" icon="⬅️" tone="secondary" onPress={() => sow(-1)} />
-          <Btn label="Rải xuôi" icon="➡️" onPress={() => sow(1)} />
+          <Btn label="Rải ngược" icon="chevron-left" tone="secondary" onPress={() => sow(-1)} />
+          <Btn label="Rải xuôi" icon="chevron-right" onPress={() => sow(1)} />
           <Btn label="Huỷ" tone="ghost" onPress={() => setPicked(null)} />
         </View>
       ) : null}
@@ -133,6 +153,7 @@ export default function OanQuanBoard({ view, mySeat, send, deadline }: BoardProp
           </View>
         ))}
       </View>
+      <View style={{ flex: 1 }} />
       <GameLog log={view.log} />
     </View>
   );

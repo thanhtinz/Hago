@@ -36,7 +36,7 @@ export default function QuestsScreen() {
   const claim = async (id: string) => {
     try {
       const r = await api<any>(`/api/quests/${id}/claim`, { method: 'POST' });
-      showToast(`Nhận thưởng: +${r.reward.coin}🪙 +${r.reward.xp} XP${r.reward.diamond ? ` +${r.reward.diamond}💎` : ''}`);
+      showToast(`Nhận thưởng: +${r.reward.coin} coin, +${r.reward.xp} XP${r.reward.diamond ? `, +${r.reward.diamond} diamond` : ''}`);
       await Promise.all([load(), refresh()]);
     } catch (e: any) {
       showToast(friendlyError(e.code), 'warn');
@@ -58,7 +58,7 @@ export default function QuestsScreen() {
           </Txt>
         </View>
         {q.claimed ? (
-          <Chip label="Đã nhận" icon="✅" color={C.mint} soft={C.mintSoft} size={10} />
+          <Chip label="Đã nhận" icon="check" color={C.mint} soft={C.mintSoft} size={10} />
         ) : q.completed ? (
           <Btn label="Nhận" size="sm" tone="mint" onPress={() => claim(q.quest.id)} />
         ) : null}
@@ -66,9 +66,9 @@ export default function QuestsScreen() {
       <Bar value={q.progress} max={q.quest.target} color={q.completed ? C.mint : C.sun} />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <View style={{ flexDirection: 'row', gap: 6 }}>
-          {q.quest.rewardCoin ? <Chip label={`+${q.quest.rewardCoin}`} icon="🪙" color="#9A6B00" soft={C.sunSoft} size={10} /> : null}
+          {q.quest.rewardCoin ? <Chip label={`+${q.quest.rewardCoin}`} icon="coin" color="#9A6B00" soft={C.sunSoft} size={10} /> : null}
           {q.quest.rewardXp ? <Chip label={`+${q.quest.rewardXp} XP`} color={C.secondaryDark} soft={C.secondarySoft} size={10} /> : null}
-          {q.quest.rewardDiamond ? <Chip label={`+${q.quest.rewardDiamond}`} icon="💎" color="#1A73B8" soft={C.skySoft} size={10} /> : null}
+          {q.quest.rewardDiamond ? <Chip label={`+${q.quest.rewardDiamond}`} icon="gem" color="#1A73B8" soft={C.skySoft} size={10} /> : null}
         </View>
         <Txt size={12} weight="bold" color={C.inkFaint}>
           {q.progress}/{q.quest.target}
@@ -79,7 +79,7 @@ export default function QuestsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-    <ScreenHeader title="Nhiệm vụ" art="clipboard" subtitle="Hoàn thành để nhận Coin, EXP và Diamond" />
+    <ScreenHeader title="Nhiệm vụ" icon="list" subtitle="Hoàn thành để nhận Coin, EXP và Diamond" />
     <ScrollView
       contentContainerStyle={{ padding: S.lg, paddingBottom: 40, gap: S.md }}
       refreshControl={<RefreshControl refreshing={busy} onRefresh={load} tintColor={C.primary} />}
@@ -88,11 +88,11 @@ export default function QuestsScreen() {
         <CoinPill coin={balance.coin} diamond={balance.diamond} />
       </View>
 
-      <SectionTitle title="Hằng ngày" emoji="🌅" />
-      {daily.length ? daily.map(renderQuest) : <Empty art="seedling" title="Chưa có nhiệm vụ ngày" />}
+      <SectionTitle title="Hằng ngày" icon="sun" />
+      {daily.length ? daily.map(renderQuest) : <Empty icon="list" title="Chưa có nhiệm vụ ngày" />}
 
-      <SectionTitle title="Hằng tuần" emoji="🗓️" />
-      {weekly.length ? weekly.map(renderQuest) : <Empty art="clipboard" title="Chưa có nhiệm vụ tuần" />}
+      <SectionTitle title="Hằng tuần" icon="grid" />
+      {weekly.length ? weekly.map(renderQuest) : <Empty icon="list" title="Chưa có nhiệm vụ tuần" />}
     </ScrollView>
     </View>
   );

@@ -4,6 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Card, Field, Txt } from '../src/components/ui';
+import { Icon } from '../src/components/Icon';
+import { GameIcon } from '../src/components/GameIcon';
 import { C, R, S, softShadow } from '../src/theme';
 import { useStore } from '../src/state/store';
 import { friendlyError } from '../src/lib/api';
@@ -49,7 +51,7 @@ export default function LoginScreen() {
                 softShadow(0.12, 20, 10),
               ]}
             >
-              <Text style={{ fontSize: 52 }}>🎮</Text>
+              <GameIcon name="caro" size={58} accent={C.primary} tint="#C9BEEA" />
             </View>
             <Txt size={40} weight="display" color={C.primary} style={{ marginTop: 12 }}>
               Hago
@@ -85,7 +87,7 @@ export default function LoginScreen() {
                 </Txt>
               </View>
             ) : null}
-            <Btn label="Vào chơi ngay" icon="🚀" size="lg" full loading={busy} onPress={submit} />
+            <Btn label="Vào chơi ngay" icon="play" size="lg" full loading={busy} onPress={submit} />
             <Pressable onPress={() => router.push('/register')} style={{ alignItems: 'center', paddingVertical: 6 }}>
               <Txt size={13} weight="bold" color={C.secondary}>
                 Chưa có tài khoản? Đăng ký miễn phí
@@ -94,9 +96,12 @@ export default function LoginScreen() {
           </Card>
 
           <View style={{ backgroundColor: C.secondarySoft, borderRadius: R.lg, padding: S.lg, gap: 4 }}>
-            <Txt size={12} weight="bold" color={C.secondaryDark}>
-              🔑 Tài khoản dùng thử
-            </Txt>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Icon name="key" size={14} color={C.secondaryDark} />
+              <Txt size={12} weight="bold" color={C.secondaryDark}>
+                Tài khoản dùng thử
+              </Txt>
+            </View>
             <Txt size={12} color={C.inkSoft}>
               Người chơi: demo / demo123 · Quản trị: admin / admin123
             </Txt>

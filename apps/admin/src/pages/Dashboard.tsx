@@ -17,12 +17,12 @@ export default function Dashboard() {
   return (
     <div className="stack" style={{ gap: 16 }}>
       <div className="grid kpi">
-        <Kpi emoji="👥" label="Tổng người dùng" value={fmtNum(d.users.total)} sub={`+${d.users.newToday} hôm nay`} />
-        <Kpi emoji="🟢" label="DAU / MAU" value={`${fmtNum(d.engagement.dau)} / ${fmtNum(d.engagement.mau)}`} sub="người hoạt động" color="var(--mint)" />
-        <Kpi emoji="🎮" label="Trận hôm nay" value={fmtNum(d.matches.today)} sub={`${fmtNum(d.matches.total)} tổng cộng`} color="var(--coral)" />
-        <Kpi emoji="🔴" label="Trận đang chạy" value={fmtNum(d.matches.live)} sub={`${d.matches.activeRooms} phòng mở`} color="var(--danger)" />
-        <Kpi emoji="💎" label="Diamond bán 30 ngày" value={fmtNum(d.revenue.diamondSold30d)} sub={`${d.revenue.payers} người đã nạp`} color="var(--sky)" />
-        <Kpi emoji="🚩" label="Báo cáo chờ xử lý" value={fmtNum(d.moderation.openReports)} sub="cần kiểm duyệt" color="var(--sun)" />
+        <Kpi icon="users" label="Tổng người dùng" value={fmtNum(d.users.total)} sub={`+${d.users.newToday} hôm nay`} />
+        <Kpi icon="chart" label="DAU / MAU" value={`${fmtNum(d.engagement.dau)} / ${fmtNum(d.engagement.mau)}`} sub="người hoạt động" color="var(--mint)" />
+        <Kpi icon="games" label="Trận hôm nay" value={fmtNum(d.matches.today)} sub={`${fmtNum(d.matches.total)} tổng cộng`} color="var(--coral)" />
+        <Kpi icon="dashboard" label="Trận đang chạy" value={fmtNum(d.matches.live)} sub={`${d.matches.activeRooms} phòng mở`} color="var(--danger)" />
+        <Kpi icon="coins" label="Diamond bán 30 ngày" value={fmtNum(d.revenue.diamondSold30d)} sub={`${d.revenue.payers} người đã nạp`} color="var(--sky)" />
+        <Kpi icon="shield" label="Báo cáo chờ xử lý" value={fmtNum(d.moderation.openReports)} sub="cần kiểm duyệt" color="var(--sun)" />
       </div>
 
       <div className="grid two">

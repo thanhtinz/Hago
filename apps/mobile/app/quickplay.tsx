@@ -4,8 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Card, Chip, Txt } from '../src/components/ui';
-import { Chibi } from '../src/components/Chibi';
-import { GAME_ART } from '../src/lib/assets';
+import { Icon } from '../src/components/Icon';
+import { GameIcon, GameIconName } from '../src/components/GameIcon';
 import { C, GAME_GRADIENT, R, S } from '../src/theme';
 import { api, friendlyError } from '../src/lib/api';
 import { emitAck } from '../src/lib/socket';
@@ -32,7 +32,7 @@ export default function QuickPlayScreen() {
     const onFound = (d: any) => {
       setSearching(false);
       clearInterval(timer.current);
-      showToast(`Đã tìm thấy trận sau ${(d.waitMs / 1000).toFixed(1)}s! 🎯`);
+      showToast(`Đã tìm thấy trận sau ${(d.waitMs / 1000).toFixed(1)}s`);
     };
     const onStart = (d: any) => router.replace(`/match/${d.matchId}`);
     socket.on('mm.found', onFound);
@@ -71,7 +71,7 @@ export default function QuickPlayScreen() {
           </Txt>
         </Pressable>
         <Txt size={22} weight="display">
-          Chơi nhanh ⚡
+          Chơi nhanh
         </Txt>
       </View>
 
@@ -81,7 +81,7 @@ export default function QuickPlayScreen() {
             colors={(GAME_GRADIENT[selected ?? 'caro'] ?? ['#FF8A65', '#FF5E7D']) as [string, string]}
             style={{ width: 170, height: 170, borderRadius: 85, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Chibi name={GAME_ART[selected ?? ''] ?? 'gamepad'} size={82} />
+            <GameIcon name={(selected ?? 'caro') as GameIconName} size={86} />
           </LinearGradient>
           <ActivityIndicator size="large" color={C.primary} />
           <Txt size={22} weight="display">
@@ -117,7 +117,7 @@ export default function QuickPlayScreen() {
                     backgroundColor: mode === m ? C.primarySoft : C.surface,
                   }}
                 >
-                  <Text style={{ fontSize: 22 }}>{m === 'normal' ? '🎈' : '🏅'}</Text>
+                  <Icon name={m === 'normal' ? 'star' : 'medal'} size={23} color={mode === m ? C.primary : C.inkFaint} strokeWidth={2.1} />
                   <Txt size={13} weight="bold">
                     {m === 'normal' ? 'Thường' : 'Xếp hạng'}
                   </Txt>
@@ -147,7 +147,7 @@ export default function QuickPlayScreen() {
                     }}
                   >
                     <LinearGradient colors={(GAME_GRADIENT[g.id] ?? ['#eee', '#ddd']) as [string, string]} style={{ width: 48, height: 48, borderRadius: R.md, alignItems: 'center', justifyContent: 'center' }}>
-                      <Chibi name={GAME_ART[g.id] ?? 'gamepad'} size={30} />
+                      <GameIcon name={g.id as GameIconName} size={32} />
                     </LinearGradient>
                     <View style={{ flex: 1 }}>
                       <Txt size={15} weight="bold">
@@ -157,13 +157,19 @@ export default function QuickPlayScreen() {
                         {g.tagline}
                       </Txt>
                     </View>
-                    <Chip label={`${g.minPlayers}${g.maxPlayers > g.minPlayers ? `-${g.maxPlayers}` : ''}👤`} color={C.inkSoft} soft={C.surfaceAlt} size={10} />
+                    <Chip
+                      label={`${g.minPlayers}${g.maxPlayers > g.minPlayers ? `-${g.maxPlayers}` : ''}`}
+                      icon="users"
+                      color={C.inkSoft}
+                      soft={C.surfaceAlt}
+                      size={10}
+                    />
                   </Card>
                 </Pressable>
               ))}
           </View>
 
-          <Btn label="Bắt đầu tìm trận" icon="⚡" size="lg" full disabled={!selected} onPress={start} />
+          <Btn label="Bắt đầu tìm trận" icon="bolt" size="lg" full disabled={!selected} onPress={start} />
         </ScrollView>
       )}
     </View>

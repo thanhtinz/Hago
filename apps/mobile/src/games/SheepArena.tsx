@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bar, Txt } from '../components/ui';
-import { Chibi } from '../components/Chibi';
+import { Icon } from '../components/Icon';
+import { SheepPiece } from '../components/Piece';
 import { C, R, S, SEAT_COLORS, softShadow } from '../theme';
-import { BoardProps, GameLog } from './shared';
+import { BoardProps } from './shared';
 
-/** Mỗi cấp cừu một con vật riêng, càng cao càng to — nhìn là biết mạnh yếu. */
-const LEVEL_ART = ['sheep-lv1', 'sheep-lv1', 'sheep-lv2', 'sheep-lv3', 'sheep-lv4', 'sheep-lv5'];
-const LEVEL_SCALE = [0.7, 0.7, 0.8, 0.9, 1, 1.1];
+/** Cừu càng cấp cao càng to và nhiều chi tiết (sừng, gạc, vương miện). */
+const LEVEL_SCALE = [0.78, 0.78, 0.86, 0.94, 1.02, 1.1];
 
 export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
   const [now, setNow] = useState(Date.now());
@@ -23,7 +23,7 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
   const foe = 1 - me;
 
   // Chừa chỗ cho hai thanh điểm, hàng chờ cừu và dòng hướng dẫn.
-  const fieldMaxH = Math.max(220, space.height - 230);
+  const fieldMaxH = Math.max(220, space.height - 196);
   const cellW = Math.floor((space.width - 8) / lanes);
   const cell = Math.max(26, Math.min(cellW, Math.floor(fieldMaxH / len)));
   const fieldW = cell * lanes;
@@ -128,7 +128,11 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
                   borderColor: mine ? SEAT_COLORS[me] : SEAT_COLORS[foe],
                 }}
               />
-              <Chibi name={LEVEL_ART[u.level] ?? 'sheep-lv1'} size={cell * (LEVEL_SCALE[u.level] ?? 0.7)} />
+              <SheepPiece
+                size={cell * (LEVEL_SCALE[u.level] ?? 0.78)}
+                level={u.level}
+                outline={mine ? SEAT_COLORS[me] : SEAT_COLORS[foe]}
+              />
               {u.level > 1 ? (
                 <View
                   style={{
@@ -196,18 +200,16 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
                 borderStyle: lvl ? 'solid' : 'dashed',
               }}
             >
-              {lvl ? <Chibi name={LEVEL_ART[lvl] ?? 'sheep-lv1'} size={26} /> : null}
+              {lvl ? <SheepPiece size={28} level={lvl} outline={SEAT_COLORS[me]} /> : null}
             </View>
           );
         })}
       </View>
 
+      {/* Trận realtime nên bỏ nhật ký chữ: mọi diễn biến đã thấy ngay trên sân. */}
       <Txt size={11} color={C.inkFaint} center style={{ maxWidth: space.width - 20 }}>
-        Chạm vào làn để thả cừu · thả trúng cừu cùng cấp để tiến hoá · cừu lọt sân đối thủ ghi
-        điểm bằng cấp của nó
+        Chạm vào làn để thả cừu · trùng cấp thì hợp thể · lọt sân đối thủ là ghi điểm
       </Txt>
-
-      <GameLog log={view.log} />
     </View>
   );
 }

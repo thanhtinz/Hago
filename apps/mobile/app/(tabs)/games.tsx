@@ -5,20 +5,20 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Card, Chip, Empty, Txt } from '../../src/components/ui';
 import { GameCard, GameMeta } from '../../src/components/GameCard';
-import { Chibi } from '../../src/components/Chibi';
+import { Icon, IconName } from '../../src/components/Icon';
 import { Bubbles, DotPattern, Gloss } from '../../src/components/decor';
-import { GAME_ART } from '../../src/lib/assets';
+import { GameIcon, GameIconName } from '../../src/components/GameIcon';
 import { ACTION_GRADIENT, C, GAME_GRADIENT, HERO_GRADIENT, R, S, softShadow } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
 import { emitAck } from '../../src/lib/socket';
 import { useStore } from '../../src/state/store';
 
 /** Bộ lọc nhanh theo kiểu chơi, giống hàng danh mục của các app game casual. */
-const FILTERS: { id: string; label: string; art: string; match: (g: GameMeta) => boolean }[] = [
-  { id: 'all', label: 'Tất cả', art: 'gamepad', match: () => true },
-  { id: 'duo', label: '2 người', art: 'handshake', match: (g) => g.maxPlayers === 2 },
-  { id: 'party', label: 'Nhiều người', art: 'party', match: (g) => g.maxPlayers > 2 },
-  { id: 'quick', label: 'Ván nhanh', art: 'bolt', match: (g) => g.avgMinutes <= 5 },
+const FILTERS: { id: string; label: string; icon: IconName; match: (g: GameMeta) => boolean }[] = [
+  { id: 'all', label: 'Tất cả', icon: 'grid', match: () => true },
+  { id: 'duo', label: '2 người', icon: 'users', match: (g) => g.maxPlayers === 2 },
+  { id: 'party', label: 'Nhiều người', icon: 'crown', match: (g) => g.maxPlayers > 2 },
+  { id: 'quick', label: 'Ván nhanh', icon: 'bolt', match: (g) => g.avgMinutes <= 5 },
 ];
 
 export default function GamesScreen() {
@@ -78,7 +78,7 @@ export default function GamesScreen() {
         <DotPattern rows={3} cols={9} />
         <Bubbles spec={[{ size: 130, right: -40, top: -50, alpha: 0.14 }]} />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Chibi name="joystick" size={26} />
+          <Icon name="grid" size={26} color="#fff" strokeWidth={2.1} />
           <Txt size={26} weight="display" color="#fff">
             Kho game
           </Txt>
@@ -91,14 +91,14 @@ export default function GamesScreen() {
       {/* Hai lối vào phòng, nổi lên trên mép header */}
       <View style={{ flexDirection: 'row', gap: S.md, paddingHorizontal: S.lg, marginTop: -26 }}>
         <RoomShortcut
-          art="door"
+          icon="door"
           title="Tìm phòng"
           sub={`${rooms.length} phòng đang mở`}
           colors={ACTION_GRADIENT.find}
           onPress={() => router.push('/rooms?tab=find')}
         />
         <RoomShortcut
-          art="key"
+          icon="key"
           title="Tạo phòng"
           sub="Tuỳ chỉnh luật chơi"
           colors={ACTION_GRADIENT.create}
@@ -130,7 +130,7 @@ export default function GamesScreen() {
                 borderColor: active ? C.ink : C.line,
               }}
             >
-              <Chibi name={f.art} size={15} opacity={active ? 1 : 0.6} />
+              <Icon name={f.icon} size={15} color={active ? '#fff' : C.inkSoft} strokeWidth={2.2} />
               <Txt size={12} weight="bold" color={active ? '#fff' : C.inkSoft}>
                 {f.label}
               </Txt>
@@ -149,7 +149,7 @@ export default function GamesScreen() {
         </View>
         {!shown.length ? (
           <Card>
-            <Empty emoji="🔍" title="Không có game nào khớp bộ lọc" />
+            <Empty icon="grid" title="Không có game nào khớp bộ lọc" />
           </Card>
         ) : null}
       </View>
@@ -157,7 +157,7 @@ export default function GamesScreen() {
       <View style={{ marginTop: S.xl }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: S.lg, marginBottom: S.md }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-            <Chibi name="door" size={19} />
+            <Icon name="door" size={19} color={C.primary} strokeWidth={2.2} />
             <Txt size={17} weight="heading">
               Phòng đang mở
             </Txt>
@@ -183,7 +183,7 @@ export default function GamesScreen() {
                     style={{ width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
                   >
                     <Gloss opacity={0.14} angle="top" />
-                    <Chibi name={GAME_ART[r.gameType] ?? 'gamepad'} size={30} />
+                    <GameIcon name={r.gameType as GameIconName} size={32} />
                   </LinearGradient>
                   <View style={{ flex: 1 }}>
                     <Txt size={14} weight="bold">
@@ -191,7 +191,7 @@ export default function GamesScreen() {
                     </Txt>
                     <View style={{ flexDirection: 'row', gap: 5, marginTop: 4 }}>
                       <Chip label={`#${r.code}`} color={C.inkSoft} soft={C.surfaceAlt} size={10} />
-                      <Chip label={`${r.players.length}/${r.maxPlayers}`} icon="👥" color={C.mint} soft={C.mintSoft} size={10} />
+                      <Chip label={`${r.players.length}/${r.maxPlayers}`} icon="users" color={C.mint} soft={C.mintSoft} size={10} />
                     </View>
                   </View>
                   <View style={{ flexDirection: 'row' }}>
@@ -216,7 +216,7 @@ export default function GamesScreen() {
             })
           ) : (
             <Card>
-              <Empty emoji="🏠" title="Chưa có phòng công khai" hint="Tạo phòng để rủ bạn bè cùng chơi nhé!" />
+              <Empty icon="grid" title="Chưa có phòng công khai" hint="Tạo phòng để rủ bạn bè cùng chơi nhé!" />
             </Card>
           )}
         </View>
@@ -226,13 +226,13 @@ export default function GamesScreen() {
 }
 
 function RoomShortcut({
-  art,
+  icon,
   title,
   sub,
   colors,
   onPress,
 }: {
-  art: string;
+  icon: IconName;
   title: string;
   sub: string;
   colors: [string, string];
@@ -252,7 +252,7 @@ function RoomShortcut({
         >
           <Gloss opacity={0.16} angle="top" />
           <Bubbles spec={[{ size: 76, right: -22, bottom: -26, alpha: 0.18 }]} />
-          <Chibi name={art} size={28} />
+          <Icon name={icon} size={28} color="#fff" strokeWidth={2} />
           <Txt size={15} weight="heading" color="#fff">
             {title}
           </Txt>

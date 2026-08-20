@@ -1,7 +1,8 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Btn, Chip, Txt } from '../components/ui';
-import { Chibi } from '../components/Chibi';
+import { Icon } from '../components/Icon';
+import { DieFace, HorsePiece } from '../components/Piece';
 import { C, R, S, SEAT_COLORS } from '../theme';
 import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
 
@@ -34,14 +35,14 @@ export default function LudoBoard({ view, mySeat, send, deadline, space }: Board
   const moves: number[] = view.moves ?? [];
 
   return (
-    <View style={{ gap: S.md }}>
+    <View style={{ gap: S.md, flex: 1 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <PlayerStrip
           players={view.players}
           activeSeat={view.turnSeat}
           mySeat={mySeat}
           extra={(seat) => (
-            <Chip label={`${view.pieces.filter((p: any) => p.seat === seat && p.state === 'done').length}/4`} icon="🏁" color={C.inkSoft} soft={C.surfaceAlt} size={10} />
+            <Chip label={`${view.pieces.filter((p: any) => p.seat === seat && p.state === 'done').length}/4`} icon="flag" color={C.inkSoft} soft={C.surfaceAlt} size={10} />
           )}
         />
         <TurnTimer deadline={deadline} total={20} />
@@ -108,7 +109,7 @@ export default function LudoBoard({ view, mySeat, send, deadline, space }: Board
                     borderColor: selectable ? '#fff' : 'rgba(0,0,0,0.15)',
                   }}
                 >
-                  <Chibi name="horse" size={cell * 0.64} />
+                  <HorsePiece size={cell * 0.78} color="#FFFFFF" />
                 </Pressable>
               );
             })}
@@ -141,7 +142,7 @@ export default function LudoBoard({ view, mySeat, send, deadline, space }: Board
                             borderColor: C.ink,
                           }}
                         >
-                          <Chibi name="horse" size={14} opacity={can ? 1 : 0.75} />
+                          <HorsePiece size={16} color="#FFFFFF" />
                         </Pressable>
                       );
                     })}
@@ -158,7 +159,7 @@ export default function LudoBoard({ view, mySeat, send, deadline, space }: Board
                       </Pressable>
                     ))}
                     {done.map((p: any) => (
-                      <Chibi key={p.id} name="flag-finish" size={14} />
+                      <Icon key={p.id} name="flag" size={14} color={SEAT_COLORS[seat]} strokeWidth={2.4} />
                     ))}
                   </View>
                 </View>
@@ -169,33 +170,15 @@ export default function LudoBoard({ view, mySeat, send, deadline, space }: Board
       </View>
 
       <View style={{ alignItems: 'center', gap: S.sm }}>
-        <View
-          style={{
-            width: 62,
-            height: 62,
-            borderRadius: R.md,
-            backgroundColor: C.surface,
-            borderWidth: 3,
-            borderColor: C.line,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {view.dice ? (
-            <Txt size={30} weight="display" color={C.primary}>
-              {view.dice}
-            </Txt>
-          ) : (
-            <Chibi name="dice" size={34} opacity={0.45} />
-          )}
-        </View>
-        {canRoll ? <Btn label="Tung xúc xắc" icon="🎲" size="lg" onPress={() => send('roll', {})} /> : null}
+        <DieFace value={view.dice} size={58} color={view.dice ? C.primary : C.inkFaint} />
+        {canRoll ? <Btn label="Tung xúc xắc" icon="dice" size="lg" style={{ alignSelf: 'center' }} onPress={() => send('roll', {})} /> : null}
         {yourTurn && view.rolled && moves.length ? (
           <Txt size={12} weight="bold" color={C.mint}>
             Chọn 1 trong {moves.length} ngựa có thể đi
           </Txt>
         ) : null}
       </View>
+      <View style={{ flex: 1 }} />
       <GameLog log={view.log} />
     </View>
   );

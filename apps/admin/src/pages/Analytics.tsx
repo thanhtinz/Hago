@@ -46,7 +46,7 @@ export default function Analytics() {
         {d.daily.length ? (
           <BarChart data={d.daily.map((x: any) => ({ label: x.day.slice(5), value: x.users }))} />
         ) : (
-          <Empty emoji="📊" text="Chưa có dữ liệu" />
+          <Empty icon="chart" text="Chưa có dữ liệu" />
         )}
       </Card>
 

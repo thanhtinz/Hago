@@ -29,16 +29,16 @@ export default function SettingsScreen() {
   const save = async () => {
     await api('/api/users/me', { method: 'PATCH', body: { displayName, bio, avatarSeed: seed, avatarStyle: styleName } });
     await refresh();
-    showToast('Đã lưu hồ sơ ✨');
+    showToast('Đã lưu hồ sơ');
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-    <ScreenHeader title="Cài đặt" art="key" subtitle="Hồ sơ, thông báo và phiên đăng nhập" />
+    <ScreenHeader title="Cài đặt" icon="key" subtitle="Hồ sơ, thông báo và phiên đăng nhập" />
     <ScrollView contentContainerStyle={{ padding: S.lg, paddingBottom: 40, gap: S.lg }}>
 
       <Card style={{ gap: S.md }}>
-        <SectionTitle title="Hồ sơ" emoji="🐤" />
+        <SectionTitle title="Hồ sơ" icon="user" />
         <View style={{ alignItems: 'center', gap: 6 }}>
           <Avatar seed={seed} styleName={styleName} frameId={profile?.frameId} size={80} />
           <Txt size={11} color={C.inkFaint}>
@@ -63,17 +63,17 @@ export default function SettingsScreen() {
             </Pressable>
           ))}
         </ScrollView>
-        <Btn label="Lưu thay đổi" icon="💾" full onPress={save} />
+        <Btn label="Lưu thay đổi" icon="check" full onPress={save} />
       </Card>
 
       <Card style={{ gap: S.md }}>
-        <SectionTitle title="Tuỳ chọn" emoji="🔧" />
+        <SectionTitle title="Tuỳ chọn" icon="grid" />
         <Row label="Thông báo đẩy" value={push} onChange={setPush} />
         <Row label="Âm thanh trong game" value={sound} onChange={setSound} />
       </Card>
 
       <Card style={{ gap: S.sm }}>
-        <SectionTitle title="Phiên đăng nhập" emoji="📱" />
+        <SectionTitle title="Phiên đăng nhập" icon="grid" />
         {sessions.map((s) => (
           <View key={s.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View style={{ flex: 1 }}>
@@ -100,7 +100,7 @@ export default function SettingsScreen() {
       </Card>
 
       <Card style={{ gap: 6 }}>
-        <SectionTitle title="Về ứng dụng" emoji="ℹ️" />
+        <SectionTitle title="Về ứng dụng" icon="grid" />
         <Txt size={12} color={C.inkSoft}>
           Hago v1.0.0 — nền tảng social mini-game
         </Txt>
@@ -112,7 +112,7 @@ export default function SettingsScreen() {
         </Txt>
       </Card>
 
-      <Btn label="Đăng xuất" icon="👋" tone="danger" full onPress={logout} />
+      <Btn label="Đăng xuất" icon="logout" tone="danger" full onPress={logout} />
     </ScrollView>
     </View>
   );

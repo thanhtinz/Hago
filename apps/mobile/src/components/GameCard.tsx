@@ -3,9 +3,9 @@ import { Image, Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { C, GAME_GRADIENT, R, S, softShadow } from '../theme';
 import { Txt } from './ui';
-import { Chibi } from './Chibi';
 import { Bubbles, Gloss } from './decor';
-import { GAME_ART, gameArt } from '../lib/assets';
+import { GameIcon, GameIconName } from './GameIcon';
+import { Icon } from './Icon';
 
 export interface GameMeta {
   id: string;
@@ -13,7 +13,7 @@ export interface GameMeta {
   tagline: string;
   minPlayers: number;
   maxPlayers: number;
-  emoji: string;
+  art: string;
   category: string;
   avgMinutes: number;
 }
@@ -70,7 +70,7 @@ export function HotGameCard({
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           {/* Bệ tròn mờ để nhân vật nổi khỏi nền gradient */}
           <View style={{ position: 'absolute', width: 104, height: 104, borderRadius: 52, backgroundColor: 'rgba(255,255,255,0.24)' }} />
-          <Chibi name={GAME_ART[game.id] ?? 'gamepad'} size={92} />
+          <GameIcon name={game.id as GameIconName} size={92} />
         </View>
 
         {/* Chuyển màu mờ dần ở chân thẻ để chữ trắng luôn đọc được mà không tạo mép cứng */}
@@ -110,11 +110,11 @@ export function GameCard({ game, onPress, hotCount }: { game: GameMeta; onPress?
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <View style={{ alignItems: 'center', justifyContent: 'center' }}>
             <View style={{ position: 'absolute', width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.22)' }} />
-            <Chibi name={GAME_ART[game.id] ?? 'gamepad'} size={54} />
+            <GameIcon name={game.id as GameIconName} size={54} />
           </View>
           {hotCount ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(0,0,0,0.18)', paddingHorizontal: 7, paddingVertical: 3, borderRadius: R.pill }}>
-              <Chibi name="fire" size={11} />
+              <Icon name="flame" size={11} color="#fff" strokeWidth={2.4} />
               <Txt size={10} weight="bold" color="#fff">
                 {hotCount}
               </Txt>

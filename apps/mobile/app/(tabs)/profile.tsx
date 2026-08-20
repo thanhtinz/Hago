@@ -4,7 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Bar, Btn, Card, Chip, Empty, SectionTitle, Txt } from '../../src/components/ui';
-import { Chibi } from '../../src/components/Chibi';
+import { Icon, IconName } from '../../src/components/Icon';
+import { GameIcon, GameIconName } from '../../src/components/GameIcon';
 import { Bubbles, DotPattern } from '../../src/components/decor';
 import { C, HERO_GRADIENT, R, S, softShadow } from '../../src/theme';
 import { api } from '../../src/lib/api';
@@ -88,8 +89,8 @@ export default function ProfileScreen() {
         </Txt>
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
           <Chip label={`Lv.${profile.level}`} color="#fff" soft="rgba(255,255,255,0.24)" />
-          <Chip label={`${profile.rank} · ${profile.rating}`} icon="🏅" color="#fff" soft="rgba(255,255,255,0.24)" />
-          {profile.isAdmin ? <Chip label="Admin" icon="🛡️" color="#fff" soft="rgba(255,255,255,0.24)" /> : null}
+          <Chip label={`${profile.rank} · ${profile.rating}`} icon="medal" color="#fff" soft="rgba(255,255,255,0.24)" />
+          {profile.isAdmin ? <Chip label="Admin" icon="shield" color="#fff" soft="rgba(255,255,255,0.24)" /> : null}
         </View>
         <View style={{ width: '80%', gap: 4, marginTop: 8 }}>
           <Bar value={xpInto} max={xpNeed} color="#FFD36E" bg="rgba(255,255,255,0.28)" />
@@ -100,29 +101,29 @@ export default function ProfileScreen() {
       </LinearGradient>
 
       <View style={{ paddingHorizontal: S.lg, marginTop: -22, flexDirection: 'row', gap: S.md }}>
-        <Stat label="Trận" value={profile.matches} emoji="🎮" />
-        <Stat label="Thắng" value={profile.wins} emoji="🏆" tone={C.mint} />
-        <Stat label="Tỉ lệ" value={`${winRate}%`} emoji="📈" tone={C.secondary} />
+        <Stat label="Trận" value={profile.matches} icon="dice" />
+        <Stat label="Thắng" value={profile.wins} icon="trophy" tone={C.mint} />
+        <Stat label="Tỉ lệ" value={`${winRate}%`} icon="trend" tone={C.secondary} />
       </View>
 
       <View style={{ padding: S.lg, gap: S.md }}>
         <View style={{ flexDirection: 'row', gap: S.sm, flexWrap: 'wrap' }}>
-          <Btn label="Cửa hàng" icon="🛍️" tone="ghost" size="sm" onPress={() => router.push('/shop')} />
-          <Btn label="Nhiệm vụ" icon="📋" tone="ghost" size="sm" onPress={() => router.push('/quests')} />
-          <Btn label="BXH" icon="🏆" tone="ghost" size="sm" onPress={() => router.push('/leaderboard')} />
-          <Btn label="Thông báo" icon="🔔" tone="ghost" size="sm" onPress={() => router.push('/notifications')} />
-          <Btn label="Cài đặt" icon="⚙️" tone="ghost" size="sm" onPress={() => router.push('/settings')} />
+          <Btn label="Cửa hàng" icon="shop" tone="ghost" size="sm" onPress={() => router.push('/shop')} />
+          <Btn label="Nhiệm vụ" icon="list" tone="ghost" size="sm" onPress={() => router.push('/quests')} />
+          <Btn label="BXH" icon="trophy" tone="ghost" size="sm" onPress={() => router.push('/leaderboard')} />
+          <Btn label="Thông báo" icon="bell" tone="ghost" size="sm" onPress={() => router.push('/notifications')} />
+          <Btn label="Cài đặt" icon="settings" tone="ghost" size="sm" onPress={() => router.push('/settings')} />
         </View>
       </View>
 
       <View style={{ paddingHorizontal: S.lg, gap: S.md }}>
-        <SectionTitle title="Thành tựu" emoji="🏅" action={<Txt size={12} weight="bold" color={C.inkFaint}>{unlocked.length}/{achievements.length}</Txt>} />
+        <SectionTitle title="Thành tựu" icon="medal" action={<Txt size={12} weight="bold" color={C.inkFaint}>{unlocked.length}/{achievements.length}</Txt>} />
         <Card style={{ gap: S.md }}>
           {achievements.length ? (
             achievements.slice(0, 6).map((a) => (
               <View key={a.achievement.id} style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, opacity: a.unlockedAt ? 1 : 0.55 }}>
                 <View style={{ width: 42, height: 42, borderRadius: R.md, backgroundColor: a.unlockedAt ? C.sunSoft : C.surfaceAlt, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ fontSize: 20 }}>{a.achievement.emoji}</Text>
+                  <Icon name={(a.achievement.art ?? 'trophy') as IconName} size={20} color={a.unlockedAt ? C.sun : C.inkFaint} strokeWidth={2} />
                 </View>
                 <View style={{ flex: 1, gap: 4 }}>
                   <Txt size={13} weight="bold">
@@ -136,13 +137,13 @@ export default function ProfileScreen() {
               </View>
             ))
           ) : (
-            <Empty art="trophy" title="Chưa có thành tựu" />
+            <Empty icon="trophy" title="Chưa có thành tựu" />
           )}
         </Card>
       </View>
 
       <View style={{ padding: S.lg, gap: S.md }}>
-        <SectionTitle title="Thống kê theo game" emoji="📊" />
+        <SectionTitle title="Thống kê theo game" icon="grid" />
         <Card style={{ gap: S.md }}>
           {Object.values(profile.perGame).map((g: any) => (
             <View key={g.gameType} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -152,7 +153,7 @@ export default function ProfileScreen() {
               <View style={{ flexDirection: 'row', gap: 6 }}>
                 <Chip label={`${g.matches} trận`} color={C.inkSoft} soft={C.surfaceAlt} size={10} />
                 <Chip label={`${g.wins} thắng`} color={C.mint} soft={C.mintSoft} size={10} />
-                <Chip label={`${g.rating}`} icon="🏅" color={C.secondaryDark} soft={C.secondarySoft} size={10} />
+                <Chip label={`${g.rating}`} icon="medal" color={C.secondaryDark} soft={C.secondarySoft} size={10} />
               </View>
             </View>
           ))}
@@ -160,13 +161,18 @@ export default function ProfileScreen() {
       </View>
 
       <View style={{ paddingHorizontal: S.lg, gap: S.md }}>
-        <SectionTitle title="Lịch sử trận" emoji="🕹️" />
+        <SectionTitle title="Lịch sử trận" icon="grid" />
         <Card style={{ gap: S.md }}>
           {history.length ? (
             history.map((m: any) => (
               <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 16 }}>{m.result === 'win' ? '🏆' : m.result === 'draw' ? '🤝' : '💧'}</Text>
+                  <Icon
+                    name={m.result === 'win' ? 'trophy' : m.result === 'draw' ? 'handshake' : 'flag'}
+                    size={17}
+                    color={m.result === 'win' ? C.sun : m.result === 'draw' ? C.inkFaint : C.sky}
+                    strokeWidth={2.1}
+                  />
                   <Txt size={13} weight="medium">
                     {GAME_NAMES[m.game_type] ?? m.game_type}
                   </Txt>
@@ -179,22 +185,22 @@ export default function ProfileScreen() {
               </View>
             ))
           ) : (
-            <Empty art="joystick" title="Chưa có trận nào" />
+            <Empty icon="grid" title="Chưa có trận nào" />
           )}
         </Card>
       </View>
 
       <View style={{ padding: S.lg }}>
-        <Btn label="Đăng xuất" icon="👋" tone="danger" full onPress={logout} />
+        <Btn label="Đăng xuất" icon="logout" tone="danger" full onPress={logout} />
       </View>
     </ScrollView>
   );
 }
 
-function Stat({ label, value, emoji, tone = C.primary }: { label: string; value: number | string; emoji: string; tone?: string }) {
+function Stat({ label, value, icon, tone = C.primary }: { label: string; value: number | string; icon: IconName; tone?: string }) {
   return (
-    <View style={[{ flex: 1, backgroundColor: C.surface, borderRadius: R.lg, padding: S.md, alignItems: 'center', gap: 2, borderWidth: 2, borderColor: C.line }, softShadow(0.06, 10, 4)]}>
-      <Text style={{ fontSize: 18 }}>{emoji}</Text>
+    <View style={[{ flex: 1, backgroundColor: C.surface, borderRadius: R.lg, padding: S.md, alignItems: 'center', gap: 3, borderWidth: 2, borderColor: C.line }, softShadow(0.06, 10, 4)]}>
+      <Icon name={icon} size={21} color={tone} strokeWidth={2.1} />
       <Txt size={19} weight="display" color={tone}>
         {value}
       </Txt>

@@ -32,7 +32,8 @@ export interface GameMeta {
   modes: GameMode[];
   /** Pastel chibi theme colours used by the client. */
   colors: [string, string];
-  emoji: string;
+  /** Tên asset chibi đại diện cho game (không dùng emoji). */
+  art: string;
   avgMinutes: number;
 }
 
@@ -47,7 +48,7 @@ export const GAME_CATALOG: Record<GameType, GameMeta> = {
     category: 'Board strategy',
     modes: ['normal', 'ranked', 'custom'],
     colors: ['#7C6BFF', '#B9AFFF'],
-    emoji: '⭕',
+    art: 'game-caro',
     avgMinutes: 5,
   },
   battleship: {
@@ -60,7 +61,7 @@ export const GAME_CATALOG: Record<GameType, GameMeta> = {
     category: 'Turn-based strategy',
     modes: ['normal', 'ranked', 'custom'],
     colors: ['#2FA9F5', '#9BDCFF'],
-    emoji: '🚢',
+    art: 'game-battleship',
     avgMinutes: 8,
   },
   oanquan: {
@@ -73,7 +74,7 @@ export const GAME_CATALOG: Record<GameType, GameMeta> = {
     category: 'Board strategy',
     modes: ['normal', 'ranked', 'custom'],
     colors: ['#F2994A', '#FFD79B'],
-    emoji: '🪨',
+    art: 'game-oanquan',
     avgMinutes: 7,
   },
   sheep: {
@@ -86,7 +87,7 @@ export const GAME_CATALOG: Record<GameType, GameMeta> = {
     category: 'Realtime lane battle',
     modes: ['normal', 'ranked', 'custom'],
     colors: ['#39C77F', '#A9F0CB'],
-    emoji: '🐑',
+    art: 'game-sheep',
     avgMinutes: 3,
   },
   monopoly: {
@@ -99,7 +100,7 @@ export const GAME_CATALOG: Record<GameType, GameMeta> = {
     category: 'Board / economy',
     modes: ['normal', 'custom'],
     colors: ['#E9556D', '#FFB3BF'],
-    emoji: '🏦',
+    art: 'game-monopoly',
     avgMinutes: 15,
   },
   ludo: {
@@ -112,7 +113,7 @@ export const GAME_CATALOG: Record<GameType, GameMeta> = {
     category: 'Board casual',
     modes: ['normal', 'ranked', 'custom'],
     colors: ['#FF8A3D', '#FFD0AC'],
-    emoji: '🐴',
+    art: 'game-ludo',
     avgMinutes: 10,
   },
   werewolf: {
@@ -125,7 +126,7 @@ export const GAME_CATALOG: Record<GameType, GameMeta> = {
     category: 'Social deduction',
     modes: ['normal', 'custom'],
     colors: ['#6C5CE7', '#3A2E6E'],
-    emoji: '🐺',
+    art: 'game-werewolf',
     avgMinutes: 20,
   },
 };
@@ -188,16 +189,17 @@ export interface RankInfo {
   min: number;
   max: number;
   color: string;
-  emoji: string;
+  /** Tên asset chibi của bậc rank. */
+  art: string;
 }
 
 export const RANKS: RankInfo[] = [
-  { tier: 'Bronze', min: 0, max: 999, color: '#C4854B', emoji: '🥉' },
-  { tier: 'Silver', min: 1000, max: 1499, color: '#A9B4C2', emoji: '🥈' },
-  { tier: 'Gold', min: 1500, max: 1999, color: '#F2C14E', emoji: '🥇' },
-  { tier: 'Platinum', min: 2000, max: 2499, color: '#55D6C2', emoji: '💠' },
-  { tier: 'Diamond', min: 2500, max: 2999, color: '#6FC3FF', emoji: '💎' },
-  { tier: 'Master', min: 3000, max: Number.MAX_SAFE_INTEGER, color: '#C86DFF', emoji: '👑' },
+  { tier: 'Bronze', min: 0, max: 999, color: '#C4854B', art: 'medal-3' },
+  { tier: 'Silver', min: 1000, max: 1499, color: '#A9B4C2', art: 'medal-2' },
+  { tier: 'Gold', min: 1500, max: 1999, color: '#F2C14E', art: 'medal-1' },
+  { tier: 'Platinum', min: 2000, max: 2499, color: '#55D6C2', art: 'gem' },
+  { tier: 'Diamond', min: 2500, max: 2999, color: '#6FC3FF', art: 'gem' },
+  { tier: 'Master', min: 3000, max: Number.MAX_SAFE_INTEGER, color: '#C86DFF', art: 'crown' },
 ];
 
 export function rankOf(rating: number): RankInfo {
@@ -378,7 +380,8 @@ export interface AchievementDef {
   target: number;
   rewardCoin: number;
   rewardXp: number;
-  emoji: string;
+  /** Tên asset chibi của thành tựu. */
+  art: string;
 }
 
 export interface UserAchievement {

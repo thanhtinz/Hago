@@ -261,16 +261,16 @@ function resolveNight(state: WerewolfState): [WerewolfState, any[]] {
   if (victim != null && victim !== guarded && !healed) {
     seats[victim].alive = false;
     deaths.push({ day: state.day, seat: victim, cause: 'wolf' });
-    log.push(`🌙 ${state.players[victim].name} đã bị sói cắn chết.`);
+    log.push(`${state.players[victim].name} đã bị sói cắn chết.`);
   } else if (victim != null) {
-    log.push('🌙 Đêm nay không ai chết — có người đã được bảo vệ.');
+    log.push('Đêm nay không ai chết — có người đã được bảo vệ.');
   } else {
-    log.push('🌙 Một đêm yên tĩnh trôi qua.');
+    log.push('Một đêm yên tĩnh trôi qua.');
   }
   if (poisoned != null && seats[poisoned].alive) {
     seats[poisoned].alive = false;
     deaths.push({ day: state.day, seat: poisoned, cause: 'poison' });
-    log.push(`☠️ ${state.players[poisoned].name} trúng độc của phù thủy.`);
+    log.push(`${state.players[poisoned].name} trúng độc của phù thủy.`);
   }
 
   let next: WerewolfState = {
@@ -281,7 +281,7 @@ function resolveNight(state: WerewolfState): [WerewolfState, any[]] {
     nightActions: {},
     lastGuarded: guarded,
     phaseEndsAt: Date.now() + state.discussSeconds * 1000,
-    log: [...state.log, ...log, `☀️ Ngày ${state.day} — thảo luận ${state.discussSeconds}s`].slice(-40),
+    log: [...state.log, ...log, `Ngày ${state.day} — thảo luận ${state.discussSeconds}s`].slice(-40),
   };
   events.push({ type: 'phase', payload: { phase: 'day', day: next.day } });
   const done = checkWin(next);
@@ -295,7 +295,7 @@ function startVote(state: WerewolfState): [WerewolfState, any[]] {
       phase: 'vote',
       votes: {},
       phaseEndsAt: Date.now() + state.voteSeconds * 1000,
-      log: [...state.log, `🗳️ Bỏ phiếu treo cổ (${state.voteSeconds}s)`].slice(-40),
+      log: [...state.log, `Bỏ phiếu treo cổ (${state.voteSeconds}s)`].slice(-40),
     },
     [{ type: 'phase', payload: { phase: 'vote' } }],
   ];
@@ -322,10 +322,10 @@ function resolveVote(state: WerewolfState): [WerewolfState, any[]] {
     seats[lynched].alive = false;
     deaths.push({ day: state.day, seat: lynched, cause: 'lynch' });
     log.push(
-      `⚖️ Dân làng treo cổ ${state.players[lynched].name} — vai trò: ${seats[lynched].role}.`,
+      `Dân làng treo cổ ${state.players[lynched].name} — vai trò: ${seats[lynched].role}.`,
     );
   } else {
-    log.push('⚖️ Phiếu hòa — không ai bị treo cổ.');
+    log.push('Phiếu hoà — không ai bị treo cổ.');
   }
 
   const next: WerewolfState = {
@@ -336,7 +336,7 @@ function resolveVote(state: WerewolfState): [WerewolfState, any[]] {
     day: state.day + 1,
     phase: 'night',
     phaseEndsAt: Date.now() + state.nightSeconds * 1000,
-    log: [...state.log, ...log, `🌙 Đêm ${state.day + 1} bắt đầu`].slice(-40),
+    log: [...state.log, ...log, `Đêm ${state.day + 1} bắt đầu`].slice(-40),
   };
   return [checkWin(next), [{ type: 'phase', payload: { phase: 'night' } }]];
 }
@@ -362,6 +362,6 @@ function checkWin(state: WerewolfState): WerewolfState {
     winner,
     over: true,
     winnerIds,
-    log: [...state.log, winner === 'wolves' ? '🐺 Phe Sói chiến thắng!' : '🏡 Phe Dân làng chiến thắng!'],
+    log: [...state.log, winner === 'wolves' ? 'Phe Sói chiến thắng!' : 'Phe Dân làng chiến thắng!'],
   };
 }

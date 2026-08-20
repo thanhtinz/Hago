@@ -13,7 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { C, F, R, S, softShadow, toyShadow } from '../theme';
 import { avatarUrl } from '../lib/api';
-import { chibi as avatarPlaceholder } from '../lib/assets';
+import { Icon, IconName } from './Icon';
 
 /* --------------------------------- text --------------------------------- */
 
@@ -53,11 +53,15 @@ interface BtnProps {
   onPress?: () => void;
   tone?: 'primary' | 'secondary' | 'mint' | 'sun' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
-  icon?: string;
+  /** Icon giao diện dạng SVG. */
+  icon?: IconName;
+  /** Icon phụ vẽ bên phải nhãn. */
+  trailingIcon?: IconName;
   disabled?: boolean;
   loading?: boolean;
   full?: boolean;
   style?: ViewStyle;
+  accessibilityLabel?: string;
 }
 
 const TONES: Record<string, { bg: string; shadow: string; text: string }> = {
@@ -69,18 +73,24 @@ const TONES: Record<string, { bg: string; shadow: string; text: string }> = {
   ghost: { bg: C.surface, shadow: C.shadow, text: C.ink },
 };
 
-export function Btn({ label, onPress, tone = 'primary', size = 'md', icon, disabled, loading, full, style }: BtnProps) {
+export function Btn({ label, onPress, tone = 'primary', size = 'md', icon, trailingIcon, disabled, loading, full, style, accessibilityLabel }: BtnProps) {
   const t = TONES[tone];
-  const pad = size === 'lg' ? 16 : size === 'sm' ? 8 : 12;
+  const pad = size === 'lg' ? 16 : size === 'sm' ? 9 : 12;
+  // Quy tắc vùng chạm tối thiểu 44px.
+  const minHeight = size === 'lg' ? 52 : size === 'sm' ? 40 : 46;
   const font = size === 'lg' ? 18 : size === 'sm' ? 13 : 15;
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled: !!disabled, busy: !!loading }}
       onPress={disabled || loading ? undefined : onPress}
       style={({ pressed }) => [
         {
           backgroundColor: disabled ? C.line : t.bg,
           paddingVertical: pad,
           paddingHorizontal: pad * 1.7,
+          minHeight,
           borderRadius: R.pill,
           alignItems: 'center',
           justifyContent: 'center',
@@ -98,10 +108,11 @@ export function Btn({ label, onPress, tone = 'primary', size = 'md', icon, disab
         <ActivityIndicator color={t.text} size="small" />
       ) : (
         <>
-          {icon ? <Text style={{ fontSize: font + 2 }}>{icon}</Text> : null}
+          {icon ? <Icon name={icon} size={font + 3} color={disabled ? C.inkFaint : t.text} /> : null}
           <Txt size={font} weight="title" color={disabled ? C.inkFaint : t.text}>
             {label}
           </Txt>
+          {trailingIcon ? <Icon name={trailingIcon} size={font + 3} color={disabled ? C.inkFaint : t.text} /> : null}
         </>
       )}
     </Pressable>
@@ -232,7 +243,7 @@ export function Chip({
   label: string;
   color?: string;
   soft?: string;
-  icon?: string;
+  icon?: IconName;
   size?: number;
 }) {
   return (
@@ -247,7 +258,7 @@ export function Chip({
         borderRadius: R.pill,
       }}
     >
-      {icon ? <Text style={{ fontSize: size }}>{icon}</Text> : null}
+      {icon ? <Icon name={icon} size={size + 1} color={color} strokeWidth={2.4} /> : null}
       <Txt size={size} weight="bold" color={color}>
         {label}
       </Txt>
@@ -258,8 +269,8 @@ export function Chip({
 export function CoinPill({ coin, diamond }: { coin: number; diamond: number }) {
   return (
     <View style={{ flexDirection: 'row', gap: 6 }}>
-      <Chip label={coin.toLocaleString('vi-VN')} icon="🪙" color="#9A6B00" soft={C.sunSoft} />
-      <Chip label={String(diamond)} icon="💎" color="#1A73B8" soft={C.skySoft} />
+      <Chip label={coin.toLocaleString('vi-VN')} icon="coin" color="#8A5E00" soft={C.sunSoft} />
+      <Chip label={String(diamond)} icon="gem" color="#125E96" soft={C.skySoft} />
     </View>
   );
 }
@@ -330,14 +341,21 @@ export function Bar({
 
 /* -------------------------------- misc ---------------------------------- */
 
-export function Empty({ emoji, art, title, hint }: { emoji?: string; art?: string; title: string; hint?: string }) {
+export function Empty({ icon = 'list', title, hint }: { icon?: IconName; title: string; hint?: string }) {
   return (
-    <View style={{ alignItems: 'center', paddingVertical: 40, gap: 6 }}>
-      {art ? (
-        <Image source={{ uri: avatarPlaceholder(art) }} style={{ width: 52, height: 52 }} resizeMode="contain" />
-      ) : (
-        <Text style={{ fontSize: 46 }}>{emoji}</Text>
-      )}
+    <View style={{ alignItems: 'center', paddingVertical: 40, gap: 8 }}>
+      <View
+        style={{
+          width: 72,
+          height: 72,
+          borderRadius: 36,
+          backgroundColor: C.surfaceAlt,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Icon name={icon} size={32} color={C.inkFaint} strokeWidth={1.9} />
+      </View>
       <Txt size={16} weight="heading" color={C.inkSoft}>
         {title}
       </Txt>
@@ -350,11 +368,11 @@ export function Empty({ emoji, art, title, hint }: { emoji?: string; art?: strin
   );
 }
 
-export function SectionTitle({ title, emoji, action }: { title: string; emoji?: string; action?: React.ReactNode }) {
+export function SectionTitle({ title, icon, action }: { title: string; icon?: IconName; action?: React.ReactNode }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: S.md }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        {emoji ? <Text style={{ fontSize: 18 }}>{emoji}</Text> : null}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+        {icon ? <Icon name={icon} size={19} color={C.primary} strokeWidth={2.2} /> : null}
         <Txt size={18} weight="heading">
           {title}
         </Txt>

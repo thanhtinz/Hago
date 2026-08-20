@@ -4,9 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Card, Chip, Empty, SectionTitle, Txt } from '../../src/components/ui';
-import { Chibi } from '../../src/components/Chibi';
 import { Bubbles, Gloss } from '../../src/components/decor';
-import { GAME_ART } from '../../src/lib/assets';
+import { GameIcon, GameIconName } from '../../src/components/GameIcon';
 import { C, GAME_GRADIENT, R, S } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
 import { emitAck } from '../../src/lib/socket';
@@ -76,7 +75,7 @@ export default function GameDetail() {
             ‹ Quay lại
           </Txt>
         </Pressable>
-        <Chibi name={GAME_ART[game.id] ?? 'gamepad'} size={64} />
+        <GameIcon name={game.id as GameIconName} size={72} />
         <Txt size={30} weight="display" color="#fff">
           {game.name}
         </Txt>
@@ -85,14 +84,14 @@ export default function GameDetail() {
         </Txt>
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
           <Chip label={game.category} color="#fff" soft="rgba(255,255,255,0.25)" size={11} />
-          <Chip label={`${game.minPlayers}-${game.maxPlayers} người`} icon="👥" color="#fff" soft="rgba(255,255,255,0.25)" size={11} />
-          <Chip label={`~${game.avgMinutes} phút`} icon="⏱" color="#fff" soft="rgba(255,255,255,0.25)" size={11} />
+          <Chip label={`${game.minPlayers}-${game.maxPlayers} người`} icon="users" color="#fff" soft="rgba(255,255,255,0.25)" size={11} />
+          <Chip label={`~${game.avgMinutes} phút`} icon="clock" color="#fff" soft="rgba(255,255,255,0.25)" size={11} />
         </View>
       </LinearGradient>
 
       <View style={{ padding: S.lg, marginTop: -18, gap: S.md }}>
         <Card style={{ gap: S.md }}>
-          <Btn label="Chơi nhanh" icon="⚡" size="lg" full onPress={() => router.push(`/quickplay?gameType=${game.id}`)} />
+          <Btn label="Chơi nhanh" icon="bolt" size="lg" full onPress={() => router.push(`/quickplay?gameType=${game.id}`)} />
           <View style={{ height: 1, backgroundColor: C.line }} />
           <Txt size={15} weight="heading">
             Tạo phòng riêng
@@ -111,15 +110,15 @@ export default function GameDetail() {
               <Switch value={ranked} onValueChange={setRanked} trackColor={{ true: C.secondary }} />
             </View>
           ) : null}
-          <Btn label="Tạo phòng nhanh" icon="🏠" tone="secondary" full onPress={createRoom} />
+          <Btn label="Tạo phòng nhanh" icon="home" tone="secondary" full onPress={createRoom} />
           <Pressable onPress={openRoomBuilder} style={{ alignItems: 'center', paddingTop: 2 }}>
             <Txt size={12} weight="bold" color={C.secondary}>
-              Tuỳ chỉnh chi tiết hơn →
+              Tuỳ chỉnh chi tiết hơn ›
             </Txt>
           </Pressable>
         </Card>
 
-        <SectionTitle title="Phòng đang mở" emoji="🚪" />
+        <SectionTitle title="Phòng đang mở" icon="grid" />
         {rooms.length ? (
           rooms.map((r) => (
             <Card key={r.id} style={{ flexDirection: 'row', alignItems: 'center', gap: S.md }}>
@@ -144,11 +143,11 @@ export default function GameDetail() {
           ))
         ) : (
           <Card>
-            <Empty emoji="🏠" title="Chưa có phòng nào" hint="Hãy là người đầu tiên tạo phòng!" />
+            <Empty icon="grid" title="Chưa có phòng nào" hint="Hãy là người đầu tiên tạo phòng!" />
           </Card>
         )}
 
-        <SectionTitle title="Top người chơi" emoji="🏆" />
+        <SectionTitle title="Top người chơi" icon="grid" />
         <Card style={{ gap: S.md }}>
           {board.length ? (
             board.map((e: any) => (
@@ -160,11 +159,11 @@ export default function GameDetail() {
                 <Txt size={13} weight="bold" style={{ flex: 1 }}>
                   {e.user.displayName}
                 </Txt>
-                <Chip label={String(e.user.rating)} icon="🏅" color={C.secondaryDark} soft={C.secondarySoft} size={11} />
+                <Chip label={String(e.user.rating)} icon="medal" color={C.secondaryDark} soft={C.secondarySoft} size={11} />
               </View>
             ))
           ) : (
-            <Empty emoji="📉" title="Chưa có dữ liệu xếp hạng" />
+            <Empty icon="trend" title="Chưa có dữ liệu xếp hạng" />
           )}
         </Card>
       </View>

@@ -215,7 +215,7 @@ CREATE TABLE IF NOT EXISTS achievements (
   target      INTEGER NOT NULL,
   reward_coin INTEGER NOT NULL DEFAULT 0,
   reward_xp   INTEGER NOT NULL DEFAULT 0,
-  emoji       TEXT NOT NULL DEFAULT '🏆'
+  art         TEXT NOT NULL DEFAULT 'trophy'
 );
 
 CREATE TABLE IF NOT EXISTS user_achievements (
@@ -288,6 +288,14 @@ CREATE TABLE IF NOT EXISTS daily_counters (
   PRIMARY KEY (user_id, day, metric)
 );
 `);
+
+/** Migration nhẹ cho DB tạo từ bản trước khi chuyển emoji sang asset. */
+for (const [table, column, type] of [['achievements', 'art', "TEXT NOT NULL DEFAULT 'trophy'"]] as const) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (!cols.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+  }
+}
 
 export function nowMs(): number {
   return Date.now();

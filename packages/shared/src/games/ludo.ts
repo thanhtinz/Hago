@@ -215,7 +215,7 @@ function doMove(state: LudoState, seat: number, pieceId: number): [LudoState, an
     piece.lane += dice;
     if (piece.lane === LANE - 1) {
       piece.state = 'done';
-      log.push(`Một ngựa của ${state.players[seat].name} đã về đích 🏁`);
+      log.push(`Một ngựa của ${state.players[seat].name} đã về đích`);
     }
   } else {
     const t = traveled(piece) + dice;
@@ -227,7 +227,7 @@ function doMove(state: LudoState, seat: number, pieceId: number): [LudoState, an
       piece.pos = -1;
       if (piece.lane === LANE - 1) {
         piece.state = 'done';
-        log.push(`Một ngựa của ${state.players[seat].name} đã về đích 🏁`);
+        log.push(`Một ngựa của ${state.players[seat].name} đã về đích`);
       }
     }
   }

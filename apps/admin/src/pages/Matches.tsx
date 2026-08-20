@@ -31,7 +31,7 @@ export default function Matches() {
                 </div>
               </div>
             ))}
-            {!d.live.length ? <Empty emoji="😴" text="Không có trận nào đang chạy" /> : null}
+            {!d.live.length ? <Empty icon="games" text="Không có trận nào đang chạy" /> : null}
           </div>
         </Card>
 
@@ -50,7 +50,7 @@ export default function Matches() {
                 <Pill tone={r.status === 'playing' ? 'warn' : 'ok'}>{r.status}</Pill>
               </div>
             ))}
-            {!d.rooms.length ? <Empty emoji="🚪" text="Chưa có phòng nào" /> : null}
+            {!d.rooms.length ? <Empty icon="dashboard" text="Chưa có phòng nào" /> : null}
           </div>
         </Card>
       </div>

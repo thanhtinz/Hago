@@ -5,19 +5,20 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Card, Chip, CoinPill, Empty, SectionTitle, Txt } from '../src/components/ui';
 import { HeaderTabs, ScreenHeader } from '../src/components/ScreenHeader';
+import { Icon, IconName } from '../src/components/Icon';
 import { C, R, RARITY, S, softShadow } from '../src/theme';
 import { api, friendlyError } from '../src/lib/api';
 import { useStore } from '../src/state/store';
 
-const TYPES: { id: string; label: string; emoji: string }[] = [
-  { id: '', label: 'Tất cả', emoji: '✨' },
-  { id: 'frame', label: 'Khung', emoji: '🖼️' },
-  { id: 'title', label: 'Danh hiệu', emoji: '🏷️' },
-  { id: 'background', label: 'Nền', emoji: '🌄' },
-  { id: 'bubble', label: 'Bong bóng', emoji: '💭' },
-  { id: 'emote', label: 'Emote', emoji: '😜' },
-  { id: 'victory', label: 'Hiệu ứng', emoji: '🎆' },
-  { id: 'boardtheme', label: 'Bàn cờ', emoji: '🎨' },
+const TYPES: { id: string; label: string; icon: IconName }[] = [
+  { id: '', label: 'Tất cả', icon: 'grid' },
+  { id: 'frame', label: 'Khung', icon: 'crown' },
+  { id: 'title', label: 'Danh hiệu', icon: 'list' },
+  { id: 'background', label: 'Nền', icon: 'grid' },
+  { id: 'bubble', label: 'Bong bóng', icon: 'chat' },
+  { id: 'emote', label: 'Emote', icon: 'sparkle' },
+  { id: 'victory', label: 'Hiệu ứng', icon: 'bolt' },
+  { id: 'boardtheme', label: 'Bàn cờ', icon: 'dice' },
 ];
 
 export default function ShopScreen() {
@@ -58,7 +59,7 @@ export default function ShopScreen() {
   const buy = async (item: any, currency: 'coin' | 'diamond') => {
     try {
       await api(`/api/economy/shop/${item.id}/buy`, { method: 'POST', body: { currency } });
-      showToast(`Đã mua ${item.name} 🎉`);
+      showToast(`Đã mua ${item.name}`);
       await Promise.all([load(), refresh()]);
     } catch (e: any) {
       showToast(friendlyError(e.code), 'warn');
@@ -73,7 +74,7 @@ export default function ShopScreen() {
 
   const topup = async (packId: string) => {
     const res = await api<any>('/api/economy/payment/checkout', { method: 'POST', body: { packId } });
-    showToast(`Nạp thành công +${res.granted} 💎`);
+    showToast(`Nạp thành công +${res.granted} diamond`);
     await Promise.all([load(), refresh()]);
   };
 
@@ -81,7 +82,7 @@ export default function ShopScreen() {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <ScreenHeader
         title="Cửa hàng"
-        art="shop"
+        icon="shop"
         right={<CoinPill coin={balance.coin} diamond={balance.diamond} />}
       >
         <HeaderTabs
@@ -112,7 +113,7 @@ export default function ShopScreen() {
                 gap: 5,
               }}
             >
-              <Text style={{ fontSize: 13 }}>{t.emoji}</Text>
+              <Icon name={t.icon} size={15} color={type === t.id ? C.secondaryDark : C.inkSoft} />
               <Txt size={12} weight="bold" color={type === t.id ? C.secondaryDark : C.inkSoft}>
                 {t.label}
               </Txt>
@@ -162,26 +163,30 @@ export default function ShopScreen() {
               ))}
             </View>
           ) : (
-            <Empty art="backpack" title="Túi đồ trống" hint="Mua cosmetic ở tab Cửa hàng để trang trí hồ sơ" />
+            <Empty icon="shop" title="Túi đồ trống" hint="Mua cosmetic ở tab Cửa hàng để trang trí hồ sơ" />
           ))}
 
         {mode === 'topup' && (
           <View style={{ gap: S.md }}>
-            <SectionTitle title="Gói Diamond" emoji="💎" />
+            <SectionTitle title="Gói Diamond" icon="gem" />
             {packs.map((p) => (
               <LinearGradient
                 key={p.id}
                 colors={['#DCF0FF', '#FFFFFF']}
                 style={[{ borderRadius: R.lg, padding: S.lg, flexDirection: 'row', alignItems: 'center', gap: S.md, borderWidth: 2, borderColor: C.line }, softShadow(0.06, 10, 4)]}
               >
-                <Text style={{ fontSize: 34 }}>{p.diamond >= 600 ? '🎁' : p.diamond >= 180 ? '💰' : '💎'}</Text>
+                <Icon name={p.diamond >= 600 ? 'gift' : p.diamond >= 180 ? 'coin' : 'gem'} size={36} color={C.sky} strokeWidth={1.8} />
                 <View style={{ flex: 1 }}>
                   <Txt size={15} weight="heading">
                     {p.label}
                   </Txt>
-                  <Txt size={12} color={C.inkSoft}>
-                    {p.diamond} 💎{p.bonus ? ` + ${p.bonus} tặng thêm` : ''}
-                  </Txt>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Icon name="gem" size={13} color={C.sky} strokeWidth={2.2} />
+                    <Txt size={12} color={C.inkSoft}>
+                      {p.diamond}
+                      {p.bonus ? ` + ${p.bonus} tặng thêm` : ''}
+                    </Txt>
+                  </View>
                 </View>
                 <Btn label={`${p.price.toLocaleString('vi-VN')}đ`} size="sm" tone="sun" onPress={() => topup(p.id)} />
               </LinearGradient>
@@ -197,13 +202,13 @@ export default function ShopScreen() {
 }
 
 /** Biểu tượng đại diện khi vật phẩm chỉ là một dải màu. */
-function PREVIEW_EMOJI(item: any, p: any): string {
-  if (item.type === 'victory') return p.kind === 'fireworks' ? '🎆' : '🎊';
-  if (item.type === 'entry') return '⭐';
-  if (item.type === 'boardtheme') return '🎲';
-  if (item.type === 'bubble') return '💭';
-  // Nền là chính dải gradient nên không cần biểu tượng đè lên.
-  return '';
+/** Asset đại diện khi vật phẩm chỉ là một dải màu. Nền thì để nguyên gradient. */
+function previewArt(item: any): IconName | null {
+  if (item.type === 'victory') return 'sparkle';
+  if (item.type === 'entry') return 'star';
+  if (item.type === 'boardtheme') return 'dice';
+  if (item.type === 'bubble') return 'chat';
+  return null;
 }
 
 function ItemPreview({ item, size = 62 }: { item: any; size?: number }) {
@@ -220,7 +225,7 @@ function ItemPreview({ item, size = 62 }: { item: any; size?: number }) {
   if (item.type === 'emote') {
     return (
       <View style={{ width: size, height: size, borderRadius: R.md, backgroundColor: C.surfaceAlt, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: size * 0.4 }}>{(p.emojis ?? '😀').split(',')[0]}</Text>
+        <Icon name="sparkle" size={size * 0.46} color="#8A5E00" strokeWidth={1.9} />
       </View>
     );
   }
@@ -229,8 +234,8 @@ function ItemPreview({ item, size = 62 }: { item: any; size?: number }) {
     <LinearGradient colors={colors as [string, string]} style={{ width: size, height: size, borderRadius: item.type === 'frame' ? size / 2 : R.md, alignItems: 'center', justifyContent: 'center' }}>
       {item.type === 'frame' ? (
         <View style={{ width: size * 0.62, height: size * 0.62, borderRadius: size, backgroundColor: C.surface }} />
-      ) : PREVIEW_EMOJI(item, p) ? (
-        <Text style={{ fontSize: size * 0.4 }}>{PREVIEW_EMOJI(item, p)}</Text>
+      ) : previewArt(item) ? (
+        <Icon name={previewArt(item)!} size={size * 0.46} color="rgba(255,255,255,0.92)" strokeWidth={1.9} />
       ) : null}
     </LinearGradient>
   );
@@ -246,11 +251,11 @@ function ItemCard({ item, onBuy }: { item: any; onBuy: (i: any, c: 'coin' | 'dia
       </Txt>
       <Chip label={rar.label} color={rar.color} soft={rar.soft} size={10} />
       {item.owned ? (
-        <Chip label="Đã sở hữu" icon="✅" color={C.mint} soft={C.mintSoft} size={10} />
+        <Chip label="Đã sở hữu" icon="check" color={C.mint} soft={C.mintSoft} size={10} />
       ) : item.priceCoin != null ? (
-        <Btn label={`${item.priceCoin.toLocaleString('vi-VN')} 🪙`} size="sm" tone="sun" onPress={() => onBuy(item, 'coin')} />
+        <Btn label={item.priceCoin.toLocaleString('vi-VN')} icon="coin" size="sm" tone="sun" onPress={() => onBuy(item, 'coin')} />
       ) : (
-        <Btn label={`${item.priceDiamond} 💎`} size="sm" tone="secondary" onPress={() => onBuy(item, 'diamond')} />
+        <Btn label={String(item.priceDiamond)} icon="gem" size="sm" tone="secondary" onPress={() => onBuy(item, 'diamond')} />
       )}
     </Card>
   );

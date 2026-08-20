@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C, HERO_GRADIENT, S } from '../theme';
 import { Txt } from './ui';
-import { Chibi } from './Chibi';
+import { Icon, IconName } from './Icon';
 import { Bubbles, DotPattern } from './decor';
 
 /**
@@ -15,7 +15,7 @@ import { Bubbles, DotPattern } from './decor';
 export function ScreenHeader({
   title,
   subtitle,
-  art,
+  icon,
   back = true,
   right,
   children,
@@ -23,7 +23,7 @@ export function ScreenHeader({
 }: {
   title: string;
   subtitle?: string;
-  art?: string;
+  icon?: IconName;
   back?: boolean;
   right?: React.ReactNode;
   children?: React.ReactNode;
@@ -56,7 +56,11 @@ export function ScreenHeader({
             </Txt>
           </Pressable>
         ) : null}
-        {art ? <Chibi name={art} size={24} /> : null}
+        {icon ? (
+          <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name={icon} size={19} color="#fff" strokeWidth={2.1} />
+          </View>
+        ) : null}
         <View style={{ flex: 1 }}>
           <Txt size={24} weight="display" color="#fff" numberOfLines={1}>
             {title}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { avatarUrl } from './api';
+import { AdminIcon, Icon } from './Icon';
 
 export function Card({ title, children, action }: { title?: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
@@ -15,11 +16,11 @@ export function Card({ title, children, action }: { title?: string; children: Re
   );
 }
 
-export function Kpi({ label, value, sub, emoji, color }: { label: string; value: React.ReactNode; sub?: string; emoji?: string; color?: string }) {
+export function Kpi({ label, value, sub, icon, color }: { label: string; value: React.ReactNode; sub?: string; icon?: AdminIcon; color?: string }) {
   return (
     <div className="card kpi-card">
       <span className="label">
-        {emoji} {label}
+        {icon ? <Icon name={icon} size={15} /> : null} {label}
       </span>
       <span className="value" style={{ color }}>
         {value}
@@ -45,10 +46,12 @@ export function UserCell({ user }: { user: any }) {
   );
 }
 
-export function Empty({ emoji, text }: { emoji: string; text: string }) {
+export function Empty({ icon = 'clipboard', text }: { icon?: AdminIcon; text: string }) {
   return (
     <div className="empty">
-      <span className="emoji">{emoji}</span>
+      <span className="empty-icon">
+        <Icon name={icon} size={30} />
+      </span>
       {text}
     </div>
   );

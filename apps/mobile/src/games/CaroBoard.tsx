@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Txt } from '../components/ui';
-import { Chibi } from '../components/Chibi';
+import { Icon } from '../components/Icon';
+import { CaroMark } from '../components/Piece';
 import { C, R, S, SEAT_COLORS } from '../theme';
 import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
 
@@ -14,14 +15,14 @@ export default function CaroBoard({ view, mySeat, send, deadline, space }: Board
   const last = view.lastMove ? view.lastMove.y * size + view.lastMove.x : -1;
 
   return (
-    <View style={{ gap: S.md }}>
+    <View style={{ gap: S.md, flex: 1 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <PlayerStrip players={view.players} activeSeat={view.turnSeat} mySeat={mySeat} />
         <TurnTimer deadline={deadline} total={30} />
       </View>
       <TurnBanner yourTurn={yourTurn} text={view.over ? 'Ván đã kết thúc' : yourTurn ? 'Tới lượt bạn — đánh đi!' : 'Đang chờ đối thủ...'} />
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center', flexGrow: 1, justifyContent: 'center' }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ alignItems: 'center', flexGrow: 1, justifyContent: 'center' }}>
         <View
           style={{
             backgroundColor: '#F6DFC2',
@@ -52,13 +53,7 @@ export default function CaroBoard({ view, mySeat, send, deadline, space }: Board
                       backgroundColor: win ? '#FFF0B3' : idx === last ? '#FFE9CF' : 'transparent',
                     }}
                   >
-                    {v === 0 ? (
-                      <View style={{ width: cell * 0.62, height: cell * 0.62, borderRadius: cell, borderWidth: 3, borderColor: SEAT_COLORS[0] }} />
-                    ) : v === 1 ? (
-                      <Txt size={cell * 0.8} weight="display" color={SEAT_COLORS[1]} style={{ lineHeight: cell }}>
-                        ✕
-                      </Txt>
-                    ) : null}
+                    {v >= 0 ? <CaroMark kind={v === 0 ? 'o' : 'x'} color={SEAT_COLORS[v]} size={cell * 0.74} /> : null}
                   </Pressable>
                 );
               })}
@@ -68,18 +63,22 @@ export default function CaroBoard({ view, mySeat, send, deadline, space }: Board
       </ScrollView>
 
       <View style={{ flexDirection: 'row', justifyContent: 'center', gap: S.lg }}>
-        <Legend color={SEAT_COLORS[0]} label={`${view.players[0]?.name} (O)`} />
-        <Legend color={SEAT_COLORS[1]} label={`${view.players[1]?.name} (X)`} />
+        <Legend color={SEAT_COLORS[0]} label={view.players[0]?.name} shape="o" />
+        <Legend color={SEAT_COLORS[1]} label={view.players[1]?.name} shape="x" />
       </View>
       <GameLog log={view.log} />
     </View>
   );
 }
 
-function Legend({ color, label }: { color: string; label: string }) {
+function Legend({ color, label, shape }: { color: string; label: string; shape: 'o' | 'x' }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-      <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: color }} />
+      {shape === 'o' ? (
+        <View style={{ width: 15, height: 15, borderRadius: 8, borderWidth: 3, borderColor: color }} />
+      ) : (
+        <Icon name="close" size={15} color={color} strokeWidth={3.2} />
+      )}
       <Txt size={12} weight="medium" color={C.inkSoft}>
         {label}
       </Txt>

@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Card, Chip, Empty, Field, SectionTitle, Txt } from '../../src/components/ui';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
-import { Chibi } from '../../src/components/Chibi';
+
 import { C, R, S } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
 import { useStore } from '../../src/state/store';
@@ -74,7 +74,7 @@ export default function SocialScreen() {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <ScreenHeader
         title="Bạn bè"
-        art="speech-bubble"
+        icon="chat"
         back={false}
         subtitle={`${accepted.length} bạn · ${pending.length} lời mời đang chờ`}
         bottomPadding={S.md}
@@ -133,19 +133,19 @@ export default function SocialScreen() {
                   </Txt>
                   <View style={{ flexDirection: 'row', gap: 6, marginTop: 3 }}>
                     <Chip label={`Lv.${f.user.level}`} color="#9A6B00" soft={C.sunSoft} size={10} />
-                    <Chip label={f.user.rank} icon="🏅" color={C.secondaryDark} soft={C.secondarySoft} size={10} />
+                    <Chip label={f.user.rank} icon="medal" color={C.secondaryDark} soft={C.secondarySoft} size={10} />
                   </View>
                 </View>
-                <Btn label="Nhắn" size="sm" tone="ghost" icon="💬" onPress={() => router.push(`/chat/${f.user.id}`)} />
+                <Btn label="Nhắn" size="sm" tone="ghost" icon="chat" onPress={() => router.push(`/chat/${f.user.id}`)} />
               </Card>
             ))
           ) : (
-            <Empty art="handshake" title="Chưa có bạn bè" hint="Sang tab Tìm bạn để kết bạn với người chơi khác" />
+            <Empty icon="handshake" title="Chưa có bạn bè" hint="Sang tab Tìm bạn để kết bạn với người chơi khác" />
           ))}
 
         {tab === 'requests' && (
           <>
-            <SectionTitle title="Đang chờ bạn duyệt" emoji="📥" />
+            <SectionTitle title="Đang chờ bạn duyệt" icon="grid" />
             {pending.length ? (
               pending.map((f) => (
                 <Card key={f.user.id} style={{ flexDirection: 'row', alignItems: 'center', gap: S.md }}>
@@ -158,15 +158,15 @@ export default function SocialScreen() {
                       @{f.user.username}
                     </Txt>
                   </View>
-                  <Btn label="Đồng ý" size="sm" tone="mint" onPress={() => act(`/api/social/friends/${f.user.id}/accept`, 'Đã kết bạn 🎉')} />
+                  <Btn label="Đồng ý" size="sm" tone="mint" onPress={() => act(`/api/social/friends/${f.user.id}/accept`, 'Đã kết bạn')} />
                 </Card>
               ))
             ) : (
-              <Empty art="bell" title="Không có lời mời nào" />
+              <Empty icon="bell" title="Không có lời mời nào" />
             )}
             {outgoing.length ? (
               <>
-                <SectionTitle title="Bạn đã gửi" emoji="📤" />
+                <SectionTitle title="Bạn đã gửi" icon="grid" />
                 {outgoing.map((f) => (
                   <Card key={f.user.id} style={{ flexDirection: 'row', alignItems: 'center', gap: S.md }}>
                     <Avatar seed={f.user.avatarSeed} styleName={f.user.avatarStyle} size={40} />
@@ -206,7 +206,7 @@ export default function SocialScreen() {
               </Pressable>
             ))
           ) : (
-            <Empty art="speech-bubble" title="Chưa có cuộc trò chuyện" hint="Nhắn tin cho bạn bè từ tab Bạn bè" />
+            <Empty icon="chat" title="Chưa có cuộc trò chuyện" hint="Nhắn tin cho bạn bè từ tab Bạn bè" />
           ))}
 
         {tab === 'find' && (
@@ -228,12 +228,12 @@ export default function SocialScreen() {
                   {isFriend ? (
                     <Chip label="Đã kết nối" color={C.mint} soft={C.mintSoft} size={10} />
                   ) : (
-                    <Btn label="Kết bạn" size="sm" tone="secondary" icon="➕" onPress={() => act(`/api/social/friends/${u.id}/request`, 'Đã gửi lời mời')} />
+                    <Btn label="Kết bạn" size="sm" tone="secondary" icon="plus" onPress={() => act(`/api/social/friends/${u.id}/request`, 'Đã gửi lời mời')} />
                   )}
                 </Card>
               );
             })}
-            {query.length > 0 && found.length === 0 ? <Empty art="crystal" title="Không tìm thấy ai" /> : null}
+            {query.length > 0 && found.length === 0 ? <Empty icon="search" title="Không tìm thấy ai" /> : null}
           </>
         )}
       </ScrollView>

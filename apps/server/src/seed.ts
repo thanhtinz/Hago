@@ -24,8 +24,8 @@ const ITEMS = [
   { id: 'bubble_cloud', name: 'Bong Bóng Mây', type: 'bubble', rarity: 'common', priceCoin: 450, priceDiamond: null, payload: { bg: '#E8F1FF', text: '#2B3A67' }, description: 'Mềm như mây' },
   { id: 'bubble_candy', name: 'Bong Bóng Kẹo', type: 'bubble', rarity: 'rare', priceCoin: 1100, priceDiamond: null, payload: { bg: '#FFE1F0', text: '#B33771' }, description: 'Ngọt ngào' },
   // Emotes
-  { id: 'emote_pack_cute', name: 'Gói Emote Chibi', type: 'emote', rarity: 'rare', priceCoin: 900, priceDiamond: null, payload: { emojis: '🥰,😹,🙌,😱,🤝,🎉' }, description: '6 emote biểu cảm' },
-  { id: 'emote_pack_troll', name: 'Gói Emote Cà Khịa', type: 'emote', rarity: 'epic', priceCoin: null, priceDiamond: 80, payload: { emojis: '😏,🤡,🐢,💤,🧂,👀' }, description: 'Cà khịa nhẹ nhàng' },
+  { id: 'emote_pack_cute', name: 'Gói Emote Chibi', type: 'emote', rarity: 'rare', priceCoin: 900, priceDiamond: null, payload: { stickers: 'wave,smile,party,handshake,fire,trophy' }, description: '6 sticker biểu cảm' },
+  { id: 'emote_pack_troll', name: 'Gói Emote Cà Khịa', type: 'emote', rarity: 'epic', priceCoin: null, priceDiamond: 80, payload: { stickers: 'smile,skull,sheep,moon,star,crystal' }, description: 'Cà khịa nhẹ nhàng' },
   // Victory / entry effects
   { id: 'fx_confetti', name: 'Hiệu Ứng Pháo Giấy', type: 'victory', rarity: 'rare', priceCoin: 1300, priceDiamond: null, payload: { kind: 'confetti', color: '#FFD36E' }, description: 'Ăn mừng rực rỡ' },
   { id: 'fx_fireworks', name: 'Hiệu Ứng Pháo Hoa', type: 'victory', rarity: 'legendary', priceCoin: null, priceDiamond: 300, payload: { kind: 'fireworks', color: '#FF6F91' }, description: 'Bùng nổ cả màn hình' },
@@ -46,12 +46,12 @@ const QUESTS = [
 ];
 
 const ACHIEVEMENTS = [
-  { id: 'ach_first_win', title: 'Chiến Thắng Đầu Tiên', description: 'Thắng trận đầu tiên', metric: 'wins', target: 1, rewardCoin: 200, rewardXp: 150, emoji: '🌟' },
-  { id: 'ach_win_10', title: 'Tay Chơi Cứng', description: 'Thắng 10 trận', metric: 'wins', target: 10, rewardCoin: 500, rewardXp: 350, emoji: '🔥' },
-  { id: 'ach_win_100', title: 'Huyền Thoại', description: 'Thắng 100 trận', metric: 'wins', target: 100, rewardCoin: 3000, rewardXp: 2000, emoji: '👑' },
-  { id: 'ach_match_100', title: '100 Trận Đấu', description: 'Chơi 100 trận', metric: 'matches', target: 100, rewardCoin: 1500, rewardXp: 1000, emoji: '🎯' },
-  { id: 'ach_match_1000', title: '1000 Trận Đấu', description: 'Chơi 1000 trận', metric: 'matches', target: 1000, rewardCoin: 12000, rewardXp: 8000, emoji: '🏛️' },
-  { id: 'ach_friends_5', title: 'Bạn Bè Bốn Phương', description: 'Kết bạn với 5 người', metric: 'friends', target: 5, rewardCoin: 300, rewardXp: 200, emoji: '🤝' },
+  { id: 'ach_first_win', title: 'Chiến Thắng Đầu Tiên', description: 'Thắng trận đầu tiên', metric: 'wins', target: 1, rewardCoin: 200, rewardXp: 150, art: 'star' },
+  { id: 'ach_win_10', title: 'Tay Chơi Cứng', description: 'Thắng 10 trận', metric: 'wins', target: 10, rewardCoin: 500, rewardXp: 350, art: 'flame' },
+  { id: 'ach_win_100', title: 'Huyền Thoại', description: 'Thắng 100 trận', metric: 'wins', target: 100, rewardCoin: 3000, rewardXp: 2000, art: 'crown' },
+  { id: 'ach_match_100', title: '100 Trận Đấu', description: 'Chơi 100 trận', metric: 'matches', target: 100, rewardCoin: 1500, rewardXp: 1000, art: 'target' },
+  { id: 'ach_match_1000', title: '1000 Trận Đấu', description: 'Chơi 1000 trận', metric: 'matches', target: 1000, rewardCoin: 12000, rewardXp: 8000, art: 'trophy' },
+  { id: 'ach_friends_5', title: 'Bạn Bè Bốn Phương', description: 'Kết bạn với 5 người', metric: 'friends', target: 5, rewardCoin: 300, rewardXp: 200, art: 'handshake' },
 ];
 
 const DEMO_USERS = [
@@ -96,7 +96,7 @@ function createUser(opts: {
     id,
     opts.username,
     style,
-    'Chơi game vui là chính 🎮',
+    'Chơi game vui là chính',
   );
   return id;
 }
@@ -121,11 +121,11 @@ export function ensureSeed(): void {
   );
 
   const upsertAch = db.prepare(
-    `INSERT INTO achievements (id, title, description, metric, target, reward_coin, reward_xp, emoji)
-     VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title`,
+    `INSERT INTO achievements (id, title, description, metric, target, reward_coin, reward_xp, art)
+     VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title, art=excluded.art`,
   );
   ACHIEVEMENTS.forEach((a) =>
-    upsertAch.run(a.id, a.title, a.description, a.metric, a.target, a.rewardCoin, a.rewardXp, a.emoji),
+    upsertAch.run(a.id, a.title, a.description, a.metric, a.target, a.rewardCoin, a.rewardXp, a.art),
   );
 
   const now = nowMs();
@@ -191,7 +191,7 @@ export function ensureSeed(): void {
     );
     db.prepare("UPDATE profiles SET frame_id = 'frame_sakura' WHERE user_id = ?").run(demoId);
 
-    console.log(`🌱 Seeded users: admin/admin123 (id=${adminId}), demo/demo123 (id=${demoId}), +${others.length} demo players`);
+    console.log(`Seeded users: admin/admin123 (id=${adminId}), demo/demo123 (id=${demoId}), +${others.length} demo players`);
   }
 }
 

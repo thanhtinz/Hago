@@ -192,7 +192,7 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
       if (next < 0 || next >= state.laneLength) {
         score[mover.seat] += mover.level;
         dead.add(mover.id);
-        log.push(`${state.players[mover.seat].name} ghi ${mover.level} điểm 🎉`);
+        log.push(`${state.players[mover.seat].name} ghi ${mover.level} điểm`);
         events.push({ type: 'score', payload: { seat: mover.seat, points: mover.level } });
         continue;
       }

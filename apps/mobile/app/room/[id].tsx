@@ -3,6 +3,8 @@ import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-na
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Card, Chip, Empty, Txt } from '../../src/components/ui';
+import { Icon } from '../../src/components/Icon';
+import { GameIcon, GameIconName } from '../../src/components/GameIcon';
 import { C, F, R, S } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
 import { emitAck } from '../../src/lib/socket';
@@ -89,13 +91,16 @@ export default function RoomScreen() {
           </Txt>
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Txt size={20} weight="display">
-            {meta?.emoji} {meta?.name}
-          </Txt>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+            <GameIcon name={room.gameType as GameIconName} size={24} accent={C.primary} tint={C.inkFaint} />
+            <Txt size={20} weight="display">
+              {meta?.name}
+            </Txt>
+          </View>
           <View style={{ flexDirection: 'row', gap: 6, marginTop: 2 }}>
-            <Chip label={`Mã: ${room.code}`} icon="🔑" color={C.primaryDark} soft={C.primarySoft} size={11} />
+            <Chip label={`Mã: ${room.code}`} icon="key" color={C.primaryDark} soft={C.primarySoft} size={11} />
             <Chip label={room.mode} color={C.secondaryDark} soft={C.secondarySoft} size={11} />
-            {room.isPrivate ? <Chip label="Riêng tư" icon="🔒" color={C.inkSoft} soft={C.surfaceAlt} size={11} /> : null}
+            {room.isPrivate ? <Chip label="Riêng tư" icon="lock" color={C.inkSoft} soft={C.surfaceAlt} size={11} /> : null}
           </View>
         </View>
       </View>
@@ -114,7 +119,7 @@ export default function RoomScreen() {
                     Lv.{p.user.level} · {p.user.rating}
                   </Txt>
                   <View style={{ flexDirection: 'row', gap: 4 }}>
-                    {p.isHost ? <Chip label="Chủ phòng" icon="👑" color="#9A6B00" soft={C.sunSoft} size={9} /> : null}
+                    {p.isHost ? <Chip label="Chủ phòng" icon="crown" color="#9A6B00" soft={C.sunSoft} size={9} /> : null}
                     <Chip
                       label={p.ready ? 'Sẵn sàng' : 'Đang chờ'}
                       color={p.ready ? C.mint : C.inkFaint}
@@ -133,7 +138,7 @@ export default function RoomScreen() {
               ) : (
                 <Pressable onPress={() => setShowInvite(true)} style={{ alignItems: 'center', gap: 6, paddingVertical: 8 }}>
                   <View style={{ width: 54, height: 54, borderRadius: 27, borderWidth: 2, borderStyle: 'dashed', borderColor: C.line, alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ fontSize: 22 }}>➕</Text>
+                    <Icon name="plus" size={22} color={C.inkFaint} />
                   </View>
                   <Txt size={12} weight="medium" color={C.inkFaint}>
                     Mời bạn
@@ -171,13 +176,13 @@ export default function RoomScreen() {
                     tone="ghost"
                     onPress={async () => {
                       const res: any = await emitAck('room.invite', { userId: f.user.id });
-                      showToast(res?.ok ? 'Đã gửi lời mời 📨' : friendlyError(res?.error), res?.ok ? 'ok' : 'warn');
+                      showToast(res?.ok ? 'Đã gửi lời mời' : friendlyError(res?.error), res?.ok ? 'ok' : 'warn');
                     }}
                   />
                 </View>
               ))
             ) : (
-              <Empty emoji="🫂" title="Chưa có bạn bè" />
+              <Empty icon="handshake" title="Chưa có bạn bè" />
             )}
           </Card>
         </View>
@@ -185,7 +190,7 @@ export default function RoomScreen() {
 
       <View style={{ flex: 1, backgroundColor: C.surface, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, borderTopWidth: 2, borderColor: C.line, paddingTop: S.md }}>
         <Txt size={13} weight="heading" color={C.inkSoft} style={{ paddingHorizontal: S.lg }}>
-          💬 Chat phòng
+          Chat phòng
         </Txt>
         <FlatList
           ref={listRef}
@@ -220,11 +225,11 @@ export default function RoomScreen() {
 
       <View style={{ flexDirection: 'row', gap: S.sm, padding: S.lg, paddingBottom: Math.max(insets.bottom, S.lg), backgroundColor: C.surface, borderTopWidth: 2, borderColor: C.line }}>
         {isHost ? (
-          <Btn label="Bắt đầu trận" icon="🚀" size="lg" full style={{ flex: 1 }} onPress={start} />
+          <Btn label="Bắt đầu trận" icon="play" size="lg" full style={{ flex: 1 }} onPress={start} />
         ) : (
           <Btn
             label={me?.ready ? 'Bỏ sẵn sàng' : 'Sẵn sàng!'}
-            icon={me?.ready ? '⏸️' : '✅'}
+            icon={me?.ready ? 'minus' : 'check'}
             tone={me?.ready ? 'ghost' : 'mint'}
             size="lg"
             style={{ flex: 1 }}

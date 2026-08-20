@@ -150,7 +150,11 @@ label.field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; 
 }
 
 .empty { text-align: center; padding: 36px 12px; color: var(--ink-faint); }
-.empty .emoji { font-size: 40px; display: block; margin-bottom: 8px; }
+.empty-icon {
+  display: inline-grid; place-items: center;
+  width: 56px; height: 56px; margin-bottom: 10px;
+  border-radius: 50%; background: var(--surface-alt); color: var(--ink-faint);
+}
 
 @media (max-width: 860px) {
   .layout { flex-direction: column; }

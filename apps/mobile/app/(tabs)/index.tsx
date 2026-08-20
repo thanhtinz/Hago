@@ -5,7 +5,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Bar, Card, Empty, Txt } from '../../src/components/ui';
 import { HotGameCard, GameMeta } from '../../src/components/GameCard';
-import { Chibi } from '../../src/components/Chibi';
+import { Icon, IconName } from '../../src/components/Icon';
 import { BannerCarousel, BannerItem } from '../../src/components/Banner';
 import { Bubbles, DotPattern, Gloss } from '../../src/components/decor';
 import { ACTION_GRADIENT, C, HERO_GRADIENT, R, S, softShadow } from '../../src/theme';
@@ -32,11 +32,11 @@ const EVENT_COLORS: Record<string, [string, string]> = {
   tournament: ['#3BB4FF', '#1E6FE0'],
   seasonal: ['#5FDBA7', '#22A97A'],
 };
-const EVENT_ART: Record<string, string> = {
+const EVENT_ICON: Record<string, IconName> = {
   login: 'gift',
-  winstreak: 'fire',
+  winstreak: 'flame',
   tournament: 'trophy',
-  seasonal: 'circus',
+  seasonal: 'star',
 };
 
 export default function HomeScreen() {
@@ -77,7 +77,7 @@ export default function HomeScreen() {
     title: e.title,
     description: e.description,
     colors: EVENT_COLORS[e.kind] ?? ['#8A6BFF', '#FF6FA5'],
-    art: EVENT_ART[e.kind] ?? 'gift',
+    icon: EVENT_ICON[e.kind] ?? 'gift',
     tag: `Còn ${Math.max(0, Math.ceil((e.endAt - Date.now()) / 86400000))} ngày`,
     onPress: () => router.push('/quests'),
   }));
@@ -122,7 +122,7 @@ export default function HomeScreen() {
             </Txt>
             <View style={{ flexDirection: 'row', gap: 5, marginTop: 3 }}>
               <HeroChip label={`Lv.${profile?.level}`} />
-              <HeroChip label={`${profile?.rank} · ${profile?.rating}`} art="medal-1" />
+                <HeroChip label={`${profile?.rank} · ${profile?.rating}`} icon="medal" />
             </View>
           </View>
           <Pressable onPress={() => router.push('/notifications')}>
@@ -136,7 +136,7 @@ export default function HomeScreen() {
                 justifyContent: 'center',
               }}
             >
-              <Chibi name="bell" size={21} />
+              <Icon name="bell" size={20} color="#fff" strokeWidth={2.1} />
               {data && data.unread > 0 ? (
                 <View
                   style={{
@@ -176,8 +176,8 @@ export default function HomeScreen() {
         </View>
 
         <View style={{ flexDirection: 'row', gap: S.sm, marginTop: S.md }}>
-          <Wallet art="coin" value={(profile?.coin ?? 0).toLocaleString('vi-VN')} />
-          <Wallet art="gem" value={String(profile?.diamond ?? 0)} />
+          <Wallet icon="coin" value={(profile?.coin ?? 0).toLocaleString('vi-VN')} />
+          <Wallet icon="gem" value={String(profile?.diamond ?? 0)} />
           <Pressable onPress={() => router.push('/shop')} style={{ flex: 1 }}>
             <View
               style={{
@@ -190,7 +190,7 @@ export default function HomeScreen() {
                 borderRadius: R.pill,
               }}
             >
-              <Chibi name="shop" size={15} />
+              <Icon name="shop" size={15} color={C.primaryDark} strokeWidth={2.2} />
               <Txt size={12} weight="bold" color={C.primaryDark}>
                 Cửa hàng
               </Txt>
@@ -206,7 +206,7 @@ export default function HomeScreen() {
         ) : (
           <View style={{ paddingHorizontal: S.lg }}>
             <Card>
-              <Empty emoji="🎪" title="Chưa có sự kiện" />
+              <Empty icon="star" title="Chưa có sự kiện" />
             </Card>
           </View>
         )}
@@ -215,21 +215,21 @@ export default function HomeScreen() {
       {/* ---------------- Hành động nhanh ---------------- */}
       <View style={{ flexDirection: 'row', gap: S.md, paddingHorizontal: S.lg, marginTop: S.lg }}>
         <ActionTile
-          art="bolt"
+          icon="bolt"
           title="Chơi nhanh"
           sub="Tự ghép đối thủ"
           colors={ACTION_GRADIENT.quick}
           onPress={() => router.push('/quickplay')}
         />
         <ActionTile
-          art="door"
+          icon="door"
           title="Tìm phòng"
           sub={`${data?.openRooms?.length ?? 0} phòng mở`}
           colors={ACTION_GRADIENT.find}
           onPress={() => router.push('/rooms?tab=find')}
         />
         <ActionTile
-          art="key"
+          icon="key"
           title="Tạo phòng"
           sub="Rủ bạn bè"
           colors={ACTION_GRADIENT.create}
@@ -241,7 +241,7 @@ export default function HomeScreen() {
       <View style={{ marginTop: S.xl }}>
         <Head
           title="Bạn bè đang online"
-          art="handshake"
+          icon="users"
           actionLabel="Xem tất cả"
           onAction={() => router.push('/social')}
         />
@@ -283,7 +283,7 @@ export default function HomeScreen() {
 
       {/* ---------------- Game đang hot ---------------- */}
       <View style={{ marginTop: S.xl }}>
-        <Head title="Game đang hot" art="fire" actionLabel={`Tất cả ${games.length}`} onAction={() => router.push('/games')} />
+        <Head title="Game đang hot" icon="flame" actionLabel={`Tất cả ${games.length}`} onAction={() => router.push('/games')} />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -299,7 +299,7 @@ export default function HomeScreen() {
 
       {/* ---------------- Nhiệm vụ ---------------- */}
       <View style={{ marginTop: S.xl }}>
-        <Head title="Nhiệm vụ hôm nay" art="clipboard" actionLabel="Xem hết" onAction={() => router.push('/quests')} />
+        <Head title="Nhiệm vụ hôm nay" icon="list" actionLabel="Xem hết" onAction={() => router.push('/quests')} />
         <View style={{ paddingHorizontal: S.lg }}>
           <Card style={{ gap: S.md }}>
             {data?.quests.length ? (
@@ -310,7 +310,7 @@ export default function HomeScreen() {
                       {q.quest.title}
                     </Txt>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      {q.completed ? <Chibi name="gift" size={14} /> : null}
+                      {q.completed ? <Icon name="gift" size={14} color={C.mint} strokeWidth={2.2} /> : null}
                       <Txt size={12} weight="bold" color={q.completed ? C.mint : C.inkFaint}>
                         {q.progress}/{q.quest.target}
                       </Txt>
@@ -320,7 +320,7 @@ export default function HomeScreen() {
                 </View>
               ))
             ) : (
-              <Empty emoji="🌱" title="Chưa có nhiệm vụ" />
+              <Empty icon="list" title="Chưa có nhiệm vụ" />
             )}
           </Card>
         </View>
@@ -328,14 +328,19 @@ export default function HomeScreen() {
 
       {/* ---------------- Trận gần đây ---------------- */}
       <View style={{ marginTop: S.xl }}>
-        <Head title="Trận gần đây" art="joystick" />
+        <Head title="Trận gần đây" icon="grid" />
         <View style={{ paddingHorizontal: S.lg }}>
           <Card style={{ gap: S.md }}>
             {data?.recent.length ? (
               data.recent.map((m: any) => (
                 <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
-                    <Chibi name={m.result === 'win' ? 'trophy' : m.result === 'draw' ? 'handshake' : 'droplet'} size={20} />
+                    <Icon
+                      name={m.result === 'win' ? 'trophy' : m.result === 'draw' ? 'handshake' : 'droplet'}
+                      size={19}
+                      color={m.result === 'win' ? C.sun : m.result === 'draw' ? C.inkFaint : C.sky}
+                      strokeWidth={2.1}
+                    />
                     <View>
                       <Txt size={13} weight="bold">
                         {games.find((g) => g.id === m.game_type)?.name ?? m.game_type}
@@ -367,7 +372,7 @@ export default function HomeScreen() {
                 </View>
               ))
             ) : (
-              <Empty emoji="🎈" title="Chưa có trận nào" hint="Bấm nút vàng ở giữa thanh dưới để chơi ngay!" />
+              <Empty icon="star" title="Chưa có trận nào" hint="Bấm nút vàng ở giữa thanh dưới để chơi ngay!" />
             )}
           </Card>
         </View>
@@ -376,7 +381,7 @@ export default function HomeScreen() {
   );
 }
 
-function HeroChip({ label, art }: { label: string; art?: string }) {
+function HeroChip({ label, icon }: { label: string; icon?: IconName }) {
   return (
     <View
       style={{
@@ -389,7 +394,7 @@ function HeroChip({ label, art }: { label: string; art?: string }) {
         borderRadius: R.pill,
       }}
     >
-      {art ? <Chibi name={art} size={12} /> : null}
+      {icon ? <Icon name={icon} size={12} color="#fff" strokeWidth={2.3} /> : null}
       <Txt size={11} weight="bold" color="#fff">
         {label}
       </Txt>
@@ -397,7 +402,7 @@ function HeroChip({ label, art }: { label: string; art?: string }) {
   );
 }
 
-function Wallet({ art, value }: { art: string; value: string }) {
+function Wallet({ icon, value }: { icon: IconName; value: string }) {
   return (
     <View
       style={{
@@ -410,7 +415,7 @@ function Wallet({ art, value }: { art: string; value: string }) {
         borderRadius: R.pill,
       }}
     >
-      <Chibi name={art} size={15} />
+      <Icon name={icon} size={15} color="#fff" strokeWidth={2.1} />
       <Txt size={12} weight="bold" color="#fff">
         {value}
       </Txt>
@@ -419,13 +424,13 @@ function Wallet({ art, value }: { art: string; value: string }) {
 }
 
 function ActionTile({
-  art,
+  icon,
   title,
   sub,
   colors,
   onPress,
 }: {
-  art: string;
+  icon: IconName;
   title: string;
   sub: string;
   colors: [string, string];
@@ -452,7 +457,7 @@ function ActionTile({
           ]}
         >
           <Gloss opacity={0.22} angle="top" />
-          <Chibi name={art} size={26} />
+          <Icon name={icon} size={26} color="#fff" strokeWidth={2} />
           <Txt size={12} weight="bold" color="#fff" center numberOfLines={1}>
             {title}
           </Txt>
@@ -467,12 +472,12 @@ function ActionTile({
 
 function Head({
   title,
-  art,
+  icon,
   actionLabel,
   onAction,
 }: {
   title: string;
-  art: string;
+  icon: IconName;
   actionLabel?: string;
   onAction?: () => void;
 }) {
@@ -487,7 +492,7 @@ function Head({
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-        <Chibi name={art} size={19} />
+        <Icon name={icon} size={19} color={C.primary} strokeWidth={2.2} />
         <Txt size={17} weight="heading">
           {title}
         </Txt>

@@ -5,15 +5,15 @@ import { Tabs, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C, R, S, softShadow } from '../../src/theme';
 import { Txt } from '../../src/components/ui';
-import { Chibi } from '../../src/components/Chibi';
+import { Icon, IconName } from '../../src/components/Icon';
 import { useStore } from '../../src/state/store';
 
 /** 4 tab + nút Chơi nhanh nổi ở giữa, bố cục quen thuộc của app game casual. */
-const TABS: { name: string; label: string; art: string }[] = [
-  { name: 'index', label: 'Trang chủ', art: 'house' },
-  { name: 'games', label: 'Game', art: 'joystick' },
-  { name: 'social', label: 'Bạn bè', art: 'speech-bubble' },
-  { name: 'profile', label: 'Hồ sơ', art: 'chick' },
+const TABS: { name: string; label: string; icon: IconName }[] = [
+  { name: 'index', label: 'Trang chủ', icon: 'home' },
+  { name: 'games', label: 'Game', icon: 'grid' },
+  { name: 'social', label: 'Bạn bè', icon: 'chat' },
+  { name: 'profile', label: 'Hồ sơ', icon: 'user' },
 ];
 
 function TabBar({ state, navigation }: any) {
@@ -34,7 +34,7 @@ function TabBar({ state, navigation }: any) {
         style={{ flex: 1, alignItems: 'center', gap: 3, paddingVertical: 6 }}
       >
         <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-          <Chibi name={tab.art} size={focused ? 25 : 22} opacity={focused ? 1 : 0.45} />
+          <Icon name={tab.icon} size={focused ? 25 : 23} color={focused ? C.primary : C.inkFaint} strokeWidth={focused ? 2.4 : 2} />
           {badge > 0 ? (
             <View
               style={{
@@ -88,7 +88,7 @@ function TabBar({ state, navigation }: any) {
               softShadow(0.26, 14, 6),
             ]}
           >
-            <Chibi name="bolt" size={30} />
+            <Icon name="bolt" size={28} color="#fff" strokeWidth={2} />
           </LinearGradient>
         </Pressable>
       </View>

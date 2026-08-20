@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Card, Field, Txt } from '../src/components/ui';
+import { Icon } from '../src/components/Icon';
 import { C, R, S } from '../src/theme';
 import { useStore } from '../src/state/store';
 import { friendlyError } from '../src/lib/api';
@@ -43,7 +44,7 @@ export default function RegisterScreen() {
             </Txt>
           </Pressable>
           <View style={{ alignItems: 'center' }}>
-            <Text style={{ fontSize: 54 }}>🐣</Text>
+            <Icon name="sparkle" size={54} color={C.secondary} strokeWidth={1.7} />
             <Txt size={28} weight="display" color={C.secondary}>
               Tạo tài khoản
             </Txt>
@@ -68,7 +69,7 @@ export default function RegisterScreen() {
                 </Txt>
               </View>
             ) : null}
-            <Btn label="Đăng ký" icon="✨" tone="secondary" size="lg" full loading={busy} onPress={submit} />
+            <Btn label="Đăng ký" icon="sparkle" tone="secondary" size="lg" full loading={busy} onPress={submit} />
           </Card>
         </ScrollView>
       </KeyboardAvoidingView>

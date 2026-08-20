@@ -38,7 +38,7 @@ authRouter.post('/register', (req, res) => {
 
   const { token } = issueToken(id, false, String(req.headers['user-agent'] ?? 'unknown'));
   track(id, 'login_success', { method: 'register' });
-  notify(id, 'system', 'Chào mừng đến Hago! 🎉', 'Nhận 500 Coin và 20 Diamond khởi đầu. Chơi ván đầu để nhận thưởng nhé!');
+  notify(id, 'system', 'Chào mừng đến Hago!', 'Nhận 500 Coin và 20 Diamond khởi đầu. Chơi ván đầu để nhận thưởng nhé!');
   res.json({ token, profile: toProfile(findUser(id)!) });
 });
 

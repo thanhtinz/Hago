@@ -328,7 +328,7 @@ export function settleMatch(match: MatchRuntime): { matchId: string; rows: Settl
     notify(
       r.userId,
       'match_result',
-      r.result === 'win' ? '🎉 Chiến thắng!' : r.result === 'draw' ? '🤝 Hòa' : 'Trận đấu kết thúc',
+      r.result === 'win' ? 'Chiến thắng!' : r.result === 'draw' ? 'Hoà' : 'Trận đấu kết thúc',
       `+${r.xpGain} XP · +${r.coinGain} Coin${r.ratingDelta ? ` · ${r.ratingDelta > 0 ? '+' : ''}${r.ratingDelta} điểm rank` : ''}`,
       { matchId: match.id, gameType: match.gameType },
     );

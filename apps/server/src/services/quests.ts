@@ -110,7 +110,7 @@ function mapAchievement(r: any): AchievementDef {
     target: r.target,
     rewardCoin: r.reward_coin,
     rewardXp: r.reward_xp,
-    emoji: r.emoji,
+    art: r.art,
   };
 }
 
@@ -149,7 +149,7 @@ export function progressAchievements(userId: string, metric: string, delta = 1):
       );
       if (a.rewardCoin) mutateCurrency(userId, 'coin', a.rewardCoin, 'achievement', a.id);
       if (a.rewardXp) db.prepare('UPDATE users SET xp = xp + ? WHERE id = ?').run(a.rewardXp, userId);
-      notify(userId, 'reward', `${a.emoji} Thành tựu mới`, a.title, { achievementId: a.id });
+      notify(userId, 'reward', 'Thành tựu mới', a.title, { achievementId: a.id });
       unlocked.push(a);
     }
   }

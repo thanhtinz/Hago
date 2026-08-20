@@ -1,7 +1,8 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Btn, Chip, Txt } from '../components/ui';
-import { Chibi } from '../components/Chibi';
+import { Icon } from '../components/Icon';
+import { ShotMark } from '../components/Piece';
 import { C, R, S } from '../theme';
 import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
 
@@ -14,7 +15,7 @@ export default function BattleshipBoard({ view, mySeat, send, deadline, space }:
   if (view.phase === 'placement') {
     return (
       <View style={{ gap: S.lg, alignItems: 'center' }}>
-        <Chibi name="anchor" size={56} />
+        <Icon name="anchor" size={54} color={C.sky} strokeWidth={1.8} />
         <Txt size={20} weight="display">
           Bố trí hạm đội
         </Txt>
@@ -25,7 +26,7 @@ export default function BattleshipBoard({ view, mySeat, send, deadline, space }:
         <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
           {view.fleet.map((len: number, i: number) => (
             <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.skySoft, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999 }}>
-              <Chibi name="ship" size={14} />
+              <Icon name="anchor" size={13} color={C.sky} strokeWidth={2.2} />
               <Txt size={11} weight="bold" color={C.sky}>
                 {len} ô
               </Txt>
@@ -33,9 +34,9 @@ export default function BattleshipBoard({ view, mySeat, send, deadline, space }:
           ))}
         </View>
         {view.me?.placed ? (
-          <Chip label="Đã sẵn sàng — chờ đối thủ" icon="✅" color={C.mint} soft={C.mintSoft} />
+          <Chip label="Đã sẵn sàng — chờ đối thủ" icon="check" color={C.mint} soft={C.mintSoft} />
         ) : (
-          <Btn label="Xếp tàu ngẫu nhiên" icon="🎲" size="lg" onPress={() => send('place', {})} />
+          <Btn label="Xếp tàu ngẫu nhiên" icon="dice" size="lg" onPress={() => send('place', {})} />
         )}
         {view.me?.placed ? <MiniGrid size={size} cell={cell} side={view.me} showShips /> : null}
       </View>
@@ -52,7 +53,7 @@ export default function BattleshipBoard({ view, mySeat, send, deadline, space }:
 
       <View style={{ alignItems: 'center', gap: 6 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Chibi name="target" size={18} />
+          <Icon name="target" size={17} color={C.primary} strokeWidth={2.1} />
           <Txt size={13} weight="heading">
             Bàn đối thủ · còn {view.foe?.alive}/{view.foe?.total} tàu
           </Txt>
@@ -70,7 +71,7 @@ export default function BattleshipBoard({ view, mySeat, send, deadline, space }:
 
       <View style={{ alignItems: 'center', gap: 6 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Chibi name="shield" size={16} />
+          <Icon name="shield" size={16} color={C.inkSoft} strokeWidth={2.1} />
           <Txt size={13} weight="heading" color={C.inkSoft}>
             Hạm đội của bạn · còn {view.me?.alive}/{view.me?.total}
           </Txt>
@@ -138,13 +139,7 @@ function Grid({
                 }}
               >
                 {shot ? (
-                  shot.sunk !== null ? (
-                    <Chibi name="explosion" size={cell * 0.72} />
-                  ) : shot.hit ? (
-                    <Chibi name="fire" size={cell * 0.66} />
-                  ) : (
-                    <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#9CC6E0' }} />
-                  )
+                  <ShotMark kind={shot.sunk !== null ? 'sunk' : shot.hit ? 'hit' : 'miss'} size={cell * 0.72} />
                 ) : null}
                 {!shot && hasShip && !hideShips ? <View style={{ width: cell * 0.6, height: cell * 0.6, borderRadius: 3, backgroundColor: '#5E6B80' }} /> : null}
               </Pressable>

@@ -37,7 +37,7 @@ export default function Moderation({ toast }: { toast: (t: string) => void }) {
               <div className="spread">
                 <div>
                   <div style={{ fontWeight: 700 }}>
-                    {r.reporter_name} 🚩 {r.target_name}
+                    {r.reporter_name} <span style={{ color: 'var(--ink-faint)' }}>báo cáo</span> {r.target_name}
                   </div>
                   <div className="muted">
                     {r.reason} · {fmtDate(r.created_at)}
@@ -58,7 +58,7 @@ export default function Moderation({ toast }: { toast: (t: string) => void }) {
               ) : null}
             </div>
           ))}
-          {!reports.length ? <Empty emoji="🕊️" text="Không có báo cáo nào" /> : null}
+          {!reports.length ? <Empty icon="shield" text="Không có báo cáo nào" /> : null}
         </div>
       </Card>
 
@@ -82,7 +82,7 @@ export default function Moderation({ toast }: { toast: (t: string) => void }) {
               ))}
             </tbody>
           </table>
-          {!audit.length ? <Empty emoji="📋" text="Chưa có hành động nào được ghi" /> : null}
+          {!audit.length ? <Empty icon="clipboard" text="Chưa có hành động nào được ghi" /> : null}
         </div>
       </Card>
     </div>

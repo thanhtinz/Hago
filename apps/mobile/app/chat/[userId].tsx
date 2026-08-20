@@ -3,12 +3,14 @@ import { FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextIn
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Empty, Txt } from '../../src/components/ui';
+import { StickerArt, StickerName } from '../../src/components/Piece';
 import { C, F, R, S } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
 import { emitAck } from '../../src/lib/socket';
 import { useStore } from '../../src/state/store';
 
-const STICKERS = ['👋', '😄', '😭', '🔥', '👍', '🎉', '🐑', '🐺', '💎', '🏆'];
+/** Sticker vẽ tay bằng SVG, không dùng ký tự emoji. */
+const STICKERS: StickerName[] = ['happy', 'sad', 'angry', 'love', 'cool', 'shock', 'fire', 'trophy', 'gem', 'crown'];
 
 export default function ChatScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
@@ -77,7 +79,7 @@ export default function ChatScreen() {
         keyExtractor={(m) => m.id}
         contentContainerStyle={{ padding: S.lg, gap: S.sm, flexGrow: 1 }}
         onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
-        ListEmptyComponent={<Empty emoji="💬" title="Chưa có tin nhắn" hint="Gửi lời chào để bắt đầu trò chuyện!" />}
+        ListEmptyComponent={<Empty icon="grid" title="Chưa có tin nhắn" hint="Gửi lời chào để bắt đầu trò chuyện!" />}
         renderItem={({ item }) => {
           const mine = item.senderId === profile?.id;
           return (
@@ -94,9 +96,14 @@ export default function ChatScreen() {
                   borderColor: C.line,
                 }}
               >
-                <Txt size={14} color={mine ? '#fff' : C.ink}>
-                  {item.body}
-                </Txt>
+                {/* Sticker gửi dưới dạng :tên: được render thành asset. */}
+                {/^:[a-z0-9-]+:$/.test(item.body) ? (
+                  <StickerArt name={item.body.slice(1, -1) as StickerName} size={48} />
+                ) : (
+                  <Txt size={14} color={mine ? '#fff' : C.ink}>
+                    {item.body}
+                  </Txt>
+                )}
               </View>
               <Txt size={9} color={C.inkFaint} style={{ marginTop: 2, alignSelf: mine ? 'flex-end' : 'flex-start' }}>
                 {new Date(item.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
@@ -114,8 +121,8 @@ export default function ChatScreen() {
         contentContainerStyle={{ paddingHorizontal: S.lg, gap: 10, alignItems: 'center' }}
       >
         {STICKERS.map((s) => (
-          <Pressable key={s} onPress={() => send(s, 'sticker')}>
-            <Txt size={24}>{s}</Txt>
+          <Pressable key={s} onPress={() => send(`:${s}:`, 'sticker')} accessibilityLabel={`Gửi sticker ${s}`}>
+            <StickerArt name={s} size={30} />
           </Pressable>
         ))}
       </ScrollView>
@@ -129,7 +136,7 @@ export default function ChatScreen() {
           placeholderTextColor={C.inkFaint}
           style={{ flex: 1, backgroundColor: C.bg, borderRadius: R.pill, paddingHorizontal: 16, paddingVertical: 11, fontFamily: F.body, fontSize: 14, color: C.ink }}
         />
-        <Btn label="Gửi" icon="📨" size="sm" onPress={() => send(draft)} />
+        <Btn label="Gửi" icon="send" size="sm" onPress={() => send(draft)} />
       </View>
     </KeyboardAvoidingView>
   );

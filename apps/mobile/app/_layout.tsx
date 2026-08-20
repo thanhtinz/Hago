@@ -36,7 +36,6 @@ function Gate() {
   if (!ready) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', gap: 14 }}>
-        <Text style={{ fontSize: 58 }}>🎮</Text>
         <Text style={{ fontFamily: F.display, fontSize: 30, color: C.primary }}>Hago</Text>
         <ActivityIndicator color={C.primary} />
       </View>

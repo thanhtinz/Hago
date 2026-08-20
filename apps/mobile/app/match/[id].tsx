@@ -5,8 +5,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Card, Txt } from '../../src/components/ui';
-import { Chibi } from '../../src/components/Chibi';
-import { GAME_ART } from '../../src/lib/assets';
+import { Icon, IconName } from '../../src/components/Icon';
+import { GameIcon, GameIconName } from '../../src/components/GameIcon';
+import { StickerArt } from '../../src/components/Piece';
+
 import { C, GAME_GRADIENT, R, S, softShadow } from '../../src/theme';
 import { BOARDS } from '../../src/games';
 import { friendlyError } from '../../src/lib/api';
@@ -23,14 +25,15 @@ const GAME_NAMES: Record<string, string> = {
   werewolf: 'Ma Sói',
 };
 
-const FLASH: Record<string, { art: string; text: string }> = {
-  win: { art: 'trophy', text: 'Thắng rồi!' },
-  kick: { art: 'explosion', text: 'Đá ngựa!' },
-  bump: { art: 'explosion', text: 'Húc trúng!' },
-  score: { art: 'star', text: 'Ghi điểm!' },
-  rent: { art: 'coin', text: 'Thu tô!' },
-  bankrupt: { art: 'explosion', text: 'Phá sản!' },
-  chance: { art: 'question', text: 'Cơ hội!' },
+const FLASH: Record<string, { icon: IconName; text: string }> = {
+  win: { icon: 'trophy', text: 'Thắng rồi!' },
+  kick: { icon: 'flame', text: 'Đá ngựa!' },
+  bump: { icon: 'flame', text: 'Húc trúng!' },
+  score: { icon: 'star', text: 'Ghi điểm!' },
+  rent: { icon: 'coin', text: 'Thu tô!' },
+  bankrupt: { icon: 'flame', text: 'Phá sản!' },
+  chance: { icon: 'question', text: 'Cơ hội!' },
+  merge: { icon: 'sparkle', text: 'Tiến hoá!' },
 };
 
 export default function MatchScreen() {
@@ -79,7 +82,7 @@ export default function MatchScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
         <StatusBar hidden />
-        <Chibi name="dice" size={54} />
+        <Icon name="dice" size={52} color={C.inkFaint} strokeWidth={1.8} />
         <Txt size={15} weight="heading" color={C.inkSoft}>
           Đang vào trận...
         </Txt>
@@ -94,14 +97,23 @@ export default function MatchScreen() {
 
   // Full screen: chỉ chừa HUD trên (48px) và safe area — phần còn lại là bàn chơi.
   const HUD = 46;
+  const PAD = 8;
   const space = {
-    width: width - S.md * 2,
-    height: height - HUD - insets.top - insets.bottom - S.md * 2,
+    width: width - PAD * 2,
+    height: height - HUD - insets.top - insets.bottom - PAD * 2,
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar hidden />
+
+      {/* Nền nhuộm nhẹ theo màu game để cả màn hình thuộc về ván đấu */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={[grad[1] + '38', C.bg, C.bg]}
+        locations={[0, 0.42, 1]}
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+      />
 
       {/* HUD mỏng, không chiếm chỗ của bàn chơi */}
       <LinearGradient
@@ -122,7 +134,7 @@ export default function MatchScreen() {
             ‹
           </Txt>
         </Pressable>
-        <Chibi name={GAME_ART[state.gameType] ?? 'gamepad'} size={24} />
+        <GameIcon name={state.gameType as GameIconName} size={26} />
         <Txt size={15} weight="display" color="#fff" style={{ flex: 1 }}>
           {GAME_NAMES[state.gameType]}
         </Txt>
@@ -149,8 +161,8 @@ export default function MatchScreen() {
         style={{ flex: 1 }}
         contentContainerStyle={{
           flexGrow: 1,
-          padding: S.md,
-          paddingBottom: insets.bottom + S.md,
+          padding: PAD,
+          paddingBottom: insets.bottom + PAD,
           // Nội dung bám sát HUD; bàn cờ vuông trên màn hình dọc luôn thừa
           // chiều cao nên căn giữa sẽ tạo khoảng trống lớn ở trên.
           justifyContent: 'flex-start',
@@ -181,7 +193,7 @@ export default function MatchScreen() {
               softShadow(0.3, 20, 8),
             ]}
           >
-            <Chibi name={FLASH[flash].art} size={28} />
+            <Icon name={FLASH[flash].icon} size={26} color="#FFD36E" strokeWidth={2.2} />
             <Txt size={20} weight="display" color="#fff">
               {FLASH[flash].text}
             </Txt>
@@ -217,16 +229,17 @@ export default function MatchScreen() {
               const draw = mine?.result === 'draw';
               return (
                 <>
-                  <Chibi name={win ? 'trophy' : draw ? 'handshake' : 'droplet'} size={64} />
+                  {/* Mặt cảm xúc vẽ tay đọc rõ hơn icon nét ở cỡ lớn. */}
+                  <StickerArt name={win ? 'trophy' : draw ? 'cool' : 'sad'} size={72} />
                   <Txt size={26} weight="display" color={win ? C.mint : draw ? C.sun : C.inkSoft}>
                     {win ? 'Chiến thắng!' : draw ? 'Hoà rồi!' : 'Thua mất rồi'}
                   </Txt>
                   <View style={{ flexDirection: 'row', gap: S.md }}>
-                    <Reward art="star" label="EXP" value={`+${mine?.xpGain ?? 0}`} color={C.secondary} />
-                    <Reward art="coin" label="Coin" value={`+${mine?.coinGain ?? 0}`} color={C.sun} />
+                    <Reward icon="star" label="EXP" value={`+${mine?.xpGain ?? 0}`} color={C.secondary} />
+                    <Reward icon="coin" label="Coin" value={`+${mine?.coinGain ?? 0}`} color={C.sun} />
                     {mine?.ratingDelta ? (
                       <Reward
-                        art="medal-1"
+                        icon="medal"
                         label="Rank"
                         value={`${mine.ratingDelta > 0 ? '+' : ''}${mine.ratingDelta}`}
                         color={mine.ratingDelta > 0 ? C.mint : C.danger}
@@ -235,7 +248,7 @@ export default function MatchScreen() {
                   </View>
                   {mine && mine.levelAfter > mine.levelBefore ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.sunSoft, paddingHorizontal: 12, paddingVertical: 6, borderRadius: R.pill }}>
-                      <Chibi name="party" size={16} />
+                      <Icon name="star" size={15} color="#9A6B00" strokeWidth={2.2} /> 
                       <Txt size={12} weight="bold" color="#9A6B00">
                         Lên cấp {mine.levelAfter}!
                       </Txt>
@@ -251,7 +264,7 @@ export default function MatchScreen() {
                         return (
                           <View key={r.userId} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.surfaceAlt, borderRadius: R.md, padding: S.sm }}>
                             {r.place <= 3 ? (
-                              <Chibi name={`medal-${r.place}`} size={20} />
+                              <Icon name="medal" size={19} color={r.place === 1 ? C.sun : r.place === 2 ? '#A9B4C2' : '#C4854B'} strokeWidth={2} />
                             ) : (
                               <Txt size={13} weight="display" color={C.inkFaint} style={{ width: 20 }} center>
                                 {r.place}
@@ -270,7 +283,7 @@ export default function MatchScreen() {
 
                   <View style={{ flexDirection: 'row', gap: S.sm, marginTop: 6 }}>
                     <Btn label="Về trang chủ" tone="ghost" onPress={() => router.replace('/')} />
-                    <Btn label="Chơi tiếp" icon="🔁" onPress={() => router.replace('/quickplay')} />
+                    <Btn label="Chơi tiếp" icon="refresh" onPress={() => router.replace('/quickplay')} />
                   </View>
                 </>
               );
@@ -282,10 +295,10 @@ export default function MatchScreen() {
   );
 }
 
-function Reward({ art, label, value, color }: { art: string; label: string; value: string; color: string }) {
+function Reward({ icon, label, value, color }: { icon: IconName; label: string; value: string; color: string }) {
   return (
     <View style={{ alignItems: 'center', backgroundColor: C.surfaceAlt, paddingHorizontal: 14, paddingVertical: 8, borderRadius: R.md, gap: 2 }}>
-      <Chibi name={art} size={20} />
+      <Icon name={icon} size={19} color={color} strokeWidth={2.1} />
       <Txt size={17} weight="display" color={color}>
         {value}
       </Txt>

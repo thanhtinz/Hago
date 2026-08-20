@@ -5,9 +5,10 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Card, Chip, Empty, Field, Txt } from '../src/components/ui';
 import { HeaderTabs, ScreenHeader } from '../src/components/ScreenHeader';
-import { Chibi, ChibiBadge } from '../src/components/Chibi';
+import { Icon, IconName } from '../src/components/Icon';
+import { GameIcon, GameIconName } from '../src/components/GameIcon';
 import { Gloss } from '../src/components/decor';
-import { GAME_ART } from '../src/lib/assets';
+
 import { C, GAME_GRADIENT, R, S, softShadow } from '../src/theme';
 import { api, friendlyError } from '../src/lib/api';
 import { emitAck } from '../src/lib/socket';
@@ -113,7 +114,7 @@ export default function RoomsScreen() {
       config,
     });
     if (!res?.ok) return showToast(friendlyError(res?.error ?? 'NETWORK'), 'warn');
-    showToast(`Đã tạo phòng ${res.room.code} 🎉`);
+    showToast(`Đã tạo phòng ${res.room.code}`);
     router.push(`/room/${res.room.id}`);
   };
 
@@ -121,7 +122,7 @@ export default function RoomsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <ScreenHeader title="Phòng chơi" art="door" subtitle="Tìm phòng đang mở hoặc tự mở phòng mời bạn bè">
+      <ScreenHeader title="Phòng chơi" icon="door" subtitle="Tìm phòng đang mở hoặc tự mở phòng mời bạn bè">
         <HeaderTabs
           tabs={[
             { id: 'find', label: `Tìm phòng (${visible.length})` },
@@ -139,7 +140,7 @@ export default function RoomsScreen() {
         >
           <Card style={{ gap: S.md }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Chibi name="key" size={20} />
+              <Icon name="key" size={19} color={C.primary} strokeWidth={2.2} />
               <Txt size={15} weight="heading">
                 Vào bằng mã phòng
               </Txt>
@@ -155,7 +156,7 @@ export default function RoomsScreen() {
                   onSubmitEditing={joinByCode}
                 />
               </View>
-              <Btn label="Vào" icon="➡️" onPress={joinByCode} />
+              <Btn label="Vào" icon="arrow-right" onPress={joinByCode} />
             </View>
           </Card>
 
@@ -166,12 +167,12 @@ export default function RoomsScreen() {
             style={{ flexGrow: 0, height: 48 }}
             contentContainerStyle={{ gap: 8, alignItems: 'center' }}
           >
-            <FilterChip label="Tất cả" active={filterGame === ''} onPress={() => setFilterGame('')} art="gamepad" />
+            <FilterChip label="Tất cả" active={filterGame === ''} onPress={() => setFilterGame('')} icon="grid" />
             {games.map((g) => (
               <FilterChip
                 key={g.id}
                 label={g.name}
-                art={GAME_ART[g.id]}
+                game={g.id}
                 active={filterGame === g.id}
                 onPress={() => setFilterGame(filterGame === g.id ? '' : g.id)}
               />
@@ -198,7 +199,7 @@ export default function RoomsScreen() {
                       style={{ width: 52, height: 52, borderRadius: 17, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
                     >
                       <Gloss opacity={0.15} angle="top" />
-                      <Chibi name={GAME_ART[r.gameType] ?? 'gamepad'} size={32} />
+                      <GameIcon name={r.gameType as GameIconName} size={34} />
                     </LinearGradient>
                     <View style={{ flex: 1 }}>
                       <Txt size={15} weight="heading">
@@ -212,7 +213,7 @@ export default function RoomsScreen() {
                           soft={C.secondarySoft}
                           size={10}
                         />
-                        {r.hasPassword ? <Chip label="Có mật khẩu" icon="🔒" color="#9A6B00" soft={C.sunSoft} size={10} /> : null}
+                        {r.hasPassword ? <Chip label="Có mật khẩu" icon="lock" color="#9A6B00" soft={C.sunSoft} size={10} /> : null}
                       </View>
                     </View>
                     <View style={{ alignItems: 'center' }}>
@@ -265,11 +266,11 @@ export default function RoomsScreen() {
           ) : (
             <Card>
               <Empty
-                art="door"
+                icon="door"
                 title="Chưa có phòng nào đang mở"
                 hint="Tạo phòng mới hoặc bấm nút vàng ở giữa thanh dưới để hệ thống tự ghép đối thủ"
               />
-              <Btn label="Tạo phòng ngay" icon="➕" full onPress={() => setTab('create')} />
+              <Btn label="Tạo phòng ngay" icon="plus" full onPress={() => setTab('create')} />
             </Card>
           )}
         </ScrollView>
@@ -300,7 +301,7 @@ export default function RoomsScreen() {
                         active ? softShadow(0.14, 10, 4) : null,
                       ]}
                     >
-                      <Chibi name={GAME_ART[g.id] ?? 'gamepad'} size={38} opacity={active ? 1 : 0.55} />
+                      <GameIcon name={g.id as GameIconName} size={40} accent={active ? '#FFD36E' : C.inkFaint} tint={active ? undefined : C.inkFaint} />
                     </LinearGradient>
                     <Txt size={10} weight={active ? 'bold' : 'medium'} color={active ? C.ink : C.inkFaint} center numberOfLines={1}>
                       {g.name}
@@ -418,7 +419,7 @@ export default function RoomsScreen() {
                 />
               ) : null}
 
-              <Btn label="Tạo phòng" icon="🏠" size="lg" full onPress={createRoom} />
+              <Btn label="Tạo phòng" icon="home" size="lg" full onPress={createRoom} />
               <Txt size={11} color={C.inkFaint} center>
                 Sau khi tạo, chia sẻ mã phòng 6 ký tự cho bạn bè hoặc mời trực tiếp từ danh sách bạn.
               </Txt>
@@ -432,7 +433,7 @@ export default function RoomsScreen() {
         <View style={{ flex: 1, backgroundColor: C.overlay, alignItems: 'center', justifyContent: 'center', padding: S.lg }}>
           <Card style={{ width: '100%', maxWidth: 360, gap: S.md }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Chibi name="lock" size={22} />
+              <Icon name="lock" size={21} color={C.primary} strokeWidth={2.1} />
               <Txt size={16} weight="heading">
                 Phòng #{pwPrompt?.code} có mật khẩu
               </Txt>
@@ -456,7 +457,7 @@ export default function RoomsScreen() {
   );
 }
 
-function FilterChip({ label, active, onPress, art }: { label: string; active: boolean; onPress: () => void; art?: string }) {
+function FilterChip({ label, active, onPress, icon, game }: { label: string; active: boolean; onPress: () => void; icon?: IconName; game?: string }) {
   return (
     <Pressable
       onPress={onPress}
@@ -472,7 +473,7 @@ function FilterChip({ label, active, onPress, art }: { label: string; active: bo
         borderColor: active ? C.primary : C.line,
       }}
     >
-      {art ? <Chibi name={art} size={16} /> : null}
+      {game ? <GameIcon name={game as GameIconName} size={17} accent={active ? C.primary : C.inkFaint} tint={active ? C.primaryDark : C.inkFaint} /> : icon ? <Icon name={icon} size={15} color={active ? C.primaryDark : C.inkSoft} strokeWidth={2.2} /> : null}
       <Txt size={12} weight="bold" color={active ? C.primaryDark : C.inkSoft}>
         {label}
       </Txt>

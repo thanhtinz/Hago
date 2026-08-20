@@ -3,22 +3,24 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Card, Empty, Txt } from '../src/components/ui';
+import { Icon, IconName } from '../src/components/Icon';
 import { ScreenHeader } from '../src/components/ScreenHeader';
 import { C, R, S } from '../src/theme';
 import { api } from '../src/lib/api';
 import { emitAck } from '../src/lib/socket';
 import { useStore } from '../src/state/store';
 
-const ICONS: Record<string, string> = {
-  friend_request: '🤝',
-  friend_accepted: '🎉',
-  room_invite: '🎮',
-  match_found: '⚡',
-  match_result: '🏆',
-  quest_complete: '📋',
-  reward: '🎁',
-  event: '🎪',
-  system: '📢',
+/** Mỗi loại thông báo một asset riêng để lướt danh sách nhận ra ngay. */
+const ICONS: Record<string, IconName> = {
+  friend_request: 'handshake',
+  friend_accepted: 'user-plus',
+  room_invite: 'door',
+  match_found: 'bolt',
+  match_result: 'trophy',
+  quest_complete: 'list',
+  reward: 'gift',
+  event: 'star',
+  system: 'bell',
 };
 
 export default function NotificationsScreen() {
@@ -65,7 +67,7 @@ export default function NotificationsScreen() {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
     <ScreenHeader
       title="Thông báo"
-      art="bell"
+      icon="bell"
       right={
         <Pressable onPress={readAll} style={{ backgroundColor: 'rgba(255,255,255,0.24)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 }}>
           <Txt size={12} weight="bold" color="#fff">
@@ -84,7 +86,7 @@ export default function NotificationsScreen() {
           <Pressable key={n.id} onPress={() => open(n)}>
             <Card style={{ flexDirection: 'row', gap: S.md, backgroundColor: n.readAt ? C.surface : C.primarySoft, borderColor: n.readAt ? C.line : C.primary }}>
               <View style={{ width: 40, height: 40, borderRadius: R.md, backgroundColor: C.surfaceAlt, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 20 }}>{ICONS[n.type] ?? '🔔'}</Text>
+                <Icon name={ICONS[n.type] ?? 'bell'} size={21} color={C.primary} strokeWidth={2.1} />
               </View>
               <View style={{ flex: 1 }}>
                 <Txt size={14} weight="bold">
@@ -101,7 +103,7 @@ export default function NotificationsScreen() {
           </Pressable>
         ))
       ) : (
-        <Empty art="bell" title="Chưa có thông báo" hint="Kết bạn và chơi game để nhận thông báo nhé!" />
+        <Empty icon="bell" title="Chưa có thông báo" hint="Kết bạn và chơi game để nhận thông báo nhé!" />
       )}
     </ScrollView>
     </View>

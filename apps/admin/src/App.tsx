@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api, setToken, getToken } from './api';
+import { AdminIcon, Icon } from './Icon';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Moderation from './pages/Moderation';
@@ -8,14 +9,14 @@ import LiveOps from './pages/LiveOps';
 import Matches from './pages/Matches';
 import Analytics from './pages/Analytics';
 
-const NAV = [
-  { id: 'dashboard', label: 'Tổng quan', icon: '📊' },
-  { id: 'users', label: 'Người dùng', icon: '👥' },
-  { id: 'matches', label: 'Phòng & Trận', icon: '🎮' },
-  { id: 'economy', label: 'Kinh tế & Shop', icon: '💰' },
-  { id: 'liveops', label: 'Nhiệm vụ & Sự kiện', icon: '🎪' },
-  { id: 'moderation', label: 'Kiểm duyệt', icon: '🛡️' },
-  { id: 'analytics', label: 'Phân tích', icon: '📈' },
+const NAV: { id: string; label: string; icon: AdminIcon }[] = [
+  { id: 'dashboard', label: 'Tổng quan', icon: 'dashboard' },
+  { id: 'users', label: 'Người dùng', icon: 'users' },
+  { id: 'matches', label: 'Phòng & Trận', icon: 'games' },
+  { id: 'economy', label: 'Kinh tế & Shop', icon: 'coins' },
+  { id: 'liveops', label: 'Nhiệm vụ & Sự kiện', icon: 'events' },
+  { id: 'moderation', label: 'Kiểm duyệt', icon: 'shield' },
+  { id: 'analytics', label: 'Phân tích', icon: 'chart' },
 ];
 
 const TITLES: Record<string, { title: string; sub: string }> = {
@@ -64,7 +65,9 @@ export default function App() {
     <div className="layout">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-logo">🎮</div>
+          <div className="brand-logo">
+            <Icon name="games" size={22} color="#fff" strokeWidth={2.2} />
+          </div>
           <div>
             <h1>Hago</h1>
             <small>Admin Dashboard</small>
@@ -72,7 +75,7 @@ export default function App() {
         </div>
         {NAV.map((n) => (
           <button key={n.id} className={`nav-item ${page === n.id ? 'active' : ''}`} onClick={() => setPage(n.id)}>
-            <span>{n.icon}</span>
+            <Icon name={n.icon} />
             {n.label}
             {n.id === 'moderation' && openReports > 0 ? <span className="badge">{openReports}</span> : null}
           </button>
@@ -85,7 +88,7 @@ export default function App() {
               location.reload();
             }}
           >
-            <span>👋</span> Đăng xuất
+            <Icon name="logout" /> Đăng xuất
           </button>
         </div>
       </aside>
@@ -97,7 +100,9 @@ export default function App() {
             <p>{head.sub}</p>
           </div>
           <div className="row">
-            <span className="pill info">🛡️ {me.displayName}</span>
+            <span className="pill info">
+              <Icon name="shield" size={13} /> {me.displayName}
+            </span>
           </div>
         </div>
 
@@ -141,7 +146,9 @@ function Login({ onLogin }: { onLogin: (p: any) => void }) {
     <div className="login-wrap">
       <form className="card login-card stack" onSubmit={submit}>
         <div className="row">
-          <div className="brand-logo">🎮</div>
+          <div className="brand-logo">
+            <Icon name="games" size={22} color="#fff" strokeWidth={2.2} />
+          </div>
           <div>
             <h2 style={{ color: 'var(--coral)' }}>Hago Admin</h2>
             <span className="muted">Bảng điều khiển vận hành</span>

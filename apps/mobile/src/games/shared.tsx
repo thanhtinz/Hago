@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Avatar, Bar, Chip, Txt } from '../components/ui';
+import { Icon } from '../components/Icon';
 import { C, R, S, SEAT_COLORS } from '../theme';
 
 export interface BoardProps {
@@ -26,9 +27,12 @@ export function TurnTimer({ deadline, total = 30 }: { deadline: number | null; t
   const danger = secs <= 5;
   return (
     <View style={{ gap: 3, minWidth: 76 }}>
-      <Txt size={11} weight="bold" color={danger ? C.danger : C.inkSoft} center>
-        ⏱ {secs}s
-      </Txt>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+        <Icon name="clock" size={12} color={danger ? C.danger : C.inkSoft} strokeWidth={2.4} />
+        <Txt size={11} weight="bold" color={danger ? C.danger : C.inkSoft}>
+          {secs}s
+        </Txt>
+      </View>
       <Bar value={left} max={total * 1000} color={danger ? C.danger : C.mint} height={5} />
     </View>
   );

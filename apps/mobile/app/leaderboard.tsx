@@ -5,8 +5,8 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Card, Chip, Empty, Txt } from '../src/components/ui';
 import { ScreenHeader } from '../src/components/ScreenHeader';
-import { Chibi } from '../src/components/Chibi';
-import { GAME_ART } from '../src/lib/assets';
+import { Icon } from '../src/components/Icon';
+import { GameIcon, GameIconName } from '../src/components/GameIcon';
 import { C, R, S } from '../src/theme';
 import { api } from '../src/lib/api';
 import { useStore } from '../src/state/store';
@@ -37,10 +37,10 @@ export default function LeaderboardScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <ScreenHeader title="Bảng xếp hạng" art="trophy" subtitle="Top người chơi theo điểm rank" />
+      <ScreenHeader title="Bảng xếp hạng" icon="trophy" subtitle="Top người chơi theo điểm rank" />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, height: 54 }} contentContainerStyle={{ paddingHorizontal: S.md, gap: 8, alignItems: 'center' }}>
-        {[{ id: '', name: 'Tổng', emoji: '🌍' }, ...games].map((g: any) => (
+        {[{ id: '', name: 'Tổng' }, ...games].map((g: any) => (
           <Pressable
             key={g.id}
             onPress={() => setGameType(g.id)}
@@ -55,7 +55,11 @@ export default function LeaderboardScreen() {
               gap: 5,
             }}
           >
-            <Chibi name={g.id ? GAME_ART[g.id] ?? 'gamepad' : 'gamepad'} size={16} />
+            {g.id ? (
+              <GameIcon name={g.id as GameIconName} size={17} accent={gameType === g.id ? '#5A4200' : C.inkFaint} tint={gameType === g.id ? '#B8892B' : C.inkFaint} />
+            ) : (
+              <Icon name="grid" size={15} color={gameType === g.id ? '#5A4200' : C.inkSoft} strokeWidth={2.2} />
+            )}
             <Txt size={12} weight="bold" color={gameType === g.id ? '#5A4200' : C.inkSoft}>
               {g.name}
             </Txt>
@@ -70,10 +74,9 @@ export default function LeaderboardScreen() {
               const e = podium[i];
               if (!e) return <View key={i} style={{ width: 96 }} />;
               const heights = [104, 78, 62];
-              const medals = ['🥇', '🥈', '🥉'];
-              return (
+                        return (
                 <Pressable key={e.user.id} onPress={() => router.push(`/user/${e.user.id}`)} style={{ alignItems: 'center', gap: 4, width: 100 }}>
-                  <Chibi name={`medal-${i + 1}`} size={26} />
+                  <Icon name="medal" size={26} color={i === 0 ? '#E0A100' : i === 1 ? '#9AA6B4' : '#B4784B'} strokeWidth={2} />
                   <View style={{ height: 66, justifyContent: 'flex-end' }}>
                     <Avatar seed={e.user.avatarSeed} styleName={e.user.avatarStyle} frameId={e.user.frameId} size={i === 0 ? 60 : 48} />
                   </View>
@@ -93,7 +96,7 @@ export default function LeaderboardScreen() {
             })}
           </View>
         ) : (
-          <Empty art="chart" title="Chưa có dữ liệu" />
+          <Empty icon="trend" title="Chưa có dữ liệu" />
         )}
 
         {rest.map((e) => (
@@ -119,7 +122,7 @@ export default function LeaderboardScreen() {
                   Lv.{e.user.level} · {e.wins}/{e.matches} thắng
                 </Txt>
               </View>
-              <Chip label={String(e.user.rating)} icon="🏅" color={C.secondaryDark} soft={C.secondarySoft} size={11} />
+              <Chip label={String(e.user.rating)} icon="medal" color={C.secondaryDark} soft={C.secondarySoft} size={11} />
             </Card>
           </Pressable>
         ))}

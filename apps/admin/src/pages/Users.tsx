@@ -61,7 +61,7 @@ export default function Users({ toast }: { toast: (t: string) => void }) {
                     </Pill>
                   </td>
                   <td>
-                    🪙 {fmtNum(u.coin)} · 💎 {fmtNum(u.diamond)}
+                    {fmtNum(u.coin)} coin · {fmtNum(u.diamond)} diamond
                   </td>
                   <td>
                     <Pill tone={u.status === 'active' ? 'ok' : u.status === 'banned' ? 'bad' : 'warn'}>{u.status}</Pill>
@@ -77,7 +77,7 @@ export default function Users({ toast }: { toast: (t: string) => void }) {
               ))}
             </tbody>
           </table>
-          {!users.length ? <Empty emoji="🔍" text="Không tìm thấy người dùng" /> : null}
+          {!users.length ? <Empty icon="search" text="Không tìm thấy người dùng" /> : null}
         </div>
       </Card>
 

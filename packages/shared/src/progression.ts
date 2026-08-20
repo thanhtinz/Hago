@@ -92,5 +92,5 @@ export function computeRewards(input: RewardInput): RewardCalc[] {
 
 export function describeRating(rating: number): string {
   const r = rankOf(rating);
-  return `${r.emoji} ${r.tier} · ${rating}`;
+  return `${r.tier} · ${rating}`;
 }

@@ -271,7 +271,7 @@ function doRoll(state: MonopolyState, seat: number, rng: Rng): [MonopolyState, a
   } else if (tile.kind === 'gotojail') {
     me.pos = state.board.findIndex((t) => t.kind === 'jail');
     me.jailTurns = 2;
-    log.push('Vào tù 2 lượt 🚔');
+    log.push('Vào tù 2 lượt');
   } else if (tile.kind === 'chance') {
     const card = rng.pick(CHANCE_CARDS);
     me.cash += card.cash;
@@ -285,7 +285,7 @@ function doRoll(state: MonopolyState, seat: number, rng: Rng): [MonopolyState, a
     me.bankrupt = true;
     me.properties.forEach((t) => (owner[t] = null));
     me.properties = [];
-    log.push(`${state.players[seat].name} phá sản 💥`);
+    log.push(`${state.players[seat].name} phá sản`);
     events.push({ type: 'bankrupt', payload: { seat } });
   }
 

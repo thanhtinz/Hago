@@ -69,8 +69,8 @@ export default function LiveOps({ toast }: { toast: (t: string) => void }) {
                 XP
                 <input type="number" value={quest.rewardXp} onChange={(e) => setQuest({ ...quest, rewardXp: Number(e.target.value) })} />
               </label>
-              <label className="field" style={{ width: 90 }}>
-                💎
+              <label className="field" style={{ width: 100 }}>
+                Diamond
                 <input type="number" value={quest.rewardDiamond} onChange={(e) => setQuest({ ...quest, rewardDiamond: Number(e.target.value) })} />
               </label>
             </div>
@@ -146,7 +146,7 @@ export default function LiveOps({ toast }: { toast: (t: string) => void }) {
                 setAnnounce({ title: '', body: '' });
               }}
             >
-              📢 Gửi thông báo
+              Gửi thông báo
             </button>
           </div>
         </Card>
@@ -175,7 +175,7 @@ export default function LiveOps({ toast }: { toast: (t: string) => void }) {
                       {q.metric} × {q.target}
                     </td>
                     <td className="muted">
-                      🪙{q.reward_coin} · {q.reward_xp}XP{q.reward_diamond ? ` · 💎${q.reward_diamond}` : ''}
+                      {q.reward_coin} coin · {q.reward_xp} XP{q.reward_diamond ? ` · ${q.reward_diamond} diamond` : ''}
                     </td>
                   </tr>
                 ))}
@@ -197,7 +197,7 @@ export default function LiveOps({ toast }: { toast: (t: string) => void }) {
                 <Pill tone={e.end_at > Date.now() ? 'ok' : 'muted'}>{e.end_at > Date.now() ? 'đang chạy' : 'đã kết thúc'}</Pill>
               </div>
             ))}
-            {!events.length ? <Empty emoji="🎪" text="Chưa có sự kiện" /> : null}
+            {!events.length ? <Empty icon="events" text="Chưa có sự kiện" /> : null}
           </div>
         </Card>
       </div>

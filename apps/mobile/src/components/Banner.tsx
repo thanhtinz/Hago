@@ -3,7 +3,7 @@ import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { C, R, S, softShadow } from '../theme';
 import { Txt } from './ui';
-import { Chibi } from './Chibi';
+import { Icon, IconName } from './Icon';
 import { Bubbles, Gloss } from './decor';
 
 export interface BannerItem {
@@ -11,7 +11,7 @@ export interface BannerItem {
   title: string;
   description: string;
   colors: [string, string];
-  art: string;
+  icon: IconName;
   tag?: string;
   onPress?: () => void;
 }
@@ -81,7 +81,9 @@ export function BannerCarousel({ items, height = 132 }: { items: BannerItem[]; h
                     {b.description}
                   </Txt>
                 </View>
-                <Chibi name={b.art} size={62} />
+                <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name={b.icon} size={34} color="#fff" strokeWidth={1.9} />
+                </View>
               </View>
             </LinearGradient>
           </Pressable>

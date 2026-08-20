@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Card, Chip, Empty, SectionTitle, Txt } from '../../src/components/ui';
+import { Icon } from '../../src/components/Icon';
 import { C, R, S } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
 import { emitAck } from '../../src/lib/socket';
@@ -36,7 +37,7 @@ export default function UserProfile() {
   const report = async (reason: string) => {
     await api('/api/social/reports', { method: 'POST', body: { targetId: id, targetType: 'user', reason } });
     setReporting(false);
-    showToast('Đã gửi báo cáo tới đội ngũ kiểm duyệt 🛡️');
+    showToast('Đã gửi báo cáo tới đội ngũ kiểm duyệt');
   };
 
   return (
@@ -56,7 +57,7 @@ export default function UserProfile() {
         </Txt>
         <View style={{ flexDirection: 'row', gap: 6 }}>
           <Chip label={`Lv.${p.level}`} color="#9A6B00" soft={C.sunSoft} />
-          <Chip label={`${p.rank} · ${p.rating}`} icon="🏅" color={C.secondaryDark} soft={C.secondarySoft} />
+          <Chip label={`${p.rank} · ${p.rating}`} icon="medal" color={C.secondaryDark} soft={C.secondarySoft} />
         </View>
         {p.bio ? (
           <Txt size={12} color={C.inkSoft} center style={{ maxWidth: 280 }}>
@@ -69,14 +70,14 @@ export default function UserProfile() {
         <View style={{ flexDirection: 'row', gap: S.sm, padding: S.lg, flexWrap: 'wrap', justifyContent: 'center' }}>
           {rel?.status === 'accepted' ? (
             <>
-              <Btn label="Nhắn tin" icon="💬" onPress={() => router.push(`/chat/${id}`)} />
+              <Btn label="Nhắn tin" icon="chat" onPress={() => router.push(`/chat/${id}`)} />
               <Btn
                 label="Mời chơi"
-                icon="🎮"
+                icon="grid"
                 tone="mint"
                 onPress={async () => {
                   const res: any = await emitAck('room.invite', { userId: id });
-                  showToast(res?.ok ? 'Đã gửi lời mời 📨' : 'Bạn cần vào phòng trước', res?.ok ? 'ok' : 'warn');
+                  showToast(res?.ok ? 'Đã gửi lời mời' : 'Bạn cần vào phòng trước', res?.ok ? 'ok' : 'warn');
                 }}
               />
             </>
@@ -85,7 +86,7 @@ export default function UserProfile() {
           ) : (
             <Btn
               label="Kết bạn"
-              icon="➕"
+              icon="plus"
               tone="secondary"
               onPress={async () => {
                 try {
@@ -98,7 +99,7 @@ export default function UserProfile() {
               }}
             />
           )}
-          <Btn label="Báo cáo" icon="🚩" tone="ghost" size="sm" onPress={() => setReporting((v) => !v)} />
+          <Btn label="Báo cáo" icon="flag" tone="ghost" size="sm" onPress={() => setReporting((v) => !v)} />
         </View>
       ) : null}
 
@@ -120,7 +121,7 @@ export default function UserProfile() {
       ) : null}
 
       <View style={{ padding: S.lg, gap: S.md }}>
-        <SectionTitle title="Chỉ số" emoji="📊" />
+        <SectionTitle title="Chỉ số" icon="grid" />
         <Card style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
           <Stat label="Trận" value={p.matches} />
           <Stat label="Thắng" value={p.wins} color={C.mint} />
@@ -128,29 +129,29 @@ export default function UserProfile() {
           <Stat label="Tỉ lệ" value={`${p.matches ? Math.round((p.wins / p.matches) * 100) : 0}%`} color={C.secondary} />
         </Card>
 
-        <SectionTitle title="Thành tựu đã mở" emoji="🏅" />
+        <SectionTitle title="Thành tựu đã mở" icon="medal" />
         <Card style={{ gap: S.sm }}>
           {data.achievements?.length ? (
             data.achievements.map((a: any) => (
               <View key={a.achievement.id} style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                <Text style={{ fontSize: 20 }}>{a.achievement.emoji}</Text>
+                <Icon name="trophy" size={20} color={C.sun} strokeWidth={2} />
                 <Txt size={13} weight="bold">
                   {a.achievement.title}
                 </Txt>
               </View>
             ))
           ) : (
-            <Empty emoji="🏅" title="Chưa mở thành tựu nào" />
+            <Empty icon="medal" title="Chưa mở thành tựu nào" />
           )}
         </Card>
 
-        <SectionTitle title="Trận gần đây" emoji="🕹️" />
+        <SectionTitle title="Trận gần đây" icon="grid" />
         <Card style={{ gap: S.sm }}>
           {data.history?.length ? (
             data.history.map((m: any) => (
               <View key={m.id} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                 <Txt size={13} weight="medium">
-                  {m.result === 'win' ? '🏆' : m.result === 'draw' ? '🤝' : '💧'} {m.game_type}
+                  {m.game_type}
                 </Txt>
                 <Txt size={12} weight="bold" color={m.rating_delta >= 0 ? C.mint : C.danger}>
                   {m.rating_delta > 0 ? '+' : ''}
@@ -159,7 +160,7 @@ export default function UserProfile() {
               </View>
             ))
           ) : (
-            <Empty emoji="🎈" title="Chưa có trận nào" />
+            <Empty icon="star" title="Chưa có trận nào" />
           )}
         </Card>
       </View>

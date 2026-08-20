@@ -1,7 +1,9 @@
 import React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Btn, Card, Chip, Txt } from '../components/ui';
-import { Chibi } from '../components/Chibi';
+import { Icon, IconName } from '../components/Icon';
+import { DieFace, TokenDot } from '../components/Piece';
+import { GameIcon } from '../components/GameIcon';
 import { C, R, S, SEAT_COLORS } from '../theme';
 import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
 
@@ -23,12 +25,12 @@ function tilePos(i: number, n: number, cell: number): { x: number; y: number } {
   }
 }
 
-const KIND_ART: Record<string, string> = {
-  start: 'flag-red',
+const KIND_ICON: Record<string, IconName> = {
+  start: 'flag',
   tax: 'receipt',
   chance: 'question',
-  jail: 'police',
-  gotojail: 'police',
+  jail: 'lock',
+  gotojail: 'ban',
   park: 'parking',
 };
 
@@ -41,7 +43,7 @@ export default function MonopolyBoard({ view, mySeat, send, deadline, space }: B
   const me = view.cash?.[mySeat];
 
   return (
-    <View style={{ gap: S.md }}>
+    <View style={{ gap: S.md, flex: 1 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <PlayerStrip
           players={view.players}
@@ -85,11 +87,11 @@ export default function MonopolyBoard({ view, mySeat, send, deadline, space }: B
                     {t.name}
                   </Txt>
                 ) : (
-                  <Chibi name={KIND_ART[t.kind] ?? 'question'} size={cell * 0.5} />
+                  <Icon name={KIND_ICON[t.kind] ?? 'question'} size={cell * 0.5} color="#6B5B45" strokeWidth={2} />
                 )}
                 <View style={{ flexDirection: 'row', gap: 1, marginTop: 1 }}>
                   {here.map((c: any) => (
-                    <View key={c.seat} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: SEAT_COLORS[c.seat], borderWidth: 1, borderColor: '#fff' }} />
+                    <TokenDot key={c.seat} size={9} color={SEAT_COLORS[c.seat]} />
                   ))}
                 </View>
               </View>
@@ -97,21 +99,13 @@ export default function MonopolyBoard({ view, mySeat, send, deadline, space }: B
           })}
 
           <View style={{ position: 'absolute', left: cell * 1.4, top: cell * 1.4, right: cell * 1.4, bottom: cell * 1.4, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-            <Chibi name="game-monopoly" size={34} />
+            <GameIcon name="monopoly" size={38} accent="#F2B33D" tint="#E9AFC0" />
             <Txt size={13} weight="display" color={C.rose}>
               Vòng {view.round}/{view.maxRounds}
             </Txt>
             <View style={{ flexDirection: 'row', gap: 6 }}>
               {(view.dice ?? [0, 0]).map((d: number, i: number) => (
-                <View key={i} style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: C.surface, borderWidth: 2, borderColor: C.line, alignItems: 'center', justifyContent: 'center' }}>
-                  {d ? (
-                    <Txt size={16} weight="display">
-                      {d}
-                    </Txt>
-                  ) : (
-                    <Chibi name="dice" size={18} opacity={0.45} />
-                  )}
-                </View>
+                <DieFace key={i} value={d} size={32} color={d ? C.ink : C.inkFaint} />
               ))}
             </View>
           </View>
@@ -127,13 +121,13 @@ export default function MonopolyBoard({ view, mySeat, send, deadline, space }: B
             Giá ${view.pending.price} · Tiền thuê ${view.board[view.pending.tile].baseRent} · Bạn có ${me?.cash}
           </Txt>
           <View style={{ flexDirection: 'row', gap: S.sm }}>
-            <Btn label="Mua" icon="🏠" tone="mint" onPress={() => send('buy', {})} disabled={(me?.cash ?? 0) < view.pending.price} />
+            <Btn label="Mua" icon="home" tone="mint" onPress={() => send('buy', {})} disabled={(me?.cash ?? 0) < view.pending.price} />
             <Btn label="Bỏ qua" tone="ghost" onPress={() => send('skip', {})} />
           </View>
         </Card>
       ) : null}
 
-      {yourTurn && view.phase === 'roll' ? <Btn label="Tung xúc xắc" icon="🎲" size="lg" style={{ alignSelf: 'center' }} onPress={() => send('roll', {})} /> : null}
+      {yourTurn && view.phase === 'roll' ? <Btn label="Tung xúc xắc" icon="dice" size="lg" style={{ alignSelf: 'center' }} onPress={() => send('roll', {})} /> : null}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
         {view.cash.map((c: any) => (
@@ -145,12 +139,13 @@ export default function MonopolyBoard({ view, mySeat, send, deadline, space }: B
               ${c.cash}
             </Txt>
             <Txt size={10} color={C.inkFaint}>
-              {c.bankrupt ? 'Phá sản 💥' : `${c.properties.length} bất động sản`}
+              {c.bankrupt ? 'Đã phá sản' : `${c.properties.length} bất động sản`}
             </Txt>
-            {c.jailTurns > 0 ? <Chip label={`Tù ${c.jailTurns} lượt`} icon="🚓" color={C.danger} soft="#FFE5E5" size={9} /> : null}
+            {c.jailTurns > 0 ? <Chip label={`Tù ${c.jailTurns} lượt`} icon="ban" color={C.danger} soft="#FFE5E5" size={9} /> : null}
           </View>
         ))}
       </ScrollView>
+      <View style={{ flex: 1 }} />
       <GameLog log={view.log} />
     </View>
   );

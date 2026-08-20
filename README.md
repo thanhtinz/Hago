@@ -233,20 +233,27 @@ bằng component riêng:
 
 | Loại | Nguồn | Giấy phép |
 |---|---|---|
-| Art game & vật phẩm | [Noto Emoji](https://github.com/googlefonts/noto-emoji) — 68 SVG chibi trong `apps/server/assets/chibi/` | Apache-2.0 |
+| Icon giao diện (≈55 icon) | **Tự vẽ SVG** — `apps/mobile/src/components/Icon.tsx` | — |
+| Mark 7 game | **Tự vẽ SVG** — `apps/mobile/src/components/GameIcon.tsx` | — |
+| Quân cờ, cừu, ngựa, sỏi, sticker chat | **Tự vẽ SVG** — `apps/mobile/src/components/Piece.tsx` | — |
+| Icon trang quản trị | **Tự vẽ SVG** — `apps/admin/src/Icon.tsx` | — |
 | Avatar người chơi | [DiceBear](https://github.com/dicebear/dicebear) — render SVG server-side, 10 bộ style | MIT |
 | Font tiêu đề | [Baloo 2](https://github.com/googlefonts/baloo) qua `@expo-google-fonts` | OFL |
 | Font nội dung | [Be Vietnam Pro](https://github.com/bettergui/BeVietnamPro) — hỗ trợ tiếng Việt đầy đủ | OFL |
 | Khung, nền, bàn cờ, hiệu ứng cosmetic | **CSS/gradient tự vẽ** trong `src/theme.ts` | — |
 
-Chọn Noto Emoji vì nét tròn mềm và mặt dễ thương đúng tông chibi, quan trọng hơn là
-**hiển thị giống hệt nhau trên iOS / Android / Web** — emoji hệ thống mỗi nền tảng vẽ
-một kiểu nên bàn cờ sẽ lệch tông. Asset được server phục vụ tại `/asset/chibi/:name.svg`
-(cache 30 ngày) và tải lại bằng:
+**Không dùng emoji ở bất kỳ đâu trong giao diện.** Emoji mỗi hệ điều hành vẽ một kiểu,
+không đổi được màu theo ngữ cảnh và không canh được nét với chữ — nên toàn bộ hình
+trong app là SVG vẽ tay bằng `react-native-svg`:
 
-```bash
-node apps/server/scripts/fetch-assets.mjs
-```
+- `<Icon>` — icon nét đồng bộ độ dày, nhận `color` và `strokeWidth` theo ngữ cảnh.
+- `<GameIcon>` — mark riêng của từng game, thiết kế cho nền gradient; đặt trên nền
+  sáng thì truyền `tint` để khối trắng không bị tàng hình.
+- `<Piece>` — quân cờ và nhân vật trong trận (cừu 5 bậc, quân mã, X/O, sỏi, mặt ghế
+  Ma Sói, mặt xúc xắc, sticker chat).
+
+Toàn bộ vector nằm trong repo nên không phụ thuộc CDN, đổi màu theo theme được và
+hiển thị **giống hệt nhau trên iOS / Android / Web**.
 
 Cosmetic trong shop vẫn vẽ bằng gradient nên thêm item mới chỉ cần một dòng cấu hình màu.
 

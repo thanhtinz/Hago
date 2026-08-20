@@ -130,7 +130,7 @@ export default function Economy({ toast }: { toast: (t: string) => void }) {
                 ))}
               </tbody>
             </table>
-            {!tx.length ? <Empty emoji="🧾" text="Chưa có giao dịch" /> : null}
+            {!tx.length ? <Empty icon="coins" text="Chưa có giao dịch" /> : null}
           </div>
         </Card>
       </div>
@@ -156,7 +156,7 @@ export default function Economy({ toast }: { toast: (t: string) => void }) {
                   <td>
                     <Pill tone={i.rarity === 'legendary' ? 'warn' : i.rarity === 'epic' ? 'info' : 'muted'}>{i.rarity}</Pill>
                   </td>
-                  <td>{i.price_coin ? `🪙 ${fmtNum(i.price_coin)}` : `💎 ${i.price_diamond}`}</td>
+                  <td>{i.price_coin ? `${fmtNum(i.price_coin)} coin` : `${i.price_diamond} diamond`}</td>
                   <td>
                     <Pill tone={i.status === 'active' ? 'ok' : 'muted'}>{i.status}</Pill>
                   </td>
