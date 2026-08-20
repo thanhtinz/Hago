@@ -207,6 +207,16 @@ export default function ShopScreen() {
   );
 }
 
+/** Biểu tượng đại diện khi vật phẩm chỉ là một dải màu. */
+function PREVIEW_EMOJI(item: any, p: any): string {
+  if (item.type === 'victory') return p.kind === 'fireworks' ? '🎆' : '🎊';
+  if (item.type === 'entry') return '⭐';
+  if (item.type === 'background') return '🖼️';
+  if (item.type === 'boardtheme') return '♟️';
+  if (item.type === 'bubble') return '💭';
+  return '✨';
+}
+
 function ItemPreview({ item, size = 62 }: { item: any; size?: number }) {
   const p = item.payload ?? {};
   if (item.type === 'title') {
@@ -230,9 +240,9 @@ function ItemPreview({ item, size = 62 }: { item: any; size?: number }) {
     <LinearGradient colors={colors as [string, string]} style={{ width: size, height: size, borderRadius: item.type === 'frame' ? size / 2 : R.md, alignItems: 'center', justifyContent: 'center' }}>
       {item.type === 'frame' ? (
         <View style={{ width: size * 0.62, height: size * 0.62, borderRadius: size, backgroundColor: C.surface }} />
-      ) : item.type === 'victory' || item.type === 'entry' ? (
-        <Text style={{ fontSize: size * 0.4 }}>{p.kind === 'fireworks' ? '🎆' : p.kind === 'stars' ? '⭐' : '🎊'}</Text>
-      ) : null}
+      ) : (
+        <Text style={{ fontSize: size * 0.4 }}>{PREVIEW_EMOJI(item, p)}</Text>
+      )}
     </LinearGradient>
   );
 }
