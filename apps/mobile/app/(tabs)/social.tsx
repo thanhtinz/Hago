@@ -3,6 +3,8 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Card, Chip, Empty, Field, SectionTitle, Txt } from '../../src/components/ui';
+import { ScreenHeader } from '../../src/components/ScreenHeader';
+import { Chibi } from '../../src/components/Chibi';
 import { C, R, S } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
 import { useStore } from '../../src/state/store';
@@ -69,17 +71,19 @@ export default function SocialScreen() {
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: insets.top + S.lg }}>
-      <View style={{ paddingHorizontal: S.lg }}>
-        <Txt size={28} weight="display">
-          Bạn bè 💬
-        </Txt>
-      </View>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <ScreenHeader
+        title="Bạn bè"
+        art="speech-bubble"
+        back={false}
+        subtitle={`${accepted.length} bạn · ${pending.length} lời mời đang chờ`}
+        bottomPadding={S.md}
+      />
 
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0, height: 50, marginTop: S.md }}
+        style={{ flexGrow: 0, height: 58, marginTop: S.sm }}
         contentContainerStyle={{ paddingHorizontal: S.lg, gap: S.sm, alignItems: 'center' }}
       >
         {TABS.map((t) => (
@@ -136,7 +140,7 @@ export default function SocialScreen() {
               </Card>
             ))
           ) : (
-            <Empty emoji="🫂" title="Chưa có bạn bè" hint="Sang tab Tìm bạn để kết bạn với người chơi khác" />
+            <Empty art="handshake" title="Chưa có bạn bè" hint="Sang tab Tìm bạn để kết bạn với người chơi khác" />
           ))}
 
         {tab === 'requests' && (
@@ -158,7 +162,7 @@ export default function SocialScreen() {
                 </Card>
               ))
             ) : (
-              <Empty emoji="📭" title="Không có lời mời nào" />
+              <Empty art="bell" title="Không có lời mời nào" />
             )}
             {outgoing.length ? (
               <>
@@ -202,7 +206,7 @@ export default function SocialScreen() {
               </Pressable>
             ))
           ) : (
-            <Empty emoji="✉️" title="Chưa có cuộc trò chuyện" hint="Nhắn tin cho bạn bè từ tab Bạn bè" />
+            <Empty art="speech-bubble" title="Chưa có cuộc trò chuyện" hint="Nhắn tin cho bạn bè từ tab Bạn bè" />
           ))}
 
         {tab === 'find' && (
@@ -229,7 +233,7 @@ export default function SocialScreen() {
                 </Card>
               );
             })}
-            {query.length > 0 && found.length === 0 ? <Empty emoji="🔍" title="Không tìm thấy ai" /> : null}
+            {query.length > 0 && found.length === 0 ? <Empty art="crystal" title="Không tìm thấy ai" /> : null}
           </>
         )}
       </ScrollView>

@@ -84,14 +84,25 @@ export function softShadow(opacity = 0.12, radius = 16, dy = 6) {
   });
 }
 
+/** Gradient tím→hồng dùng cho các vùng hero (header, banner nổi bật). */
+export const HERO_GRADIENT: [string, string, string] = ['#6C5CE7', '#A55BFF', '#FF6FA5'];
+
+export const ACTION_GRADIENT: Record<string, [string, string]> = {
+  quick: ['#FF9A62', '#FF5E7D'],
+  find: ['#4FC3F7', '#2F7BF5'],
+  create: ['#5FDBA7', '#22A97A'],
+  shop: ['#FFC46B', '#FF8A3D'],
+};
+
+/** Gradient của từng game — đủ đậm để chữ trắng và lớp gloss vẫn nổi rõ. */
 export const GAME_GRADIENT: Record<string, [string, string]> = {
-  caro: ['#8F7CFF', '#C9BEFF'],
-  battleship: ['#3BB4FF', '#A5DCFF'],
-  oanquan: ['#FFA25C', '#FFD9AE'],
-  sheep: ['#48D28E', '#B4F2D3'],
-  monopoly: ['#F76A85', '#FFC0CA'],
-  ludo: ['#FF9450', '#FFD6B4'],
-  werewolf: ['#7A67E0', '#4A3E8F'],
+  caro: ['#7A5CFF', '#A98BFF'],
+  battleship: ['#1E96F5', '#5FC2FF'],
+  oanquan: ['#FF8A3D', '#FFB25E'],
+  sheep: ['#25BE7B', '#5FD9A2'],
+  monopoly: ['#EE4C6C', '#FF859C'],
+  ludo: ['#FF7530', '#FFA45C'],
+  werewolf: ['#6B55D6', '#3D3277'],
 };
 
 export const SEAT_COLORS = ['#FF7A59', '#2FA9F5', '#39C77F', '#FFC53D', '#F2589B', '#7C6BFF'];

@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { C, GAME_GRADIENT, R, S, softShadow } from '../theme';
 import { Txt } from './ui';
 import { Chibi } from './Chibi';
+import { Bubbles, Gloss } from './decor';
 import { GAME_ART, gameArt } from '../lib/assets';
 
 export interface GameMeta {
@@ -38,9 +39,13 @@ export function HotGameCard({
         end={{ x: 1, y: 1 }}
         style={[{ width: 208, height: 244, borderRadius: 28, padding: S.lg, overflow: 'hidden' }, softShadow(0.18, 16, 8)]}
       >
-        {/* Vòng tròn trang trí phía sau nhân vật */}
-        <View style={{ position: 'absolute', right: -34, bottom: -30, width: 168, height: 168, borderRadius: 84, backgroundColor: 'rgba(255,255,255,0.20)' }} />
-        <View style={{ position: 'absolute', left: -40, top: -26, width: 96, height: 96, borderRadius: 48, backgroundColor: 'rgba(255,255,255,0.14)' }} />
+        <Bubbles
+          spec={[
+            { size: 168, right: -34, bottom: -30, alpha: 0.2 },
+            { size: 96, left: -40, top: -26, alpha: 0.14 },
+          ]}
+        />
+        <Gloss opacity={0.13} />
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           {rank ? (
@@ -63,9 +68,17 @@ export function HotGameCard({
         </View>
 
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <Chibi name={GAME_ART[game.id] ?? 'gamepad'} size={96} />
+          {/* Bệ tròn mờ để nhân vật nổi khỏi nền gradient */}
+          <View style={{ position: 'absolute', width: 104, height: 104, borderRadius: 52, backgroundColor: 'rgba(255,255,255,0.24)' }} />
+          <Chibi name={GAME_ART[game.id] ?? 'gamepad'} size={92} />
         </View>
 
+        {/* Chuyển màu mờ dần ở chân thẻ để chữ trắng luôn đọc được mà không tạo mép cứng */}
+        <LinearGradient
+          pointerEvents="none"
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.06)', 'rgba(0,0,0,0.2)']}
+          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 120 }}
+        />
         <Txt size={19} weight="display" color="#fff">
           {game.name}
         </Txt>
@@ -92,9 +105,13 @@ export function GameCard({ game, onPress, hotCount }: { game: GameMeta; onPress?
         end={{ x: 1, y: 1 }}
         style={[{ borderRadius: R.lg, padding: S.lg, gap: 3, overflow: 'hidden', minHeight: 172 }, softShadow(0.14, 14, 6)]}
       >
-        <View style={{ position: 'absolute', right: -22, bottom: -22, width: 104, height: 104, borderRadius: 52, backgroundColor: 'rgba(255,255,255,0.2)' }} />
+        <Bubbles spec={[{ size: 104, right: -22, bottom: -22, alpha: 0.2 }]} />
+        <Gloss opacity={0.11} />
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Chibi name={GAME_ART[game.id] ?? 'gamepad'} size={54} />
+          <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ position: 'absolute', width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.22)' }} />
+            <Chibi name={GAME_ART[game.id] ?? 'gamepad'} size={54} />
+          </View>
           {hotCount ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(0,0,0,0.18)', paddingHorizontal: 7, paddingVertical: 3, borderRadius: R.pill }}>
               <Chibi name="fire" size={11} />
@@ -111,8 +128,8 @@ export function GameCard({ game, onPress, hotCount }: { game: GameMeta; onPress?
           {game.tagline}
         </Txt>
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 'auto', paddingTop: 8, flexWrap: 'wrap' }}>
-          <Badge text={`${game.minPlayers}${game.maxPlayers > game.minPlayers ? `–${game.maxPlayers}` : ''}👤`} />
-          <Badge text={`${game.avgMinutes}p`} />
+          <Badge text={`${game.minPlayers}${game.maxPlayers > game.minPlayers ? `–${game.maxPlayers}` : ''} người`} />
+          <Badge text={`~${game.avgMinutes} phút`} />
         </View>
       </LinearGradient>
     </Pressable>

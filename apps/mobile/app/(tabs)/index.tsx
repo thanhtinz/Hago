@@ -1,12 +1,14 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Avatar, Bar, Btn, Card, Chip, CoinPill, Empty, SectionTitle, Txt } from '../../src/components/ui';
-import { GameCard, GameMeta, HotGameCard } from '../../src/components/GameCard';
-import { Chibi, ChibiBadge } from '../../src/components/Chibi';
-import { C, R, S, softShadow } from '../../src/theme';
+import { Avatar, Bar, Card, Empty, Txt } from '../../src/components/ui';
+import { HotGameCard, GameMeta } from '../../src/components/GameCard';
+import { Chibi } from '../../src/components/Chibi';
+import { BannerCarousel, BannerItem } from '../../src/components/Banner';
+import { Bubbles, DotPattern, Gloss } from '../../src/components/decor';
+import { ACTION_GRADIENT, C, HERO_GRADIENT, R, S, softShadow } from '../../src/theme';
 import { api } from '../../src/lib/api';
 import { useStore } from '../../src/state/store';
 
@@ -23,6 +25,19 @@ interface HomeData {
 }
 
 const LEVEL_CURVE = (level: number) => Math.round(60 * (level - 1) + 12 * Math.pow(level - 1, 2));
+
+const EVENT_COLORS: Record<string, [string, string]> = {
+  login: ['#FF9A62', '#FF5E7D'],
+  winstreak: ['#8A6BFF', '#5B44D6'],
+  tournament: ['#3BB4FF', '#1E6FE0'],
+  seasonal: ['#5FDBA7', '#22A97A'],
+};
+const EVENT_ART: Record<string, string> = {
+  login: 'gift',
+  winstreak: 'fire',
+  tournament: 'trophy',
+  seasonal: 'circus',
+};
 
 export default function HomeScreen() {
   const { profile, refresh, setUnread } = useStore();
@@ -54,50 +69,89 @@ export default function HomeScreen() {
   const xpInto = profile ? profile.xp - LEVEL_CURVE(profile.level) : 0;
   const xpNeed = profile ? LEVEL_CURVE(profile.level + 1) - LEVEL_CURVE(profile.level) : 1;
   const hotMap = new Map(data?.hotGames.map((h) => [h.gameType, h.matches]));
-  // Ưu tiên game có người đang chơi, sau đó tới số trận trong 24 giờ.
   const heat = (id: string) => (data?.livePlayers?.[id] ?? 0) * 10 + (hotMap.get(id) ?? 0);
   const hotOrder = [...games].sort((a, b) => heat(b.id) - heat(a.id));
+
+  const banners: BannerItem[] = (data?.events ?? []).map((e: any) => ({
+    id: e.id,
+    title: e.title,
+    description: e.description,
+    colors: EVENT_COLORS[e.kind] ?? ['#8A6BFF', '#FF6FA5'],
+    art: EVENT_ART[e.kind] ?? 'gift',
+    tag: `Còn ${Math.max(0, Math.ceil((e.endAt - Date.now()) / 86400000))} ngày`,
+    onPress: () => router.push('/quests'),
+  }));
 
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ paddingBottom: 30 }}
+      contentContainerStyle={{ paddingBottom: 40 }}
+      showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={busy} onRefresh={load} tintColor={C.primary} />}
     >
-      {/* Header hồ sơ nhanh */}
+      {/* ---------------- Hero header ---------------- */}
       <LinearGradient
-        colors={['#FFD9C6', '#FFF6EE']}
-        style={{ paddingTop: insets.top + 12, paddingHorizontal: S.lg, paddingBottom: S.xl, gap: S.lg }}
+        colors={HERO_GRADIENT}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          paddingTop: Math.max(insets.top, 12) + S.md,
+          paddingHorizontal: S.lg,
+          paddingBottom: 44,
+          borderBottomLeftRadius: 34,
+          borderBottomRightRadius: 34,
+          overflow: 'hidden',
+        }}
       >
+        <DotPattern rows={4} cols={9} />
+        <Bubbles spec={[{ size: 150, right: -50, top: -60, alpha: 0.14 }, { size: 90, left: -30, bottom: -34, alpha: 0.12 }]} />
+
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.md }}>
           <Pressable onPress={() => router.push('/profile')}>
-            <Avatar seed={profile?.avatarSeed} styleName={profile?.avatarStyle} frameId={profile?.frameId} size={54} online />
+            <Avatar
+              seed={profile?.avatarSeed}
+              styleName={profile?.avatarStyle}
+              frameId={profile?.frameId}
+              size={52}
+              ring="rgba(255,255,255,0.5)"
+            />
           </Pressable>
           <View style={{ flex: 1 }}>
-            <Txt size={18} weight="heading">
-              Chào {profile?.displayName} 👋
+            <Txt size={17} weight="display" color="#fff" numberOfLines={1}>
+              {profile?.displayName}
             </Txt>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-              <Chip label={`Lv.${profile?.level}`} color="#9A6B00" soft={C.sunSoft} />
-              <Chip label={`${profile?.rank} · ${profile?.rating}`} icon="🏅" color={C.secondaryDark} soft={C.secondarySoft} />
+            <View style={{ flexDirection: 'row', gap: 5, marginTop: 3 }}>
+              <HeroChip label={`Lv.${profile?.level}`} />
+              <HeroChip label={`${profile?.rank} · ${profile?.rating}`} art="medal-1" />
             </View>
           </View>
           <Pressable onPress={() => router.push('/notifications')}>
-            <View style={{ padding: 8, backgroundColor: C.surface, borderRadius: R.pill }}>
-              <Text style={{ fontSize: 18 }}>🔔</Text>
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: 'rgba(255,255,255,0.22)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Chibi name="bell" size={21} />
               {data && data.unread > 0 ? (
                 <View
                   style={{
                     position: 'absolute',
-                    right: 2,
-                    top: 2,
-                    minWidth: 16,
-                    height: 16,
-                    paddingHorizontal: 3,
-                    borderRadius: 8,
+                    right: -2,
+                    top: -2,
+                    minWidth: 18,
+                    height: 18,
+                    paddingHorizontal: 4,
+                    borderRadius: 9,
                     backgroundColor: C.danger,
                     alignItems: 'center',
                     justifyContent: 'center',
+                    borderWidth: 2,
+                    borderColor: '#fff',
                   }}
                 >
                   <Txt size={9} weight="bold" color="#fff">
@@ -109,96 +163,127 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        <View style={{ gap: 5 }}>
+        <View style={{ gap: 4, marginTop: S.md }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Txt size={11} weight="bold" color={C.inkSoft}>
+            <Txt size={10} weight="bold" color="rgba(255,255,255,0.85)">
               EXP tới Lv.{(profile?.level ?? 1) + 1}
             </Txt>
-            <Txt size={11} weight="bold" color={C.inkSoft}>
+            <Txt size={10} weight="bold" color="rgba(255,255,255,0.85)">
               {xpInto}/{xpNeed}
             </Txt>
           </View>
-          <Bar value={xpInto} max={xpNeed} color={C.primary} />
+          <Bar value={xpInto} max={xpNeed} color="#FFD36E" bg="rgba(255,255,255,0.28)" height={7} />
         </View>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <CoinPill coin={profile?.coin ?? 0} diamond={profile?.diamond ?? 0} />
-          <Pressable onPress={() => router.push('/shop')}>
-            <Chip label="Nạp" icon="➕" color={C.mint} soft={C.mintSoft} />
+        <View style={{ flexDirection: 'row', gap: S.sm, marginTop: S.md }}>
+          <Wallet art="coin" value={(profile?.coin ?? 0).toLocaleString('vi-VN')} />
+          <Wallet art="gem" value={String(profile?.diamond ?? 0)} />
+          <Pressable onPress={() => router.push('/shop')} style={{ flex: 1 }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+                backgroundColor: '#fff',
+                paddingVertical: 7,
+                borderRadius: R.pill,
+              }}
+            >
+              <Chibi name="shop" size={15} />
+              <Txt size={12} weight="bold" color={C.primaryDark}>
+                Cửa hàng
+              </Txt>
+            </View>
           </Pressable>
         </View>
       </LinearGradient>
 
-      {/* Quick play — one tap to play */}
-      <View style={{ paddingHorizontal: S.lg, marginTop: -12 }}>
-        <LinearGradient
-          colors={['#FF8A65', '#FF5E7D']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[{ borderRadius: R.xl, padding: S.xl, gap: 10, overflow: 'hidden' }, softShadow(0.18, 18, 8)]}
-        >
-          <View style={{ position: 'absolute', right: -30, top: -30, width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(255,255,255,0.15)' }} />
-          <Txt size={13} weight="bold" color="rgba(255,255,255,0.9)">
-            SẴN SÀNG CHƠI?
-          </Txt>
-          <Txt size={26} weight="display" color="#fff">
-            Chơi nhanh 1 chạm
-          </Txt>
-          <Txt size={12} color="rgba(255,255,255,0.9)">
-            Hệ thống tự ghép bạn với đối thủ cùng trình độ
-          </Txt>
-          <Btn label="Tìm trận ngay" icon="⚡" tone="sun" onPress={() => router.push('/quickplay')} style={{ marginTop: 6 }} />
-        </LinearGradient>
-      </View>
-
-      {/* Bạn bè online */}
-      <View style={{ padding: S.lg }}>
-        <SectionTitle
-          title="Bạn bè đang online"
-          emoji="🟢"
-          action={
-            <Pressable onPress={() => router.push('/social')}>
-              <Txt size={12} weight="bold" color={C.secondary}>
-                Xem tất cả
-              </Txt>
-            </Pressable>
-          }
-        />
-        {data?.friendsOnline.length ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.md }}>
-            {data.friendsOnline.map((f) => (
-              <Pressable key={f.id} onPress={() => router.push(`/user/${f.id}`)} style={{ alignItems: 'center', width: 68, gap: 4 }}>
-                <Avatar seed={f.avatarSeed} styleName={f.avatarStyle} size={52} online />
-                <Txt size={11} weight="medium" numberOfLines={1} center>
-                  {f.displayName}
-                </Txt>
-              </Pressable>
-            ))}
-          </ScrollView>
+      {/* ---------------- Banner sự kiện ---------------- */}
+      <View style={{ marginTop: -28 }}>
+        {banners.length ? (
+          <BannerCarousel items={banners} />
         ) : (
-          <Card>
-            <Txt size={13} color={C.inkSoft}>
-              Chưa có bạn nào online. Kết bạn để rủ nhau chơi nhé!
-            </Txt>
-          </Card>
+          <View style={{ paddingHorizontal: S.lg }}>
+            <Card>
+              <Empty emoji="🎪" title="Chưa có sự kiện" />
+            </Card>
+          </View>
         )}
       </View>
 
-      {/* Game đang hot — xếp theo số trận 24h, kèm số người đang chơi */}
-      <View style={{ paddingBottom: S.lg }}>
-        <View style={{ paddingHorizontal: S.lg }}>
-          <SectionTitle
-            title="Game đang hot"
-            emoji="🔥"
-            action={
-              <Pressable onPress={() => router.push('/games')}>
-                <Txt size={12} weight="bold" color={C.secondary}>
-                  Tất cả {games.length} game
-                </Txt>
-              </Pressable>
-            }
-          />
-        </View>
+      {/* ---------------- Hành động nhanh ---------------- */}
+      <View style={{ flexDirection: 'row', gap: S.md, paddingHorizontal: S.lg, marginTop: S.lg }}>
+        <ActionTile
+          art="bolt"
+          title="Chơi nhanh"
+          sub="Tự ghép đối thủ"
+          colors={ACTION_GRADIENT.quick}
+          onPress={() => router.push('/quickplay')}
+        />
+        <ActionTile
+          art="door"
+          title="Tìm phòng"
+          sub={`${data?.openRooms?.length ?? 0} phòng mở`}
+          colors={ACTION_GRADIENT.find}
+          onPress={() => router.push('/rooms?tab=find')}
+        />
+        <ActionTile
+          art="key"
+          title="Tạo phòng"
+          sub="Rủ bạn bè"
+          colors={ACTION_GRADIENT.create}
+          onPress={() => router.push('/rooms?tab=create')}
+        />
+      </View>
+
+      {/* ---------------- Bạn bè online ---------------- */}
+      <View style={{ marginTop: S.xl }}>
+        <Head
+          title="Bạn bè đang online"
+          art="handshake"
+          actionLabel="Xem tất cả"
+          onAction={() => router.push('/social')}
+        />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.md, paddingHorizontal: S.lg }}>
+          <Pressable onPress={() => router.push('/social')} style={{ alignItems: 'center', width: 62, gap: 5 }}>
+            <View
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius: 27,
+                borderWidth: 2,
+                borderStyle: 'dashed',
+                borderColor: C.line,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: C.surface,
+              }}
+            >
+              <Txt size={22} weight="display" color={C.inkFaint}>
+                +
+              </Txt>
+            </View>
+            <Txt size={10} weight="medium" color={C.inkFaint} center>
+              Kết bạn
+            </Txt>
+          </Pressable>
+          {data?.friendsOnline.map((f) => (
+            <Pressable key={f.id} onPress={() => router.push(`/user/${f.id}`)} style={{ alignItems: 'center', width: 62, gap: 5 }}>
+              <View style={{ padding: 2, borderRadius: 30, borderWidth: 2, borderColor: C.mint }}>
+                <Avatar seed={f.avatarSeed} styleName={f.avatarStyle} size={48} online />
+              </View>
+              <Txt size={10} weight="medium" numberOfLines={1} center>
+                {f.displayName}
+              </Txt>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* ---------------- Game đang hot ---------------- */}
+      <View style={{ marginTop: S.xl }}>
+        <Head title="Game đang hot" art="fire" actionLabel={`Tất cả ${games.length}`} onAction={() => router.push('/games')} />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -207,145 +292,213 @@ export default function HomeScreen() {
           decelerationRate="fast"
         >
           {hotOrder.map((g, i) => (
-            <HotGameCard
-              key={g.id}
-              game={g}
-              rank={i + 1}
-              livePlayers={data?.livePlayers?.[g.id]}
-              onPress={() => router.push(`/game/${g.id}`)}
-            />
+            <HotGameCard key={g.id} game={g} rank={i + 1} livePlayers={data?.livePlayers?.[g.id]} onPress={() => router.push(`/game/${g.id}`)} />
           ))}
         </ScrollView>
-
-        {/* Lối tắt tới phòng chơi */}
-        <View style={{ flexDirection: 'row', gap: S.md, paddingHorizontal: S.lg, marginTop: S.md }}>
-          <Pressable style={{ flex: 1 }} onPress={() => router.push('/rooms?tab=find')}>
-            <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: S.md }}>
-              <ChibiBadge name="door" size={40} bg={C.skySoft} />
-              <View style={{ flex: 1 }}>
-                <Txt size={13} weight="bold">
-                  Tìm phòng
-                </Txt>
-                <Txt size={11} color={C.inkFaint}>
-                  {data?.openRooms?.length ?? 0} phòng đang mở
-                </Txt>
-              </View>
-            </Card>
-          </Pressable>
-          <Pressable style={{ flex: 1 }} onPress={() => router.push('/rooms?tab=create')}>
-            <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: S.md }}>
-              <ChibiBadge name="key" size={40} bg={C.sunSoft} />
-              <View style={{ flex: 1 }}>
-                <Txt size={13} weight="bold">
-                  Tạo phòng
-                </Txt>
-                <Txt size={11} color={C.inkFaint}>
-                  Rủ bạn bè vào chơi
-                </Txt>
-              </View>
-            </Card>
-          </Pressable>
-        </View>
       </View>
 
-      {/* Nhiệm vụ */}
-      <View style={{ paddingHorizontal: S.lg, paddingBottom: S.lg }}>
-        <SectionTitle
-          title="Nhiệm vụ hôm nay"
-          emoji="📋"
-          action={
-            <Pressable onPress={() => router.push('/quests')}>
-              <Txt size={12} weight="bold" color={C.secondary}>
-                Xem hết
-              </Txt>
-            </Pressable>
-          }
-        />
-        <Card style={{ gap: S.md }}>
-          {data?.quests.length ? (
-            data.quests.map((q: any) => (
-              <View key={q.quest.id} style={{ gap: 6 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Txt size={13} weight="bold">
-                    {q.quest.title}
-                  </Txt>
-                  <Txt size={12} weight="bold" color={q.completed ? C.mint : C.inkFaint}>
-                    {q.progress}/{q.quest.target}
-                  </Txt>
-                </View>
-                <Bar value={q.progress} max={q.quest.target} color={q.completed ? C.mint : C.sun} height={8} />
-              </View>
-            ))
-          ) : (
-            <Empty emoji="🌱" title="Chưa có nhiệm vụ" />
-          )}
-        </Card>
-      </View>
-
-      {/* Sự kiện */}
-      {data?.events.length ? (
-        <View style={{ paddingHorizontal: S.lg, paddingBottom: S.lg }}>
-          <SectionTitle title="Sự kiện" emoji="🎪" />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.md, paddingRight: S.lg }}>
-            {data.events.map((e: any) => (
-              <LinearGradient
-                key={e.id}
-                colors={[e.banner || C.secondary, '#FFFFFF']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ width: 230, borderRadius: R.lg, padding: S.lg, gap: 4 }}
-              >
-                <Txt size={15} weight="heading" color="#fff">
-                  {e.title}
-                </Txt>
-                <Txt size={11} weight="medium" color="rgba(255,255,255,0.95)" numberOfLines={2}>
-                  {e.description}
-                </Txt>
-                <View style={{ marginTop: 6, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.3)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: R.pill }}>
-                  <Txt size={10} weight="bold" color="#fff">
-                    Còn {Math.max(0, Math.ceil((e.endAt - Date.now()) / 86400000))} ngày
-                  </Txt>
-                </View>
-              </LinearGradient>
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
-
-      {/* Trận gần đây */}
-      <View style={{ paddingHorizontal: S.lg }}>
-        <SectionTitle title="Trận gần đây" emoji="🕹️" />
-        <Card style={{ gap: S.md }}>
-          {data?.recent.length ? (
-            data.recent.map((m: any) => (
-              <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ fontSize: 18 }}>{m.result === 'win' ? '🏆' : m.result === 'draw' ? '🤝' : '💧'}</Text>
-                  <View>
+      {/* ---------------- Nhiệm vụ ---------------- */}
+      <View style={{ marginTop: S.xl }}>
+        <Head title="Nhiệm vụ hôm nay" art="clipboard" actionLabel="Xem hết" onAction={() => router.push('/quests')} />
+        <View style={{ paddingHorizontal: S.lg }}>
+          <Card style={{ gap: S.md }}>
+            {data?.quests.length ? (
+              data.quests.map((q: any) => (
+                <View key={q.quest.id} style={{ gap: 6 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Txt size={13} weight="bold">
-                      {m.game_type}
+                      {q.quest.title}
                     </Txt>
-                    <Txt size={11} color={C.inkFaint}>
-                      {new Date(m.ended_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      {q.completed ? <Chibi name="gift" size={14} /> : null}
+                      <Txt size={12} weight="bold" color={q.completed ? C.mint : C.inkFaint}>
+                        {q.progress}/{q.quest.target}
+                      </Txt>
+                    </View>
+                  </View>
+                  <Bar value={q.progress} max={q.quest.target} color={q.completed ? C.mint : C.sun} height={8} />
+                </View>
+              ))
+            ) : (
+              <Empty emoji="🌱" title="Chưa có nhiệm vụ" />
+            )}
+          </Card>
+        </View>
+      </View>
+
+      {/* ---------------- Trận gần đây ---------------- */}
+      <View style={{ marginTop: S.xl }}>
+        <Head title="Trận gần đây" art="joystick" />
+        <View style={{ paddingHorizontal: S.lg }}>
+          <Card style={{ gap: S.md }}>
+            {data?.recent.length ? (
+              data.recent.map((m: any) => (
+                <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+                    <Chibi name={m.result === 'win' ? 'trophy' : m.result === 'draw' ? 'handshake' : 'droplet'} size={20} />
+                    <View>
+                      <Txt size={13} weight="bold">
+                        {games.find((g) => g.id === m.game_type)?.name ?? m.game_type}
+                      </Txt>
+                      <Txt size={10} color={C.inkFaint}>
+                        {new Date(m.ended_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+                      </Txt>
+                    </View>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    {/* Trận thường không đổi điểm rank nên hiện kết quả thay vì "0 điểm". */}
+                    <Txt
+                      size={12}
+                      weight="bold"
+                      color={m.rating_delta > 0 ? C.mint : m.rating_delta < 0 ? C.danger : C.inkSoft}
+                    >
+                      {m.rating_delta !== 0
+                        ? `${m.rating_delta > 0 ? '+' : ''}${m.rating_delta} điểm rank`
+                        : m.result === 'win'
+                          ? 'Thắng'
+                          : m.result === 'draw'
+                            ? 'Hoà'
+                            : 'Thua'}
+                    </Txt>
+                    <Txt size={10} color={C.inkFaint}>
+                      +{m.xp_gain} XP · +{m.coin_gain} coin
                     </Txt>
                   </View>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Txt size={12} weight="bold" color={m.rating_delta >= 0 ? C.mint : C.danger}>
-                    {m.rating_delta > 0 ? '+' : ''}
-                    {m.rating_delta} điểm
-                  </Txt>
-                  <Txt size={11} color={C.inkFaint}>
-                    +{m.xp_gain} XP · +{m.coin_gain} 🪙
-                  </Txt>
-                </View>
-              </View>
-            ))
-          ) : (
-            <Empty emoji="🎈" title="Chưa có trận nào" hint="Bấm Chơi nhanh để bắt đầu ván đầu tiên!" />
-          )}
-        </Card>
+              ))
+            ) : (
+              <Empty emoji="🎈" title="Chưa có trận nào" hint="Bấm nút vàng ở giữa thanh dưới để chơi ngay!" />
+            )}
+          </Card>
+        </View>
       </View>
     </ScrollView>
+  );
+}
+
+function HeroChip({ label, art }: { label: string; art?: string }) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: 'rgba(255,255,255,0.24)',
+        paddingHorizontal: 9,
+        paddingVertical: 3,
+        borderRadius: R.pill,
+      }}
+    >
+      {art ? <Chibi name={art} size={12} /> : null}
+      <Txt size={11} weight="bold" color="#fff">
+        {label}
+      </Txt>
+    </View>
+  );
+}
+
+function Wallet({ art, value }: { art: string; value: string }) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        backgroundColor: 'rgba(0,0,0,0.18)',
+        paddingHorizontal: 11,
+        paddingVertical: 7,
+        borderRadius: R.pill,
+      }}
+    >
+      <Chibi name={art} size={15} />
+      <Txt size={12} weight="bold" color="#fff">
+        {value}
+      </Txt>
+    </View>
+  );
+}
+
+function ActionTile({
+  art,
+  title,
+  sub,
+  colors,
+  onPress,
+}: {
+  art: string;
+  title: string;
+  sub: string;
+  colors: [string, string];
+  onPress: () => void;
+}) {
+  return (
+    <Pressable style={{ flex: 1 }} onPress={onPress}>
+      {({ pressed }) => (
+        <LinearGradient
+          colors={colors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[
+            {
+              borderRadius: 20,
+              paddingVertical: S.md,
+              paddingHorizontal: 10,
+              gap: 2,
+              alignItems: 'center',
+              overflow: 'hidden',
+              transform: [{ translateY: pressed ? 2 : 0 }],
+            },
+            softShadow(0.14, 10, 5),
+          ]}
+        >
+          <Gloss opacity={0.22} angle="top" />
+          <Chibi name={art} size={26} />
+          <Txt size={12} weight="bold" color="#fff" center numberOfLines={1}>
+            {title}
+          </Txt>
+          <Txt size={9} weight="medium" color="rgba(255,255,255,0.9)" center numberOfLines={1}>
+            {sub}
+          </Txt>
+        </LinearGradient>
+      )}
+    </Pressable>
+  );
+}
+
+function Head({
+  title,
+  art,
+  actionLabel,
+  onAction,
+}: {
+  title: string;
+  art: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: S.lg,
+        marginBottom: S.md,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+        <Chibi name={art} size={19} />
+        <Txt size={17} weight="heading">
+          {title}
+        </Txt>
+      </View>
+      {actionLabel && onAction ? (
+        <Pressable onPress={onAction} hitSlop={8}>
+          <Txt size={12} weight="bold" color={C.secondary}>
+            {actionLabel} ›
+          </Txt>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }

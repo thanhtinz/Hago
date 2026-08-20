@@ -1,12 +1,13 @@
 import React, { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Btn, Card, Chip, CoinPill, Empty, SectionTitle, Txt } from '../../src/components/ui';
-import { C, R, RARITY, S, softShadow } from '../../src/theme';
-import { api, friendlyError } from '../../src/lib/api';
-import { useStore } from '../../src/state/store';
+import { Btn, Card, Chip, CoinPill, Empty, SectionTitle, Txt } from '../src/components/ui';
+import { HeaderTabs, ScreenHeader } from '../src/components/ScreenHeader';
+import { C, R, RARITY, S, softShadow } from '../src/theme';
+import { api, friendlyError } from '../src/lib/api';
+import { useStore } from '../src/state/store';
 
 const TYPES: { id: string; label: string; emoji: string }[] = [
   { id: '', label: 'Tất cả', emoji: '✨' },
@@ -21,6 +22,7 @@ const TYPES: { id: string; label: string; emoji: string }[] = [
 
 export default function ShopScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { showToast, refresh } = useStore();
   const [mode, setMode] = useState<'shop' | 'inventory' | 'topup'>('shop');
   const [type, setType] = useState('');
@@ -76,35 +78,22 @@ export default function ShopScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: insets.top + S.lg }}>
-      <View style={{ paddingHorizontal: S.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Txt size={28} weight="display">
-          Cửa hàng 🛍️
-        </Txt>
-        <CoinPill coin={balance.coin} diamond={balance.diamond} />
-      </View>
-
-      <View style={{ flexDirection: 'row', gap: S.sm, paddingHorizontal: S.lg, marginTop: S.md }}>
-        {(['shop', 'inventory', 'topup'] as const).map((m) => (
-          <Pressable
-            key={m}
-            onPress={() => setMode(m)}
-            style={{
-              flex: 1,
-              paddingVertical: 9,
-              borderRadius: R.pill,
-              alignItems: 'center',
-              backgroundColor: mode === m ? C.primary : C.surface,
-              borderWidth: 2,
-              borderColor: mode === m ? C.primary : C.line,
-            }}
-          >
-            <Txt size={13} weight="bold" color={mode === m ? '#fff' : C.inkSoft}>
-              {m === 'shop' ? 'Cửa hàng' : m === 'inventory' ? 'Túi đồ' : 'Nạp 💎'}
-            </Txt>
-          </Pressable>
-        ))}
-      </View>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <ScreenHeader
+        title="Cửa hàng"
+        art="shop"
+        right={<CoinPill coin={balance.coin} diamond={balance.diamond} />}
+      >
+        <HeaderTabs
+          tabs={[
+            { id: 'shop', label: 'Cửa hàng' },
+            { id: 'inventory', label: 'Túi đồ' },
+            { id: 'topup', label: 'Nạp' },
+          ]}
+          active={mode}
+          onChange={(id) => setMode(id as any)}
+        />
+      </ScreenHeader>
 
       {mode === 'shop' ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, height: 46, marginTop: S.md }} contentContainerStyle={{ paddingHorizontal: S.lg, gap: 8, alignItems: 'center' }}>
@@ -173,7 +162,7 @@ export default function ShopScreen() {
               ))}
             </View>
           ) : (
-            <Empty emoji="🎒" title="Túi đồ trống" hint="Mua cosmetic ở tab Cửa hàng để trang trí hồ sơ" />
+            <Empty art="backpack" title="Túi đồ trống" hint="Mua cosmetic ở tab Cửa hàng để trang trí hồ sơ" />
           ))}
 
         {mode === 'topup' && (
@@ -211,10 +200,10 @@ export default function ShopScreen() {
 function PREVIEW_EMOJI(item: any, p: any): string {
   if (item.type === 'victory') return p.kind === 'fireworks' ? '🎆' : '🎊';
   if (item.type === 'entry') return '⭐';
-  if (item.type === 'background') return '🖼️';
-  if (item.type === 'boardtheme') return '♟️';
+  if (item.type === 'boardtheme') return '🎲';
   if (item.type === 'bubble') return '💭';
-  return '✨';
+  // Nền là chính dải gradient nên không cần biểu tượng đè lên.
+  return '';
 }
 
 function ItemPreview({ item, size = 62 }: { item: any; size?: number }) {
@@ -240,9 +229,9 @@ function ItemPreview({ item, size = 62 }: { item: any; size?: number }) {
     <LinearGradient colors={colors as [string, string]} style={{ width: size, height: size, borderRadius: item.type === 'frame' ? size / 2 : R.md, alignItems: 'center', justifyContent: 'center' }}>
       {item.type === 'frame' ? (
         <View style={{ width: size * 0.62, height: size * 0.62, borderRadius: size, backgroundColor: C.surface }} />
-      ) : (
+      ) : PREVIEW_EMOJI(item, p) ? (
         <Text style={{ fontSize: size * 0.4 }}>{PREVIEW_EMOJI(item, p)}</Text>
-      )}
+      ) : null}
     </LinearGradient>
   );
 }

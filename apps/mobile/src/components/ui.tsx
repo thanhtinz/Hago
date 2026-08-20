@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { C, F, R, S, softShadow, toyShadow } from '../theme';
 import { avatarUrl } from '../lib/api';
+import { chibi as avatarPlaceholder } from '../lib/assets';
 
 /* --------------------------------- text --------------------------------- */
 
@@ -329,10 +330,14 @@ export function Bar({
 
 /* -------------------------------- misc ---------------------------------- */
 
-export function Empty({ emoji, title, hint }: { emoji: string; title: string; hint?: string }) {
+export function Empty({ emoji, art, title, hint }: { emoji?: string; art?: string; title: string; hint?: string }) {
   return (
     <View style={{ alignItems: 'center', paddingVertical: 40, gap: 6 }}>
-      <Text style={{ fontSize: 46 }}>{emoji}</Text>
+      {art ? (
+        <Image source={{ uri: avatarPlaceholder(art) }} style={{ width: 52, height: 52 }} resizeMode="contain" />
+      ) : (
+        <Text style={{ fontSize: 46 }}>{emoji}</Text>
+      )}
       <Txt size={16} weight="heading" color={C.inkSoft}>
         {title}
       </Txt>

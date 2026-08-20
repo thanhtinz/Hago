@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Card, Chip, Empty, SectionTitle, Txt } from '../../src/components/ui';
 import { Chibi } from '../../src/components/Chibi';
+import { Bubbles, Gloss } from '../../src/components/decor';
 import { GAME_ART } from '../../src/lib/assets';
 import { C, GAME_GRADIENT, R, S } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
@@ -54,7 +55,22 @@ export default function GameDetail() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ paddingBottom: 40 }}>
-      <LinearGradient colors={grad} style={{ paddingTop: insets.top + S.md, padding: S.lg, paddingBottom: S.xxl, gap: 6 }}>
+      <LinearGradient
+        colors={grad}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          paddingTop: Math.max(insets.top, 12) + S.md,
+          padding: S.lg,
+          paddingBottom: S.xxl,
+          gap: 6,
+          borderBottomLeftRadius: 30,
+          borderBottomRightRadius: 30,
+          overflow: 'hidden',
+        }}
+      >
+        <Bubbles spec={[{ size: 170, right: -50, top: -56, alpha: 0.18 }, { size: 96, left: -34, bottom: -40, alpha: 0.13 }]} />
+        <Gloss opacity={0.12} />
         <Pressable onPress={() => router.back()} style={{ marginBottom: 6 }}>
           <Txt size={20} weight="heading" color="rgba(255,255,255,0.9)">
             ‹ Quay lại

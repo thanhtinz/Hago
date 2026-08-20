@@ -4,7 +4,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Bar, Btn, Card, Chip, Empty, SectionTitle, Txt } from '../../src/components/ui';
-import { C, R, S, softShadow } from '../../src/theme';
+import { Chibi } from '../../src/components/Chibi';
+import { Bubbles, DotPattern } from '../../src/components/decor';
+import { C, HERO_GRADIENT, R, S, softShadow } from '../../src/theme';
 import { api } from '../../src/lib/api';
 import { useStore } from '../../src/state/store';
 
@@ -61,28 +63,43 @@ export default function ProfileScreen() {
       contentContainerStyle={{ paddingBottom: 40 }}
       refreshControl={<RefreshControl refreshing={busy} onRefresh={load} tintColor={C.primary} />}
     >
-      <LinearGradient colors={['#E9E5FF', '#FFF6EE']} style={{ paddingTop: insets.top + S.lg, paddingBottom: S.xl, alignItems: 'center', gap: S.sm }}>
-        <Avatar seed={profile.avatarSeed} styleName={profile.avatarStyle} frameId={profile.frameId} size={96} />
-        <Txt size={24} weight="display">
+      <LinearGradient
+        colors={HERO_GRADIENT}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          paddingTop: Math.max(insets.top, 12) + S.lg,
+          paddingBottom: S.xxl,
+          alignItems: 'center',
+          gap: S.sm,
+          borderBottomLeftRadius: 32,
+          borderBottomRightRadius: 32,
+          overflow: 'hidden',
+        }}
+      >
+        <DotPattern rows={4} cols={9} />
+        <Bubbles spec={[{ size: 150, right: -50, top: -60, alpha: 0.14 }, { size: 90, left: -34, bottom: -30, alpha: 0.12 }]} />
+        <Avatar seed={profile.avatarSeed} styleName={profile.avatarStyle} frameId={profile.frameId} size={96} ring="rgba(255,255,255,0.45)" />
+        <Txt size={24} weight="display" color="#fff">
           {profile.displayName}
         </Txt>
-        <Txt size={12} color={C.inkSoft}>
+        <Txt size={12} color="rgba(255,255,255,0.88)">
           @{profile.username}
         </Txt>
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
-          <Chip label={`Lv.${profile.level}`} color="#9A6B00" soft={C.sunSoft} />
-          <Chip label={`${profile.rank} · ${profile.rating}`} icon="🏅" color={C.secondaryDark} soft={C.secondarySoft} />
-          {profile.isAdmin ? <Chip label="Admin" icon="🛡️" color={C.danger} soft="#FFE5E5" /> : null}
+          <Chip label={`Lv.${profile.level}`} color="#fff" soft="rgba(255,255,255,0.24)" />
+          <Chip label={`${profile.rank} · ${profile.rating}`} icon="🏅" color="#fff" soft="rgba(255,255,255,0.24)" />
+          {profile.isAdmin ? <Chip label="Admin" icon="🛡️" color="#fff" soft="rgba(255,255,255,0.24)" /> : null}
         </View>
         <View style={{ width: '80%', gap: 4, marginTop: 8 }}>
-          <Bar value={xpInto} max={xpNeed} color={C.secondary} />
-          <Txt size={11} color={C.inkSoft} center>
+          <Bar value={xpInto} max={xpNeed} color="#FFD36E" bg="rgba(255,255,255,0.28)" />
+          <Txt size={11} color="rgba(255,255,255,0.9)" center>
             {xpInto}/{xpNeed} XP tới Lv.{profile.level + 1}
           </Txt>
         </View>
       </LinearGradient>
 
-      <View style={{ paddingHorizontal: S.lg, marginTop: -14, flexDirection: 'row', gap: S.md }}>
+      <View style={{ paddingHorizontal: S.lg, marginTop: -22, flexDirection: 'row', gap: S.md }}>
         <Stat label="Trận" value={profile.matches} emoji="🎮" />
         <Stat label="Thắng" value={profile.wins} emoji="🏆" tone={C.mint} />
         <Stat label="Tỉ lệ" value={`${winRate}%`} emoji="📈" tone={C.secondary} />
@@ -90,6 +107,7 @@ export default function ProfileScreen() {
 
       <View style={{ padding: S.lg, gap: S.md }}>
         <View style={{ flexDirection: 'row', gap: S.sm, flexWrap: 'wrap' }}>
+          <Btn label="Cửa hàng" icon="🛍️" tone="ghost" size="sm" onPress={() => router.push('/shop')} />
           <Btn label="Nhiệm vụ" icon="📋" tone="ghost" size="sm" onPress={() => router.push('/quests')} />
           <Btn label="BXH" icon="🏆" tone="ghost" size="sm" onPress={() => router.push('/leaderboard')} />
           <Btn label="Thông báo" icon="🔔" tone="ghost" size="sm" onPress={() => router.push('/notifications')} />
@@ -118,7 +136,7 @@ export default function ProfileScreen() {
               </View>
             ))
           ) : (
-            <Empty emoji="🏅" title="Chưa có thành tựu" />
+            <Empty art="trophy" title="Chưa có thành tựu" />
           )}
         </Card>
       </View>
@@ -161,7 +179,7 @@ export default function ProfileScreen() {
               </View>
             ))
           ) : (
-            <Empty emoji="🎈" title="Chưa có trận nào" />
+            <Empty art="joystick" title="Chưa có trận nào" />
           )}
         </Card>
       </View>

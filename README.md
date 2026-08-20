@@ -214,6 +214,21 @@ node apps/server/scripts/bot.mjs --game ludo --count 3 --loop
 
 ---
 
+## 🎨 Ngôn ngữ thiết kế
+
+Lấy cảm hứng từ các app social game casual (Hago, WePlay) nhưng dựng lại toàn bộ
+bằng component riêng:
+
+- **Header gradient tím→hồng** (`HERO_GRADIENT`) dùng chung cho mọi màn qua
+  component `ScreenHeader`, có hoạ tiết chấm bi và bong bóng mờ.
+- **Banner carousel** sự kiện ở đầu Trang chủ, tự chạy và có chấm chỉ trang.
+- **Thẻ game nhiều lớp**: gradient đậm → bong bóng trang trí → lớp gloss chéo →
+  bệ tròn sau nhân vật → chuyển màu mờ dần ở chân thẻ cho chữ luôn đọc được.
+- **Bottom nav 4 tab + nút Chơi nhanh tròn nổi ở giữa**, đúng bố cục quen thuộc
+  của app game casual.
+- **Tile hành động** (Chơi nhanh / Tìm phòng / Tạo phòng) gradient riêng theo
+  chức năng, có hiệu ứng nhấn lún xuống.
+
 ## 🎨 Nguồn asset
 
 | Loại | Nguồn | Giấy phép |

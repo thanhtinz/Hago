@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Card, Chip, Field, SectionTitle, Txt } from '../src/components/ui';
+import { ScreenHeader } from '../src/components/ScreenHeader';
 import { C, R, S } from '../src/theme';
 import { API_URL, api } from '../src/lib/api';
 import { useStore } from '../src/state/store';
@@ -32,17 +33,9 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ padding: S.lg, paddingTop: insets.top + S.md, paddingBottom: 40, gap: S.lg }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }}>
-        <Pressable onPress={() => router.back()}>
-          <Txt size={22} weight="heading" color={C.inkSoft}>
-            ‹
-          </Txt>
-        </Pressable>
-        <Txt size={26} weight="display">
-          Cài đặt ⚙️
-        </Txt>
-      </View>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+    <ScreenHeader title="Cài đặt" art="key" subtitle="Hồ sơ, thông báo và phiên đăng nhập" />
+    <ScrollView contentContainerStyle={{ padding: S.lg, paddingBottom: 40, gap: S.lg }}>
 
       <Card style={{ gap: S.md }}>
         <SectionTitle title="Hồ sơ" emoji="🐤" />
@@ -121,6 +114,7 @@ export default function SettingsScreen() {
 
       <Btn label="Đăng xuất" icon="👋" tone="danger" full onPress={logout} />
     </ScrollView>
+    </View>
   );
 }
 

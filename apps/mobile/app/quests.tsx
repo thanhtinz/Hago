@@ -3,6 +3,7 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bar, Btn, Card, Chip, CoinPill, Empty, SectionTitle, Txt } from '../src/components/ui';
+import { ScreenHeader } from '../src/components/ScreenHeader';
 import { C, R, S } from '../src/theme';
 import { api, friendlyError } from '../src/lib/api';
 import { useStore } from '../src/state/store';
@@ -77,30 +78,22 @@ export default function QuestsScreen() {
   );
 
   return (
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+    <ScreenHeader title="Nhiệm vụ" art="clipboard" subtitle="Hoàn thành để nhận Coin, EXP và Diamond" />
     <ScrollView
-      style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ padding: S.lg, paddingTop: insets.top + S.md, paddingBottom: 40, gap: S.md }}
+      contentContainerStyle={{ padding: S.lg, paddingBottom: 40, gap: S.md }}
       refreshControl={<RefreshControl refreshing={busy} onRefresh={load} tintColor={C.primary} />}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }}>
-          <Pressable onPress={() => router.back()}>
-            <Txt size={22} weight="heading" color={C.inkSoft}>
-              ‹
-            </Txt>
-          </Pressable>
-          <Txt size={26} weight="display">
-            Nhiệm vụ 📋
-          </Txt>
-        </View>
+      <View style={{ alignSelf: 'flex-end' }}>
         <CoinPill coin={balance.coin} diamond={balance.diamond} />
       </View>
 
       <SectionTitle title="Hằng ngày" emoji="🌅" />
-      {daily.length ? daily.map(renderQuest) : <Empty emoji="🌱" title="Chưa có nhiệm vụ ngày" />}
+      {daily.length ? daily.map(renderQuest) : <Empty art="seedling" title="Chưa có nhiệm vụ ngày" />}
 
       <SectionTitle title="Hằng tuần" emoji="🗓️" />
-      {weekly.length ? weekly.map(renderQuest) : <Empty emoji="🗓️" title="Chưa có nhiệm vụ tuần" />}
+      {weekly.length ? weekly.map(renderQuest) : <Empty art="clipboard" title="Chưa có nhiệm vụ tuần" />}
     </ScrollView>
+    </View>
   );
 }

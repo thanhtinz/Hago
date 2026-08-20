@@ -3,6 +3,7 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Card, Empty, Txt } from '../src/components/ui';
+import { ScreenHeader } from '../src/components/ScreenHeader';
 import { C, R, S } from '../src/theme';
 import { api } from '../src/lib/api';
 import { emitAck } from '../src/lib/socket';
@@ -61,24 +62,22 @@ export default function NotificationsScreen() {
   };
 
   return (
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+    <ScreenHeader
+      title="Thông báo"
+      art="bell"
+      right={
+        <Pressable onPress={readAll} style={{ backgroundColor: 'rgba(255,255,255,0.24)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 }}>
+          <Txt size={12} weight="bold" color="#fff">
+            Đọc hết
+          </Txt>
+        </Pressable>
+      }
+    />
     <ScrollView
-      style={{ flex: 1, backgroundColor: C.bg }}
-      contentContainerStyle={{ padding: S.lg, paddingTop: insets.top + S.md, paddingBottom: 40, gap: S.md }}
+      contentContainerStyle={{ padding: S.lg, paddingBottom: 40, gap: S.md }}
       refreshControl={<RefreshControl refreshing={busy} onRefresh={load} tintColor={C.primary} />}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }}>
-          <Pressable onPress={() => router.back()}>
-            <Txt size={22} weight="heading" color={C.inkSoft}>
-              ‹
-            </Txt>
-          </Pressable>
-          <Txt size={26} weight="display">
-            Thông báo 🔔
-          </Txt>
-        </View>
-        <Btn label="Đọc hết" size="sm" tone="ghost" onPress={readAll} />
-      </View>
 
       {items.length ? (
         items.map((n) => (
@@ -102,8 +101,9 @@ export default function NotificationsScreen() {
           </Pressable>
         ))
       ) : (
-        <Empty emoji="🔕" title="Chưa có thông báo" hint="Kết bạn và chơi game để nhận thông báo nhé!" />
+        <Empty art="bell" title="Chưa có thông báo" hint="Kết bạn và chơi game để nhận thông báo nhé!" />
       )}
     </ScrollView>
+    </View>
   );
 }

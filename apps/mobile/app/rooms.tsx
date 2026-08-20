@@ -4,7 +4,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Card, Chip, Empty, Field, Txt } from '../src/components/ui';
+import { HeaderTabs, ScreenHeader } from '../src/components/ScreenHeader';
 import { Chibi, ChibiBadge } from '../src/components/Chibi';
+import { Gloss } from '../src/components/decor';
 import { GAME_ART } from '../src/lib/assets';
 import { C, GAME_GRADIENT, R, S, softShadow } from '../src/theme';
 import { api, friendlyError } from '../src/lib/api';
@@ -119,40 +121,16 @@ export default function RoomsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <LinearGradient colors={['#DDE8FF', '#FFF6EE']} style={{ paddingTop: insets.top + S.md, paddingHorizontal: S.lg, paddingBottom: S.md }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }}>
-          <Pressable onPress={() => router.back()} hitSlop={10}>
-            <Txt size={22} weight="heading" color={C.inkSoft}>
-              ‹
-            </Txt>
-          </Pressable>
-          <Txt size={26} weight="display">
-            Phòng chơi
-          </Txt>
-          <Chibi name="door" size={26} />
-        </View>
-        <View style={{ flexDirection: 'row', gap: S.sm, marginTop: S.md }}>
-          {(['find', 'create'] as const).map((t) => (
-            <Pressable
-              key={t}
-              onPress={() => setTab(t)}
-              style={{
-                flex: 1,
-                paddingVertical: 10,
-                borderRadius: R.pill,
-                alignItems: 'center',
-                backgroundColor: tab === t ? C.ink : 'rgba(255,255,255,0.75)',
-                borderWidth: 2,
-                borderColor: tab === t ? C.ink : C.line,
-              }}
-            >
-              <Txt size={14} weight="bold" color={tab === t ? '#fff' : C.inkSoft}>
-                {t === 'find' ? `Tìm phòng (${visible.length})` : 'Tạo phòng'}
-              </Txt>
-            </Pressable>
-          ))}
-        </View>
-      </LinearGradient>
+      <ScreenHeader title="Phòng chơi" art="door" subtitle="Tìm phòng đang mở hoặc tự mở phòng mời bạn bè">
+        <HeaderTabs
+          tabs={[
+            { id: 'find', label: `Tìm phòng (${visible.length})` },
+            { id: 'create', label: 'Tạo phòng' },
+          ]}
+          active={tab}
+          onChange={(id) => setTab(id as Tab)}
+        />
+      </ScreenHeader>
 
       {tab === 'find' ? (
         <ScrollView
@@ -215,7 +193,11 @@ export default function RoomsScreen() {
               return (
                 <Card key={r.id} style={{ gap: S.md }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.md }}>
-                    <LinearGradient colors={grad} style={{ width: 52, height: 52, borderRadius: R.md, alignItems: 'center', justifyContent: 'center' }}>
+                    <LinearGradient
+                      colors={grad}
+                      style={{ width: 52, height: 52, borderRadius: 17, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
+                    >
+                      <Gloss opacity={0.15} angle="top" />
                       <Chibi name={GAME_ART[r.gameType] ?? 'gamepad'} size={32} />
                     </LinearGradient>
                     <View style={{ flex: 1 }}>
@@ -283,9 +265,9 @@ export default function RoomsScreen() {
           ) : (
             <Card>
               <Empty
-                emoji="🚪"
+                art="door"
                 title="Chưa có phòng nào đang mở"
-                hint="Tạo phòng mới hoặc bấm Chơi nhanh để hệ thống tự ghép đối thủ"
+                hint="Tạo phòng mới hoặc bấm nút vàng ở giữa thanh dưới để hệ thống tự ghép đối thủ"
               />
               <Btn label="Tạo phòng ngay" icon="➕" full onPress={() => setTab('create')} />
             </Card>
