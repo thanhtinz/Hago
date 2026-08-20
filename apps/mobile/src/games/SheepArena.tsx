@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { Chip, Txt } from '../components/ui';
+import { ImageBackground, Pressable, View } from 'react-native';
+import { Txt } from '../components/ui';
 import { C, R, S, SEAT_COLORS } from '../theme';
+import { Chibi } from './chibiAssets';
+import { ChibiImg } from './ChibiImg';
 import { BoardProps, GameLog } from './shared';
 
 const ARENA = 320;
@@ -20,25 +22,37 @@ export default function SheepArena({ view, mySeat, send }: BoardProps) {
   return (
     <View style={{ gap: S.md }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Txt size={20} weight="display" color={left < 15000 ? C.danger : C.ink}>
-          ⏱ {Math.ceil(left / 1000)}s
-        </Txt>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <ChibiImg source={Chibi.shared.timer} size={28} />
+          <Txt size={20} weight="display" color={left < 15000 ? C.danger : C.ink}>
+            {Math.ceil(left / 1000)}s
+          </Txt>
+        </View>
         <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
           {view.actors.map((a: any) => (
-            <Chip
-              key={a.seat}
-              label={`${view.players[a.seat].name}: ${a.score}`}
-              color="#fff"
-              soft={SEAT_COLORS[a.seat]}
-              size={11}
-            />
+            <View key={a.seat} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: SEAT_COLORS[a.seat], paddingHorizontal: 8, paddingVertical: 4, borderRadius: R.pill }}>
+              <ChibiImg source={Chibi.sheep.farmers[a.seat % 4]} size={20} />
+              <Txt size={11} weight="bold" color="#fff">
+                {view.players[a.seat].name}: {a.score}
+              </Txt>
+            </View>
           ))}
         </View>
       </View>
 
       <View style={{ alignItems: 'center' }}>
-        <View style={{ width: ARENA + 2, height: (ARENA / view.width) * view.height + 2, backgroundColor: '#DEF7E7', borderRadius: R.lg, borderWidth: 3, borderColor: '#A8E2C1', overflow: 'hidden' }}>
-          {/* Chuồng */}
+        <ImageBackground
+          source={Chibi.sheep.arenaBg}
+          imageStyle={{ borderRadius: R.lg }}
+          style={{
+            width: ARENA + 2,
+            height: (ARENA / view.width) * view.height + 2,
+            borderRadius: R.lg,
+            borderWidth: 3,
+            borderColor: '#A8E2C1',
+            overflow: 'hidden',
+          }}
+        >
           {view.pens.map((p: any) => (
             <View
               key={p.seat}
@@ -48,26 +62,20 @@ export default function SheepArena({ view, mySeat, send }: BoardProps) {
                 top: p.y * cell,
                 width: cell,
                 height: cell,
-                backgroundColor: SEAT_COLORS[p.seat] + '44',
-                borderRadius: 6,
-                borderWidth: 2,
-                borderColor: SEAT_COLORS[p.seat],
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ fontSize: cell * 0.55 }}>🏠</Text>
+              <ChibiImg source={Chibi.sheep.pens[p.seat % 4]} size={cell * 0.95} />
             </View>
           ))}
-          {/* Cừu */}
           {view.sheep
             .filter((s: any) => !s.penned)
             .map((s: any) => (
               <View key={s.id} style={{ position: 'absolute', left: s.x * cell, top: s.y * cell, width: cell, height: cell, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: cell * 0.7 }}>{s.golden ? '🐏' : '🐑'}</Text>
+                <ChibiImg source={s.golden ? Chibi.sheep.sheepGold : Chibi.sheep.sheep} size={cell * 0.92} />
               </View>
             ))}
-          {/* Người chơi */}
           {view.actors.map((a: any) => (
             <View
               key={a.seat}
@@ -77,42 +85,45 @@ export default function SheepArena({ view, mySeat, send }: BoardProps) {
                 top: a.y * cell,
                 width: cell,
                 height: cell,
-                borderRadius: cell / 2,
-                backgroundColor: SEAT_COLORS[a.seat],
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderWidth: a.seat === mySeat ? 3 : 1,
-                borderColor: a.seat === mySeat ? '#fff' : 'rgba(0,0,0,0.2)',
+                borderRadius: cell / 2,
+                borderWidth: a.seat === mySeat ? 3 : 0,
+                borderColor: '#fff',
               }}
             >
-              <Text style={{ fontSize: cell * 0.55 }}>{a.carrying != null ? '🧑‍🌾' : '🏃'}</Text>
+              <ChibiImg source={Chibi.sheep.farmers[a.seat % 4]} size={cell * 0.95} />
+              {a.carrying != null ? (
+                <View style={{ position: 'absolute', right: -2, top: -4 }}>
+                  <ChibiImg source={Chibi.sheep.sheep} size={cell * 0.45} />
+                </View>
+              ) : null}
             </View>
           ))}
-        </View>
+        </ImageBackground>
       </View>
 
       <Txt size={12} color={C.inkSoft} center>
-        {me?.carrying != null ? 'Đang vác cừu — chạy về chuồng của bạn! 🏠' : 'Đi tới ô có cừu để bắt 🐑 · Cừu vàng 🐏 = 3 điểm'}
+        {me?.carrying != null ? 'Đang vác cừu — chạy về chuồng của bạn!' : 'Đi tới ô có cừu để bắt · Cừu vàng = 3 điểm'}
       </Txt>
 
-      {/* D-pad chibi */}
       <View style={{ alignItems: 'center', gap: 6 }}>
-        <DPadBtn label="⬆️" onPress={() => send('move', { dir: 'up' })} />
-        <View style={{ flexDirection: 'row', gap: 6 }}>
-          <DPadBtn label="⬅️" onPress={() => send('move', { dir: 'left' })} />
+        <DPadBtn source={Chibi.shared.arrowUp} onPress={() => send('move', { dir: 'up' })} />
+        <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+          <DPadBtn source={Chibi.shared.arrowLeft} onPress={() => send('move', { dir: 'left' })} />
           <View style={{ width: 62, height: 62, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 24 }}>{me?.carrying != null ? '🐑' : '·'}</Text>
+            {me?.carrying != null ? <ChibiImg source={Chibi.sheep.sheep} size={36} /> : <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.inkFaint }} />}
           </View>
-          <DPadBtn label="➡️" onPress={() => send('move', { dir: 'right' })} />
+          <DPadBtn source={Chibi.shared.arrowRight} onPress={() => send('move', { dir: 'right' })} />
         </View>
-        <DPadBtn label="⬇️" onPress={() => send('move', { dir: 'down' })} />
+        <DPadBtn source={Chibi.shared.arrowDown} onPress={() => send('move', { dir: 'down' })} />
       </View>
       <GameLog log={view.log} />
     </View>
   );
 }
 
-function DPadBtn({ label, onPress }: { label: string; onPress: () => void }) {
+function DPadBtn({ source, onPress }: { source: any; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
@@ -128,7 +139,7 @@ function DPadBtn({ label, onPress }: { label: string; onPress: () => void }) {
         transform: [{ translateY: pressed ? 2 : 0 }],
       })}
     >
-      <Text style={{ fontSize: 26 }}>{label}</Text>
+      <ChibiImg source={source} size={40} />
     </Pressable>
   );
 }

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
-import { Avatar, Bar, Chip, Txt } from '../components/ui';
+import { Image, View } from 'react-native';
+import { Bar, Txt } from '../components/ui';
 import { C, R, S, SEAT_COLORS } from '../theme';
+import { Chibi } from './chibiAssets';
+import { ChibiImg } from './ChibiImg';
 
 export interface BoardProps {
   view: any;
@@ -10,7 +12,7 @@ export interface BoardProps {
   deadline: number | null;
 }
 
-/** Đồng hồ đếm ngược lượt, dùng chung cho mọi game. */
+/** Đồng hồ đếm ngược lượt — dùng asset timer chibi. */
 export function TurnTimer({ deadline, total = 30 }: { deadline: number | null; total?: number }) {
   const [left, setLeft] = useState(0);
   useEffect(() => {
@@ -23,10 +25,13 @@ export function TurnTimer({ deadline, total = 30 }: { deadline: number | null; t
   const secs = Math.ceil(left / 1000);
   const danger = secs <= 5;
   return (
-    <View style={{ gap: 3, minWidth: 76 }}>
-      <Txt size={11} weight="bold" color={danger ? C.danger : C.inkSoft} center>
-        ⏱ {secs}s
-      </Txt>
+    <View style={{ gap: 3, minWidth: 84, alignItems: 'center' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <ChibiImg source={Chibi.shared.timer} size={22} />
+        <Txt size={12} weight="bold" color={danger ? C.danger : C.inkSoft}>
+          {secs}s
+        </Txt>
+      </View>
       <Bar value={left} max={total * 1000} color={danger ? C.danger : C.mint} height={5} />
     </View>
   );
@@ -53,16 +58,25 @@ export function PlayerStrip({
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              gap: 4,
+              gap: 5,
               paddingHorizontal: 8,
-              paddingVertical: 5,
+              paddingVertical: 4,
               borderRadius: R.pill,
               backgroundColor: active ? C.surface : 'transparent',
               borderWidth: 2,
               borderColor: active ? SEAT_COLORS[i] : 'transparent',
             }}
           >
-            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: SEAT_COLORS[i] }} />
+            <View
+              style={{
+                width: 18,
+                height: 18,
+                borderRadius: 9,
+                backgroundColor: SEAT_COLORS[i],
+                borderWidth: 2,
+                borderColor: '#fff',
+              }}
+            />
             <Txt size={11} weight={active ? 'bold' : 'medium'} color={active ? C.ink : C.inkSoft} numberOfLines={1}>
               {p.name}
               {i === mySeat ? ' (bạn)' : ''}
@@ -102,6 +116,33 @@ export function TurnBanner({ yourTurn, text }: { yourTurn: boolean; text: string
       <Txt size={13} weight="bold" color={yourTurn ? '#1F7A50' : C.inkSoft}>
         {text}
       </Txt>
+    </View>
+  );
+}
+
+export function DiceFace({ value, size = 56 }: { value: number | null | undefined; size?: number }) {
+  const face = value && value >= 1 && value <= 6 ? value : null;
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: R.md,
+        backgroundColor: C.surface,
+        borderWidth: 3,
+        borderColor: C.line,
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+      }}
+    >
+      {face ? (
+        <Image source={Chibi.shared.dice[face]!} style={{ width: size - 8, height: size - 8 }} resizeMode="contain" />
+      ) : (
+        <Txt size={18} weight="display" color={C.inkFaint}>
+          –
+        </Txt>
+      )}
     </View>
   );
 }

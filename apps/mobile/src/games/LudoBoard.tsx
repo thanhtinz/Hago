@@ -1,13 +1,14 @@
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Btn, Chip, Txt } from '../components/ui';
 import { C, R, S, SEAT_COLORS } from '../theme';
-import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
+import { Chibi } from './chibiAssets';
+import { ChibiImg } from './ChibiImg';
+import { BoardProps, DiceFace, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
 
 const BOARD = 300;
-const RING = 13; // 13 ô mỗi cạnh → 52 ô vòng ngoài
+const RING = 13;
 
-/** Ánh xạ chỉ số ô (0..51) sang toạ độ trên khung vuông. */
 function trackPos(i: number, cell: number): { x: number; y: number } {
   const n = i % 52;
   const side = Math.floor(n / RING);
@@ -39,7 +40,12 @@ export default function LudoBoard({ view, mySeat, send, deadline }: BoardProps) 
           activeSeat={view.turnSeat}
           mySeat={mySeat}
           extra={(seat) => (
-            <Chip label={`${view.pieces.filter((p: any) => p.seat === seat && p.state === 'done').length}/4 🏁`} color={C.inkSoft} soft={C.surfaceAlt} size={10} />
+            <Chip
+              label={`${view.pieces.filter((p: any) => p.seat === seat && p.state === 'done').length}/4`}
+              color={C.inkSoft}
+              soft={C.surfaceAlt}
+              size={10}
+            />
           )}
         />
         <TurnTimer deadline={deadline} total={20} />
@@ -57,7 +63,6 @@ export default function LudoBoard({ view, mySeat, send, deadline }: BoardProps) 
             borderColor: '#E7C79E',
           }}
         >
-          {/* Ô vòng ngoài */}
           {Array.from({ length: 52 }, (_, i) => {
             const p = trackPos(i, cell);
             const isStart = (view.starts ?? []).includes(i);
@@ -81,7 +86,6 @@ export default function LudoBoard({ view, mySeat, send, deadline }: BoardProps) 
             );
           })}
 
-          {/* Ngựa trên vòng ngoài */}
           {view.pieces
             .filter((p: any) => p.state === 'track')
             .map((p: any) => {
@@ -94,64 +98,82 @@ export default function LudoBoard({ view, mySeat, send, deadline }: BoardProps) 
                   onPress={() => send('move', { pieceId: p.id })}
                   style={{
                     position: 'absolute',
-                    left: pos.x + 1,
-                    top: pos.y + 1,
-                    width: cell - 3,
-                    height: cell - 3,
-                    borderRadius: cell,
-                    backgroundColor: SEAT_COLORS[p.seat],
+                    left: pos.x,
+                    top: pos.y - 2,
+                    width: cell,
+                    height: cell,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    borderWidth: selectable ? 2 : 1,
-                    borderColor: selectable ? '#fff' : 'rgba(0,0,0,0.15)',
+                    borderRadius: cell / 2,
+                    borderWidth: selectable ? 2 : 0,
+                    borderColor: '#fff',
+                    backgroundColor: selectable ? 'rgba(255,255,255,0.35)' : 'transparent',
                   }}
                 >
-                  <Text style={{ fontSize: cell * 0.5 }}>🐴</Text>
+                  <ChibiImg source={Chibi.ludo.horses[p.seat % 4]} size={cell * 1.15} />
                 </Pressable>
               );
             })}
 
-          {/* Khu trung tâm: chuồng + cầu về đích */}
-          <View style={{ position: 'absolute', left: cell * 2.2, top: cell * 2.2, right: cell * 2.2, bottom: cell * 2.2, backgroundColor: '#FFFAF2', borderRadius: R.md, padding: 6, gap: 6, justifyContent: 'center' }}>
+          <View
+            style={{
+              position: 'absolute',
+              left: cell * 2.2,
+              top: cell * 2.2,
+              right: cell * 2.2,
+              bottom: cell * 2.2,
+              backgroundColor: '#FFFAF2',
+              borderRadius: R.md,
+              padding: 6,
+              gap: 6,
+              justifyContent: 'center',
+            }}
+          >
             {view.players.map((pl: any, seat: number) => {
               const home = view.pieces.filter((p: any) => p.seat === seat && p.state === 'home');
               const lane = view.pieces.filter((p: any) => p.seat === seat && p.state === 'lane');
               const done = view.pieces.filter((p: any) => p.seat === seat && p.state === 'done');
               return (
                 <View key={seat} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: SEAT_COLORS[seat] }} />
-                  <View style={{ flexDirection: 'row', gap: 2, flex: 1 }}>
+                  <ChibiImg source={Chibi.ludo.horses[seat % 4]} size={18} />
+                  <View style={{ flexDirection: 'row', gap: 2, flex: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                     {home.map((p: any) => (
                       <Pressable
                         key={p.id}
                         disabled={!(yourTurn && moves.includes(p.id))}
                         onPress={() => send('move', { pieceId: p.id })}
                         style={{
-                          width: 16,
-                          height: 16,
-                          borderRadius: 8,
-                          backgroundColor: SEAT_COLORS[seat] + (yourTurn && moves.includes(p.id) ? 'FF' : '66'),
+                          opacity: yourTurn && moves.includes(p.id) ? 1 : 0.55,
                           borderWidth: yourTurn && moves.includes(p.id) ? 2 : 0,
                           borderColor: C.ink,
+                          borderRadius: 10,
                         }}
-                      />
+                      >
+                        <ChibiImg source={Chibi.ludo.horses[seat % 4]} size={18} />
+                      </Pressable>
                     ))}
                     {lane.map((p: any) => (
                       <Pressable
                         key={p.id}
                         disabled={!(yourTurn && moves.includes(p.id))}
                         onPress={() => send('move', { pieceId: p.id })}
-                        style={{ paddingHorizontal: 3, borderRadius: 6, backgroundColor: SEAT_COLORS[seat], justifyContent: 'center' }}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 2,
+                          paddingHorizontal: 3,
+                          borderRadius: 6,
+                          backgroundColor: SEAT_COLORS[seat] + '33',
+                        }}
                       >
-                        <Txt size={9} weight="bold" color="#fff">
+                        <ChibiImg source={Chibi.ludo.horses[seat % 4]} size={16} />
+                        <Txt size={9} weight="bold" color={SEAT_COLORS[seat]}>
                           {p.lane + 1}/6
                         </Txt>
                       </Pressable>
                     ))}
                     {done.map((p: any) => (
-                      <Text key={p.id} style={{ fontSize: 12 }}>
-                        🏁
-                      </Text>
+                      <ChibiImg key={p.id} source={Chibi.ludo.flag} size={14} />
                     ))}
                   </View>
                 </View>
@@ -162,23 +184,8 @@ export default function LudoBoard({ view, mySeat, send, deadline }: BoardProps) 
       </View>
 
       <View style={{ alignItems: 'center', gap: S.sm }}>
-        <View
-          style={{
-            width: 62,
-            height: 62,
-            borderRadius: R.md,
-            backgroundColor: C.surface,
-            borderWidth: 3,
-            borderColor: C.line,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Txt size={30} weight="display" color={C.primary}>
-            {view.dice ?? '–'}
-          </Txt>
-        </View>
-        {canRoll ? <Btn label="Tung xúc xắc" icon="🎲" size="lg" onPress={() => send('roll', {})} /> : null}
+        <DiceFace value={view.dice} size={64} />
+        {canRoll ? <Btn label="Tung xúc xắc" size="lg" onPress={() => send('roll', {})} /> : null}
         {yourTurn && view.rolled && moves.length ? (
           <Txt size={12} weight="bold" color={C.mint}>
             Chọn 1 trong {moves.length} ngựa có thể đi

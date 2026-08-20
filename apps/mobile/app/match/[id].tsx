@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Avatar, Btn, Card, Chip, Txt } from '../../src/components/ui';
+import { Btn, Card, Chip, Txt } from '../../src/components/ui';
 import { C, GAME_GRADIENT, R, S, SEAT_COLORS } from '../../src/theme';
 import { BOARDS } from '../../src/games';
+import { Chibi } from '../../src/games/chibiAssets';
+import { ChibiImg } from '../../src/games/ChibiImg';
 import { friendlyError } from '../../src/lib/api';
 import { emitAck, newActionId } from '../../src/lib/socket';
 import { useStore } from '../../src/state/store';
@@ -18,6 +20,16 @@ const GAME_NAMES: Record<string, string> = {
   monopoly: 'Cờ Tỷ Phú',
   ludo: 'Cờ Cá Ngựa',
   werewolf: 'Ma Sói',
+};
+
+const GAME_ICON: Record<string, any> = {
+  caro: Chibi.caro.pieceO,
+  battleship: Chibi.battleship.anchor,
+  oanquan: Chibi.oanquan.quan,
+  sheep: Chibi.sheep.sheep,
+  monopoly: Chibi.monopoly.bank,
+  ludo: Chibi.ludo.horses[0],
+  werewolf: Chibi.werewolf.roles.werewolf,
 };
 
 export default function MatchScreen() {
@@ -71,7 +83,7 @@ export default function MatchScreen() {
   if (!state) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center', gap: 10 }}>
-        <Text style={{ fontSize: 44 }}>🎲</Text>
+        <ChibiImg source={Chibi.shared.dice[3]!} size={64} />
         <Txt size={15} weight="heading" color={C.inkSoft}>
           Đang tải trận đấu...
         </Txt>
@@ -83,15 +95,27 @@ export default function MatchScreen() {
   const view = state.view;
   const mySeat = view.mySeat ?? view.players?.findIndex((p: any) => p.id === profile?.id) ?? 0;
   const grad = (GAME_GRADIENT[state.gameType] ?? ['#FF8A65', '#FF5E7D']) as [string, string];
+  const headerIcon = GAME_ICON[state.gameType] ?? Chibi.shared.dice[1]!;
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <LinearGradient colors={grad} style={{ paddingTop: insets.top + S.sm, paddingBottom: S.md, paddingHorizontal: S.lg, flexDirection: 'row', alignItems: 'center', gap: S.md }}>
+      <LinearGradient
+        colors={grad}
+        style={{
+          paddingTop: insets.top + S.sm,
+          paddingBottom: S.md,
+          paddingHorizontal: S.lg,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: S.md,
+        }}
+      >
         <Pressable onPress={() => router.replace('/')}>
           <Txt size={20} weight="heading" color="rgba(255,255,255,0.95)">
             ‹
           </Txt>
         </Pressable>
+        <ChibiImg source={headerIcon} size={36} />
         <View style={{ flex: 1 }}>
           <Txt size={17} weight="display" color="#fff">
             {GAME_NAMES[state.gameType]}
@@ -100,7 +124,22 @@ export default function MatchScreen() {
             v{state.version} · {connected ? 'đã kết nối' : 'đang kết nối lại...'}
           </Txt>
         </View>
-        <Chip label={connected ? 'LIVE' : 'OFF'} color={connected ? '#fff' : '#fff'} soft={connected ? 'rgba(255,255,255,0.28)' : C.danger} size={10} />
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            backgroundColor: connected ? 'rgba(255,255,255,0.28)' : C.danger,
+            paddingHorizontal: 10,
+            paddingVertical: 5,
+            borderRadius: R.pill,
+          }}
+        >
+          {connected ? <ChibiImg source={Chibi.shared.liveDot} size={14} /> : null}
+          <Txt size={10} weight="bold" color="#fff">
+            {connected ? 'LIVE' : 'OFF'}
+          </Txt>
+        </View>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: S.lg, paddingBottom: insets.bottom + 40, gap: S.md }}>
@@ -109,9 +148,43 @@ export default function MatchScreen() {
 
       {events.length ? (
         <View pointerEvents="none" style={{ position: 'absolute', top: '40%', left: 0, right: 0, alignItems: 'center' }}>
-          <View style={{ backgroundColor: 'rgba(46,37,69,0.88)', paddingHorizontal: 22, paddingVertical: 12, borderRadius: R.pill }}>
-            <Txt size={20} weight="display" color="#fff">
-              {events.includes('win') ? '🎉 Thắng rồi!' : events.includes('kick') ? '💥 Đá ngựa!' : events.includes('bump') ? '💢 Húc!' : events.includes('score') ? '⭐ Ghi điểm!' : events.includes('bankrupt') ? '💸 Phá sản!' : '💰 Thu tô!'}
+          <View
+            style={{
+              backgroundColor: 'rgba(46,37,69,0.88)',
+              paddingHorizontal: 22,
+              paddingVertical: 12,
+              borderRadius: R.pill,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <ChibiImg
+              source={
+                events.includes('win')
+                  ? Chibi.shared.trophy
+                  : events.includes('kick')
+                    ? Chibi.ludo.horses[0]
+                    : events.includes('bump') || events.includes('score')
+                      ? Chibi.sheep.sheep
+                      : events.includes('bankrupt')
+                        ? Chibi.shared.loss
+                        : Chibi.monopoly.house
+              }
+              size={28}
+            />
+            <Txt size={18} weight="display" color="#fff">
+              {events.includes('win')
+                ? 'Thắng rồi!'
+                : events.includes('kick')
+                  ? 'Đá ngựa!'
+                  : events.includes('bump')
+                    ? 'Húc!'
+                    : events.includes('score')
+                      ? 'Ghi điểm!'
+                      : events.includes('bankrupt')
+                        ? 'Phá sản!'
+                        : 'Thu tô!'}
             </Txt>
           </View>
         </View>
@@ -123,11 +196,12 @@ export default function MatchScreen() {
             {(() => {
               const mine = result?.rows.find((r: any) => r.userId === profile?.id);
               const win = mine?.result === 'win';
+              const draw = mine?.result === 'draw';
               return (
                 <>
-                  <Text style={{ fontSize: 60 }}>{win ? '🏆' : mine?.result === 'draw' ? '🤝' : '🌧️'}</Text>
-                  <Txt size={26} weight="display" color={win ? C.mint : mine?.result === 'draw' ? C.sun : C.inkSoft}>
-                    {win ? 'Chiến thắng!' : mine?.result === 'draw' ? 'Hoà rồi!' : 'Thua mất rồi'}
+                  <ChibiImg source={win ? Chibi.shared.trophy : draw ? Chibi.shared.draw : Chibi.shared.loss} size={80} />
+                  <Txt size={26} weight="display" color={win ? C.mint : draw ? C.sun : C.inkSoft}>
+                    {win ? 'Chiến thắng!' : draw ? 'Hoà rồi!' : 'Thua mất rồi'}
                   </Txt>
                   <View style={{ flexDirection: 'row', gap: S.md }}>
                     <Reward label="EXP" value={`+${mine?.xpGain ?? 0}`} color={C.secondary} />
@@ -137,7 +211,7 @@ export default function MatchScreen() {
                     ) : null}
                   </View>
                   {mine && mine.levelAfter > mine.levelBefore ? (
-                    <Chip label={`Lên cấp ${mine.levelAfter}! 🎊`} color="#9A6B00" soft={C.sunSoft} />
+                    <Chip label={`Lên cấp ${mine.levelAfter}!`} color="#9A6B00" soft={C.sunSoft} />
                   ) : null}
 
                   <View style={{ width: '100%', gap: 6, marginTop: 6 }}>
@@ -167,7 +241,7 @@ export default function MatchScreen() {
 
                   <View style={{ flexDirection: 'row', gap: S.sm, marginTop: 6 }}>
                     <Btn label="Về trang chủ" tone="ghost" onPress={() => router.replace('/')} />
-                    <Btn label="Chơi tiếp" icon="🔁" onPress={() => router.replace('/quickplay')} />
+                    <Btn label="Chơi tiếp" onPress={() => router.replace('/quickplay')} />
                   </View>
                 </>
               );
