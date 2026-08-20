@@ -5,8 +5,11 @@ build/
 web-build/
 *.log
 *.db
+*.db-shm
+*.db-wal
 *.db-journal
 *.sqlite
+apps/server/data/
 .env
 .DS_Store
 apps/mobile/dist/
