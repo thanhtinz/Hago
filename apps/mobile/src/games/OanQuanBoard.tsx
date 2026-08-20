@@ -1,42 +1,58 @@
 import React from 'react';
-import { Pressable, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Image, Pressable, View } from 'react-native';
 import { Btn, Txt } from '../components/ui';
-import { C, R, S, SEAT_COLORS, softShadow } from '../theme';
+import { C, R, S, SEAT_COLORS } from '../theme';
 import { BoardProps, GameLog, TurnBanner, VersusBar } from './shared';
-import { GoldFlower, LeafSpray, MandarinChibi, Pit, QuanLid, QuanPit, Seed, WOOD, WoodGrain } from './OanQuanArt';
+import {
+  OAN_QUAN_BOARD,
+  OAN_QUAN_DECOR,
+  OAN_QUAN_LAYOUT as L,
+  OAN_QUAN_RATIO,
+  QUAN_ART,
+  QUAN_LID_ART,
+  SEED_ART,
+  SEED_COLORS,
+} from '../art/oanQuan';
 
 /**
- * Bàn Ô Ăn Quan dựng theo bản thiết kế: tấm gỗ nằm ngang, hai đầu là ô Quan
- * bầu dục khắc chữ, ở giữa hai hàng năm ô dân khoét tròn, vạch chia có hoa văn
- * vàng, bốn góc gắn hoa lá.
+ * Bàn Ô Ăn Quan dùng thẳng bản vẽ gốc.
+ *
+ * Ảnh bàn, hạt dân, quan và nắp quan đều cắt ra từ bảng thiết kế bằng
+ * `scripts/slice-oanquan-art.py`; toạ độ từng lòng ô nằm trong
+ * `OAN_QUAN_LAYOUT` dưới dạng tỉ lệ nên chỉ cần nhân với bề ngang bàn là ra
+ * đúng chỗ, màn hình to nhỏ gì cũng khớp.
  *
  * Hàng dưới luôn là ô của người đang xem, hàng trên của đối thủ.
  */
 
-/** Rải hạt trong lòng ô theo vòng tròn để nhìn như sỏi đổ thật. */
-function SeedPile({ count, radius, seedSize, salt }: { count: number; radius: number; seedSize: number; salt: number }) {
+const BOARD_RATIO = L.boardW / L.boardH;
+
+/** Rải hạt trong lòng ô theo hai vòng, màu xen kẽ như bản vẽ. */
+function SeedPile({ count, radius, seed, salt }: { count: number; radius: number; seed: number; salt: number }) {
   if (!count) return null;
-  const shown = Math.min(count, 12);
+  const shown = Math.min(count, 10);
+  const ratio = OAN_QUAN_RATIO['seed-white'] ?? 0.81;
   return (
-    <View style={{ position: 'absolute', width: radius * 2, height: radius * 2, alignItems: 'center', justifyContent: 'center' }}>
+    <View pointerEvents="none" style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
       {Array.from({ length: shown }, (_, i) => {
-        // Vòng trong tối đa 4 hạt, còn lại xoè ra vòng ngoài.
-        const ring = i < 4 ? 0 : 1;
-        const inRing = ring === 0 ? Math.min(shown, 4) : shown - 4;
-        const idx = ring === 0 ? i : i - 4;
-        const r = ring === 0 ? radius * 0.3 : radius * 0.62;
-        const angle = (idx / Math.max(1, inRing)) * Math.PI * 2 + (ring ? 0.5 : 0) + salt;
+        const inner = shown <= 3 || i < 3;
+        const ring = inner ? Math.min(shown, 3) : shown - 3;
+        const idx = inner ? i : i - 3;
+        const r = inner ? radius * 0.28 : radius * 0.62;
+        const angle = (idx / Math.max(1, ring)) * Math.PI * 2 + salt * 0.7 + (inner ? 0 : 0.4);
+        const color = SEED_COLORS[(i + salt) % SEED_COLORS.length];
         return (
-          <View
+          <Image
             key={i}
+            source={SEED_ART[color]}
+            resizeMode="contain"
             style={{
               position: 'absolute',
+              width: seed * ratio,
+              height: seed,
               transform: [{ translateX: Math.cos(angle) * r }, { translateY: Math.sin(angle) * r }],
             }}
-          >
-            <Seed size={seedSize} tone={i + salt} />
-          </View>
+          />
         );
       })}
     </View>
@@ -47,23 +63,19 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
   const [picked, setPicked] = React.useState<number | null>(null);
   const yourTurn = view.turnSeat === mySeat && !view.over;
   const mine: number[] = view.own?.[mySeat] ?? [1, 2, 3, 4, 5];
-  const iAmSeatZero = mine === view.own?.[0] || mySeat === 0;
+  const iAmSeatZero = mySeat !== 1;
   // Hàng của mình luôn nằm dưới.
   const bottomRow = iAmSeatZero ? [1, 2, 3, 4, 5] : [7, 8, 9, 10, 11];
   const topRow = iAmSeatZero ? [11, 10, 9, 8, 7] : [5, 4, 3, 2, 1];
 
-  /**
-   * Bàn nằm ngang, chiếm hết bề ngang màn hình: 5 ô dân ở giữa, hai đầu là ô
-   * Quan rộng bằng 1.2 ô. Chiều cao ô co theo phần màn hình còn trống.
-   */
-  const pad = 9;
-  const usable = Math.max(280, space.width - 4);
-  const byWidth = (usable - pad * 2 - 8) / (5 + 1.2 * 2);
-  const byHeight = (space.height - 280) / 2;
-  const cell = Math.max(44, Math.floor(Math.min(byWidth, byHeight)));
-  const quanW = Math.round(cell * 1.2);
-  const boardW = cell * 5 + quanW * 2 + pad * 2 + 8;
-  const boardH = cell * 2 + pad * 2 + 20;
+  // Bàn nằm ngang, chiếm hết bề ngang màn hình nhưng không cao quá phần trống.
+  const maxW = Math.max(280, space.width - 8);
+  const maxH = Math.max(150, space.height - 260);
+  const boardW = Math.min(maxW, maxH * BOARD_RATIO);
+  const boardH = boardW / BOARD_RATIO;
+
+  const pitW = L.pitW * boardW;
+  const pitH = L.pitH * boardH;
 
   const sow = (dir: number) => {
     if (picked == null) return;
@@ -71,45 +83,70 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
     setPicked(null);
   };
 
-  const DanCell = ({ index }: { index: number }) => {
+  /** Một ô dân: vùng chạm đặt đúng lên lòng ô đã khoét sẵn trong ảnh bàn. */
+  const DanCell = ({ index, col, top }: { index: number; col: number; top: boolean }) => {
     const count = view.cells[index];
     const own = mine.includes(index);
     const selectable = yourTurn && own && count > 0;
-    const tone = picked === index ? 'picked' : view.lastPath?.includes(index) ? 'path' : 'idle';
+    const inPath = view.lastPath?.includes(index);
+    const cx = L.pitXs[col] * boardW;
+    const cy = (top ? L.rowTop : L.rowBottom) * boardH;
     return (
       <Pressable
         disabled={!selectable}
         onPress={() => setPicked(index)}
-        style={{ width: cell, height: cell, alignItems: 'center', justifyContent: 'center' }}
+        style={{
+          position: 'absolute',
+          left: cx - pitW / 2,
+          top: cy - pitH / 2,
+          width: pitW,
+          height: pitH,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
       >
-        <Pit size={cell} tone={tone as any} />
-        <SeedPile count={count} radius={cell * 0.34} seedSize={Math.max(9, cell * 0.23)} salt={index} />
-        {/* Ô đang chọn được viền vàng đậm; ô mình đi được chỉ sáng vành nhẹ */}
-        {selectable || picked === index ? (
+        {/* Ô đang chọn / vừa rải qua được sáng lên, còn lòng ô là của ảnh bàn */}
+        {picked === index || inPath ? (
           <View
             pointerEvents="none"
             style={{
               position: 'absolute',
-              width: cell - 5,
-              height: cell - 5,
-              borderRadius: cell,
-              borderWidth: picked === index ? 3 : 2,
-              borderColor: picked === index ? C.primary : 'rgba(255,236,190,0.85)',
+              width: pitW,
+              height: pitW,
+              borderRadius: pitW,
+              backgroundColor: picked === index ? 'rgba(255,214,120,0.5)' : 'rgba(255,240,200,0.3)',
+              borderWidth: picked === index ? 3 : 0,
+              borderColor: C.primary,
             }}
           />
         ) : null}
+        {selectable && picked !== index ? (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              width: pitW - 4,
+              height: pitW - 4,
+              borderRadius: pitW,
+              borderWidth: 2,
+              borderColor: 'rgba(255,246,214,0.85)',
+            }}
+          />
+        ) : null}
+        <SeedPile count={count} radius={pitW * 0.3} seed={Math.max(10, pitW * 0.3)} salt={index} />
         <View
           pointerEvents="none"
           style={{
             position: 'absolute',
+            bottom: -pitH * 0.06,
             minWidth: 18,
             paddingHorizontal: 4,
             borderRadius: R.pill,
             alignItems: 'center',
-            backgroundColor: 'rgba(255,247,232,0.88)',
+            backgroundColor: 'rgba(255,247,232,0.9)',
           }}
         >
-          <Txt size={Math.max(11, Math.round(cell * 0.2))} weight="display" color="#5E3F1C">
+          <Txt size={Math.max(10, Math.round(pitW * 0.26))} weight="display" color="#5E3F1C">
             {count}
           </Txt>
         </View>
@@ -117,31 +154,43 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
     );
   };
 
+  /** Ô Quan hai đầu bàn: còn quan thì hiện chibi, ăn rồi thì còn cái nắp. */
   const QuanCell = ({ index, side }: { index: number; side: 0 | 1 }) => {
+    const spot = side === 0 ? L.quanLeft : L.quanRight;
     const alive = view.quan[side];
     const tone = side === 0 ? 'blue' : 'red';
-    const h = cell * 2 + 12;
+    const w = spot.w * boardW;
+    const h = spot.h * boardH;
+    const art = alive ? QUAN_ART[tone] : QUAN_LID_ART[tone];
+    const ratio = OAN_QUAN_RATIO[alive ? `quan-${tone}` : `lid-${tone}`] ?? 1;
+    const artW = w * (alive ? 0.86 : 0.74);
     return (
-      <View style={{ width: quanW, height: h, alignItems: 'center', justifyContent: 'center' }}>
-        <QuanPit width={quanW} height={h} empty={!alive} />
-        <View style={{ position: 'absolute', alignItems: 'center' }}>
-          {alive ? <MandarinChibi size={quanW * 0.78} tone={tone} /> : <QuanLid size={quanW * 0.68} tone={tone} />}
-        </View>
-        {/* Nhãn nằm dưới đáy ô, không đè lên quân */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: spot.cx * boardW - w / 2,
+          top: spot.cy * boardH - h / 2,
+          width: w,
+          height: h,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Image source={art} resizeMode="contain" style={{ width: artW, height: artW / ratio }} />
+        {/* Số dân đang nằm trong ô Quan */}
         <View
           style={{
             position: 'absolute',
-            bottom: 10,
+            bottom: h * 0.06,
             paddingHorizontal: 7,
-            paddingVertical: 2,
+            paddingVertical: 1,
             borderRadius: R.pill,
             alignItems: 'center',
-            backgroundColor: 'rgba(255,246,229,0.9)',
-            borderWidth: 1,
-            borderColor: WOOD.rim,
+            backgroundColor: 'rgba(255,246,229,0.92)',
           }}
         >
-          <Txt size={10} weight="bold" color={WOOD.ink}>
+          <Txt size={10} weight="bold" color="#5E3F1C">
             {alive ? `Quan ${view.quanValue}` : 'Đã ăn'}
           </Txt>
           {view.cells[index] ? (
@@ -170,63 +219,34 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
       />
 
       <View style={{ alignItems: 'center' }}>
-        <LinearGradient
-          colors={[WOOD.face, WOOD.faceLo]}
-          start={{ x: 0.15, y: 0 }}
-          end={{ x: 0.85, y: 1 }}
-          style={[
-            {
-              width: boardW,
-              height: boardH,
-              borderRadius: 30,
-              borderWidth: 4,
-              borderColor: WOOD.rimDark,
-              padding: pad,
-              flexDirection: 'row',
-              alignItems: 'center',
-              overflow: 'hidden',
-            },
-            softShadow(0.22, 18, 9),
-          ]}
-        >
-          <WoodGrain width={boardW} height={boardH} />
+        {/* Không đổ bóng khung: ảnh bàn có góc bo và lá thò ra, bóng của khung
+            chữ nhật sẽ lòi ra thành một mảng vuông quanh bàn. */}
+        <View style={{ width: boardW, height: boardH }}>
+          <Image source={OAN_QUAN_BOARD} resizeMode="contain" style={{ width: boardW, height: boardH }} />
+
+          {/* Hoa văn giữa vạch chia — bản vẽ gốc để nó ở khe giữa hai hàng */}
+          <Image
+            source={OAN_QUAN_DECOR.flower}
+            resizeMode="contain"
+            style={{
+              position: 'absolute',
+              width: boardW * 0.045,
+              height: boardW * 0.045,
+              left: boardW / 2 - boardW * 0.0225,
+              top: ((L.rowTop + L.rowBottom) / 2) * boardH - boardW * 0.0225,
+            }}
+          />
+
+          {topRow.map((i, col) => (
+            <DanCell key={i} index={i} col={col} top />
+          ))}
+          {bottomRow.map((i, col) => (
+            <DanCell key={i} index={i} col={col} top={false} />
+          ))}
 
           <QuanCell index={0} side={0} />
-
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <View style={{ flexDirection: 'row' }}>
-              {topRow.map((i) => (
-                <DanCell key={i} index={i} />
-              ))}
-            </View>
-            {/* Vạch chia hai hàng, giữa gắn hoa văn */}
-            <View style={{ height: 18, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' }}>
-              <View style={{ position: 'absolute', left: 6, right: 6, height: 2, backgroundColor: WOOD.rim, opacity: 0.55 }} />
-              <GoldFlower size={16} />
-            </View>
-            <View style={{ flexDirection: 'row' }}>
-              {bottomRow.map((i) => (
-                <DanCell key={i} index={i} />
-              ))}
-            </View>
-          </View>
-
           <QuanCell index={6} side={1} />
-
-          {/* Hoa lá bốn góc như trong bản thiết kế */}
-          <View pointerEvents="none" style={{ position: 'absolute', left: -2, top: -2 }}>
-            <LeafSpray size={30} />
-          </View>
-          <View pointerEvents="none" style={{ position: 'absolute', right: -2, top: -2 }}>
-            <LeafSpray size={30} flip />
-          </View>
-          <View pointerEvents="none" style={{ position: 'absolute', left: -2, bottom: -2 }}>
-            <LeafSpray size={30} flip />
-          </View>
-          <View pointerEvents="none" style={{ position: 'absolute', right: -2, bottom: -2 }}>
-            <LeafSpray size={30} />
-          </View>
-        </LinearGradient>
+        </View>
       </View>
 
       {picked != null ? (

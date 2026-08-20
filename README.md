@@ -254,6 +254,7 @@ bằng component riêng:
 |---|---|---|
 | Art trong trận: mark 7 game, quân cờ, xúc xắc, vai Ma Sói, ô bàn Tỷ Phú, sticker | [game-icons.net](https://github.com/game-icons/icons) — 70 asset trong `apps/mobile/assets/game-icons/` | CC BY 3.0 |
 | Art Sheep Battle: 5 giống cừu × 2 phe × 2 animation, icon cấp, hiệu ứng | [TomoSheepFight](https://github.com/dotrungkien/TomoSheepFight) của Do Trung Kien — `apps/mobile/assets/sheep-fight/` | MIT |
+| Art Ô Ăn Quan: bàn gỗ, hai ô Quan, quan chibi, nắp quan, 6 màu hạt, hoa lá | Bản vẽ riêng của dự án — `apps/mobile/assets/oanquan/` | Nội bộ |
 | Avatar người chơi | [DiceBear](https://github.com/dicebear/dicebear) — render SVG server-side, 10 bộ style | MIT |
 | Font tiêu đề | [Baloo 2](https://github.com/googlefonts/baloo) qua `@expo-google-fonts` | OFL |
 | Font nội dung | [Be Vietnam Pro](https://github.com/bettergui/BeVietnamPro) — hỗ trợ tiếng Việt đầy đủ | OFL |
@@ -295,6 +296,17 @@ nhìn từ sau lưng (đang đi lên), đàn đen nhìn chính diện (đang đi
   cùng nông trại phía xa (`MAP_ROWS`) để cừu không đi lên cả bầu trời.
 
 Tải lại bộ art: `node apps/mobile/scripts/fetch-sheep-fight.mjs`.
+
+Ô Ăn Quan cắt từ **một bảng thiết kế duy nhất** (`assets/oanquan/source/oanquan-sheet.png`)
+bằng `python3 apps/mobile/scripts/slice-oanquan-art.py`:
+
+- Nền bản vẽ gần trắng nên script **tô loang từ bốn cạnh** để tìm nền, không cắt
+  bằng ngưỡng màu — hạt trắng cũng gần trắng, cắt kiểu ngưỡng là thủng ruột hạt.
+- Bàn gốc vẽ **6 ô mỗi hàng** còn game chỉ dùng 5, nên script cắt bàn thành nắp
+  trái + một cột ô + nắp phải rồi ghép lại thành bàn 5 cột, mép nối được pha mờ
+  14px cho khỏi lộ vệt vân gỗ. Giữ nguyên nét vẽ gốc thay vì co ảnh cho vừa.
+- Tâm từng lòng ô được dò ngay trên bàn đã ghép và ghi ra `src/art/oanQuan.ts`
+  dưới dạng **tỉ lệ 0..1**, nên bàn to nhỏ cỡ nào thì hạt vẫn rơi đúng ô.
 
 **Không dùng emoji ở bất kỳ đâu trong giao diện** — emoji mỗi hệ điều hành vẽ một
 kiểu, không đổi được màu theo ngữ cảnh và không canh được nét với chữ.
