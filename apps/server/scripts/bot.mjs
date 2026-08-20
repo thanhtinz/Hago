@@ -87,21 +87,26 @@ function decide(gameType, view, mySeat) {
     case 'sheep': {
       const level = view.myQueue?.[0];
       if (!level) return null;
+      if ((view.readyAt ?? 0) > Date.now()) return null;
       const spawn = mySeat === 0 ? 0 : view.laneLength - 1;
-      const occupied = new Map();
-      for (const u of view.units ?? []) if (u.pos === spawn) occupied.set(u.lane, u);
+      const occupied = new Set();
+      for (const u of view.units ?? []) if (u.pos === spawn) occupied.add(u.lane);
 
-      // Ô xuất phát trống mới thả được; ưu tiên làn đang thua sức đẩy nhất.
       const empties = [];
       for (let lane = 0; lane < view.lanes; lane++) if (!occupied.has(lane)) empties.push(lane);
       if (!empties.length) return null;
-      const weight = (lane, seat) =>
+
+      // Cừu nhẹ thì trừ nhiều máu nhưng đẩy yếu: con nhỏ đi làn đang trống đường,
+      // con to đi làn đang bị đối thủ đè nặng nhất.
+      const W = view.weights ?? [0, 10, 20, 40, 60, 80];
+      const heft = (lane, seat) =>
         (view.units ?? [])
           .filter((u) => u.lane === lane && u.seat === seat)
-          .reduce((sum, u) => sum + u.level, 0);
-      const deficit = (lane) => weight(lane, 1 - mySeat) - weight(lane, mySeat);
-      empties.sort((a, b) => deficit(b) - deficit(a));
-      const lane = deficit(empties[0]) > 0 ? empties[0] : pick(empties);
+          .reduce((sum, u) => sum + (W[u.level] ?? 0), 0);
+      const deficit = (lane) => heft(lane, 1 - mySeat) - heft(lane, mySeat);
+      const light = (W[level] ?? 0) <= 20;
+      empties.sort((a, b) => (light ? deficit(a) - deficit(b) : deficit(b) - deficit(a)));
+      const lane = empties[0] ?? pick(empties);
       return { type: 'deploy', payload: { lane } };
     }
     case 'werewolf': {

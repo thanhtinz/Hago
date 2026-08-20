@@ -2,21 +2,32 @@ import { ApplyResult, BaseState, EnginePlayer, EngineResultRow, GameEngine, err,
 import { Rng } from '../rng';
 
 /**
- * Sheep Battle — đấu cừu theo làn.
+ * Sheep Battle — dựng lại luật của game Sheep Fight (bản Unity gốc).
  *
- * Hai người chơi đứng hai đầu sân cỏ chia thành nhiều làn dọc. Mỗi bên có một
- * hàng chờ cừu; thả cừu vào làn nào thì cừu tự đi về phía đối thủ. Hai cừu cùng
- * cấp của mình chồng lên nhau sẽ hợp thành cừu cấp cao hơn (cừu → cừu sừng →
- * dê → hươu → kỳ lân). Cừu hai bên gặp nhau thì trừ cấp lẫn nhau, bên nào còn
- * cấp thì đi tiếp. Cừu chạy lọt qua đầu sân đối thủ sẽ ghi điểm bằng đúng cấp
- * của nó — ai đạt mốc điểm trước, hoặc dẫn điểm khi hết giờ, là người thắng.
+ * Mỗi bên bắt đầu với 30 máu. Cừu chạy sang sân đối thủ, lọt qua vạch thì **trừ
+ * máu** đối thủ đúng bằng `point` của nó; ai về 0 máu trước là thua. Điểm mấu
+ * chốt của game là **cừu càng nặng thì càng ít sát thương**: cừu non nhẹ hều
+ * nhưng trừ 7 máu, cừu chúa nặng gấp 8 lần mà chỉ trừ 1 máu. Muốn thắng thì phải
+ * lùa được cừu nhỏ qua sân địch, còn cừu to chỉ để mở đường.
+ *
+ * Hai đàn gặp nhau trong một làn thì ghì nhau: mỗi bên cộng trọng lượng của cả
+ * dây cừu liền nhau, bên nặng hơn đẩy nguyên cụm về phía sân bên nhẹ, ngang cân
+ * thì đứng im. Cừu bị đẩy lùi qua vạch nhà mình chỉ mất xác chứ đối thủ không
+ * được gì.
+ *
+ * Số liệu lấy thẳng từ kho gốc:
+ * - `Assets/Prefabs/sheep-{1..5}-{w,b}.prefab` → weight/point.
+ * - `GameManager.MAX_SCORE = 30`, `GameManager.maxCooldown = 5f`.
+ * - `GameController.Play()` bốc cấp cừu bằng `rand.Next() % 5` (đều nhau).
+ * - `GameManager.LaneDirection()` so trọng lượng hai phe trong làn.
+ * - `Sheep.vel` 0.5 lúc chạy tự do, 0.3 lúc đang ghì nhau.
  */
 export interface SheepConfig {
   lanes?: number;
   laneLength?: number;
   durationSeconds?: number;
-  targetScore?: number;
-  queueSize?: number;
+  /** Máu khởi điểm của mỗi bên; bản gốc là 30. */
+  startHp?: number;
 }
 
 export interface SheepUnit {
@@ -37,12 +48,13 @@ export interface SheepState extends BaseState {
   lanes: number;
   laneLength: number;
   units: SheepUnit[];
-  /** Hàng chờ cừu sắp thả của từng ghế (giá trị là cấp). */
+  /** Cấp của những con sắp tới trong hàng chờ từng ghế — bản gốc hiện trước 3 con. */
   queues: number[][];
   queueSize: number;
-  refillAt: number[];
-  score: number[];
-  targetScore: number;
+  /** Thời điểm mỗi ghế được thả con tiếp theo (hết hồi chiêu). */
+  readyAt: number[];
+  hp: number[];
+  startHp: number;
   endsAt: number;
   lastTick: number;
   nextUnitId: number;
@@ -50,27 +62,27 @@ export interface SheepState extends BaseState {
 }
 
 export const MAX_LEVEL = 5;
-/** Mỗi cừu đi 1 ô sau ngần này mili-giây. */
+
+/** Trọng lượng theo cấp — prefab sheep-{1..5}: 10, 20, 40, 60, 80. */
+export const SHEEP_WEIGHT = [0, 10, 20, 40, 60, 80];
+/** Sát thương theo cấp — prefab sheep-{1..5}: 7, 5, 3, 2, 1. Càng to càng ít. */
+export const SHEEP_POINT = [0, 7, 5, 3, 2, 1];
+
+/** Mỗi cừu đi 1 ô sau ngần này mili-giây (Sheep.vel = 0.5). */
 const MOVE_MS = 620;
-/** Hai bên chạm nhau thì ghì nhau chừng này rồi mới phân thắng bại. */
-const PUSH_MS = 700;
-/** Hàng chờ hồi thêm 1 con cừu sau ngần này mili-giây. */
-const REFILL_MS = 1400;
+/** Lúc ghì nhau cừu đi chậm còn 0.3 — chậm hơn 5/3 lần so với chạy tự do. */
+const PUSH_MS = Math.round((MOVE_MS * 5) / 3);
+/** GameManager.maxCooldown — mỗi lần thả cách nhau 5 giây. */
+const COOLDOWN_MS = 5000;
+/** GameController hiện trước 3 con kế tiếp trong hàng chờ. */
+const PREVIEW = 3;
 
 const dirOf = (seat: number) => (seat === 0 ? 1 : -1);
 const spawnPos = (seat: number, laneLength: number) => (seat === 0 ? 0 : laneLength - 1);
 
-/**
- * Cấp cừu trong hàng chờ bốc ngẫu nhiên như bản gốc (rand % 5), nghiêng về cừu
- * nhỏ để cừu chúa vẫn là của hiếm.
- */
+/** Bản gốc bốc cấp bằng `rand.Next() % 5` — năm cấp đều xác suất như nhau. */
 function rollLevel(rng: Rng): number {
-  const r = rng.next();
-  if (r < 0.4) return 1;
-  if (r < 0.7) return 2;
-  if (r < 0.87) return 3;
-  if (r < 0.96) return 4;
-  return 5;
+  return 1 + Math.floor(rng.next() * MAX_LEVEL);
 }
 
 export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
@@ -83,8 +95,8 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
   init(players: EnginePlayer[], config: SheepConfig = {}, rng: Rng): SheepState {
     const lanes = Math.min(6, Math.max(3, config.lanes ?? 5));
     const laneLength = Math.min(16, Math.max(7, config.laneLength ?? 9));
-    const duration = config.durationSeconds ?? 120;
-    const queueSize = Math.min(6, Math.max(2, config.queueSize ?? 4));
+    const duration = config.durationSeconds ?? 180;
+    const startHp = Math.max(5, config.startHp ?? 30);
     const now = Date.now();
 
     return {
@@ -92,11 +104,12 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
       lanes,
       laneLength,
       units: [],
-      queues: players.map(() => Array.from({ length: queueSize }, () => rollLevel(rng))),
-      queueSize,
-      refillAt: players.map(() => now + REFILL_MS),
-      score: players.map(() => 0),
-      targetScore: config.targetScore ?? 20,
+      queues: players.map(() => Array.from({ length: PREVIEW }, () => rollLevel(rng))),
+      queueSize: PREVIEW,
+      // Bản gốc cho thả ngay từ giây đầu rồi mới tính hồi chiêu.
+      readyAt: players.map(() => now),
+      hp: players.map(() => startHp),
+      startHp,
       endsAt: now + duration * 1000,
       lastTick: now,
       nextUnitId: 1,
@@ -104,12 +117,12 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
       turnStartedAt: now,
       winnerIds: [],
       over: false,
-      log: ['Thả cừu vào làn — làn nào nặng hơn thì đẩy được đàn địch lùi về!'],
+      log: ['Cừu nhỏ trừ nhiều máu, cừu to đẩy khoẻ — chọn đúng con mà thả!'],
       turnSeconds: 0,
     };
   },
 
-  apply(state, playerId, type, payload): ApplyResult<SheepState> {
+  apply(state, playerId, type, payload, rng): ApplyResult<SheepState> {
     if (state.over) return err('MATCH_OVER');
     const seat = state.players.findIndex((p) => p.id === playerId);
     if (seat < 0) return err('NOT_A_PLAYER');
@@ -117,43 +130,31 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
 
     const lane = Number(payload?.lane);
     if (!Number.isInteger(lane) || lane < 0 || lane >= state.lanes) return err('BAD_LANE');
+
+    const now = Date.now();
+    if (now < state.readyAt[seat]) return err('COOLDOWN');
+
     const queue = state.queues[seat];
     if (!queue.length) return err('QUEUE_EMPTY');
 
     const level = queue[0];
     const pos = spawnPos(seat, state.laneLength);
-    const occupant = state.units.find((u) => u.lane === lane && u.pos === pos);
+    // Ô xuất phát còn cừu thì chưa có chỗ đứng — chờ nó bước lên đã.
+    if (state.units.some((u) => u.lane === lane && u.pos === pos)) return err('LANE_BLOCKED');
 
     const units = state.units.map((u) => ({ ...u }));
+    units.push({ id: state.nextUnitId, seat, lane, pos, level, lastMoveAt: now });
+
     const queues = state.queues.map((q) => q.slice());
-    const now = Date.now();
-    const log: string[] = [];
-    const events: any[] = [];
-
-    // Ô xuất phát còn cừu thì chờ nó đi đã — không có luật hợp thể.
-    if (occupant) return err('LANE_BLOCKED');
-
-    units.push({
-      id: state.nextUnitId,
-      seat,
-      lane,
-      pos,
-      level,
-      lastMoveAt: now,
-    });
-    events.push({ type: 'deploy', payload: { seat, lane, level } });
-
     queues[seat] = queue.slice(1);
+    while (queues[seat].length < PREVIEW) queues[seat].push(rollLevel(rng));
+
+    const readyAt = [...state.readyAt];
+    readyAt[seat] = now + COOLDOWN_MS;
 
     return ok(
-      {
-        ...state,
-        units,
-        queues,
-        nextUnitId: state.nextUnitId + 1,
-        log: [...state.log, ...log].slice(-20),
-      },
-      events,
+      { ...state, units, queues, readyAt, nextUnitId: state.nextUnitId + 1 },
+      [{ type: 'deploy', payload: { seat, lane, level } }],
     );
   },
 
@@ -163,37 +164,34 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
     const log: string[] = [];
     let units = state.units.map((u) => ({ ...u }));
     const queues = state.queues.map((q) => q.slice());
-    const refillAt = [...state.refillAt];
-    const score = [...state.score];
+    const hp = [...state.hp];
     let dirty = false;
 
-    // Hồi hàng chờ cừu.
+    // Hàng chờ luôn đầy 3 con; nhịp thả bị chặn bằng hồi chiêu chứ không phải bằng hàng chờ.
     state.players.forEach((_, seat) => {
-      if (now >= refillAt[seat]) {
-        refillAt[seat] = now + REFILL_MS;
-        if (queues[seat].length < state.queueSize) {
-          queues[seat].push(rollLevel(rng));
-          dirty = true;
-        }
+      while (queues[seat].length < PREVIEW) {
+        queues[seat].push(rollLevel(rng));
+        dirty = true;
       }
     });
 
     const dead = new Set<number>();
 
     /**
-     * Ghi điểm khi một con vượt qua vạch cuối. Vượt vạch sân địch là mình ghi;
-     * bị đẩy lùi qua vạch sân nhà thì đối thủ ghi — đúng như bản gốc, nơi cừu
-     * chạm vạch nào cũng trừ điểm của bên giữ vạch đó.
+     * Cừu chạm vạch cuối làn. Lọt qua vạch **sân địch** thì trừ máu địch đúng
+     * bằng `point` của nó; bị đẩy lùi qua vạch nhà mình thì chỉ mất xác, đối thủ
+     * không được gì (Sheep.OnTriggerEnter của bản gốc chỉ tính vạch phía trước).
      */
     const crossLine = (u: SheepUnit) => {
       if (u.pos >= 0 && u.pos < state.laneLength) return false;
-      // Vạch dưới (pos < 0) là sân của ghế 0, vạch trên là sân của ghế 1.
-      const owner = u.pos < 0 ? 0 : 1;
-      const scorer = u.seat === owner ? 1 - owner : u.seat;
-      score[scorer] += u.level;
       dead.add(u.id);
-      log.push(`${state.players[scorer].name} ghi ${u.level} điểm`);
-      events.push({ type: 'score', payload: { seat: scorer, points: u.level } });
+      const throughEnemyLine = u.seat === 0 ? u.pos >= state.laneLength : u.pos < 0;
+      if (!throughEnemyLine) return true;
+      const foe = 1 - u.seat;
+      const dmg = SHEEP_POINT[u.level] ?? 1;
+      hp[foe] = Math.max(0, hp[foe] - dmg);
+      log.push(`${state.players[u.seat].name} lùa cừu cấp ${u.level} qua sân, trừ ${dmg} máu`);
+      events.push({ type: 'score', payload: { seat: u.seat, points: dmg } });
       return true;
     };
 
@@ -221,7 +219,7 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
 
       if (contact) {
         const [low, high] = contact;
-        // Chuỗi cừu cùng phe đứng liền sau con đầu — cả chuỗi cùng góp sức đẩy.
+        // Chuỗi cừu cùng phe đứng liền sau con đầu — cả chuỗi cùng góp trọng lượng.
         const chainOf = (head: SheepUnit, step: 1 | -1) => {
           const chain = [head];
           let p = head.pos;
@@ -235,8 +233,9 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
         };
         const lowChain = chainOf(low, -1);
         const highChain = chainOf(high, 1);
-        const lowWeight = lowChain.reduce((sum, u) => sum + u.level, 0);
-        const highWeight = highChain.reduce((sum, u) => sum + u.level, 0);
+        const heft = (chain: SheepUnit[]) => chain.reduce((sum, u) => sum + (SHEEP_WEIGHT[u.level] ?? 0), 0);
+        const lowWeight = heft(lowChain);
+        const highWeight = heft(highChain);
         const both = [...lowChain, ...highChain];
 
         // Đang tì nhau thì đi chậm hơn lúc chạy không.
@@ -288,18 +287,17 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
 
     units = units.filter((u) => !dead.has(u.id));
 
-    let next: SheepState = {
+    const next: SheepState = {
       ...state,
       units,
       queues,
-      refillAt,
-      score,
+      hp,
       lastTick: now,
       log: [...state.log, ...log].slice(-20),
     };
 
-    const winner = score.findIndex((s) => s >= state.targetScore);
-    if (winner >= 0) return ok(finish(next, `${state.players[winner].name} cán mốc ${state.targetScore} điểm`), events);
+    const dropped = hp.findIndex((h) => h <= 0);
+    if (dropped >= 0) return ok(finish(next, `${state.players[1 - dropped].name} hạ sạch máu đối thủ`), events);
     if (now >= state.endsAt) return ok(finish(next, 'Hết giờ'), [...events, { type: 'time_up' }]);
     if (!dirty && !events.length) return ok(state);
     return ok(next, events);
@@ -307,23 +305,29 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
 
   view(state, viewerId) {
     const seat = state.players.findIndex((p) => p.id === viewerId);
+    const now = Date.now();
     return {
       lanes: state.lanes,
       laneLength: state.laneLength,
       units: state.units,
-      score: state.score,
-      targetScore: state.targetScore,
+      hp: state.hp,
+      startHp: state.startHp,
       maxLevel: MAX_LEVEL,
+      /** Bảng chỉ số để client hiện đúng "nặng bao nhiêu, trừ mấy máu". */
+      weights: SHEEP_WEIGHT,
+      points: SHEEP_POINT,
       // Client dùng nhịp này để trượt cừu sang ô mới đúng bằng thời gian server đi.
       moveMs: MOVE_MS,
       pushMs: PUSH_MS,
+      cooldownMs: COOLDOWN_MS,
+      /** Mốc tuyệt đối để client tự đếm ngược hồi chiêu giữa hai lần server đẩy state. */
+      readyAt: seat >= 0 ? state.readyAt[seat] : 0,
       mySeat: seat,
       // Hàng chờ của đối thủ được giấu, chỉ lộ số lượng.
       myQueue: seat >= 0 ? state.queues[seat] : [],
-      foeQueueCount: seat >= 0 ? state.queues[1 - seat]?.length ?? 0 : 0,
       queueSize: state.queueSize,
       endsAt: state.endsAt,
-      remainingMs: Math.max(0, state.endsAt - Date.now()),
+      remainingMs: Math.max(0, state.endsAt - now),
       players: state.players,
       over: state.over,
       winnerIds: state.winnerIds,
@@ -334,13 +338,14 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
   finished: (s) => s.over,
 
   results(state): EngineResultRow[] {
-    const top = Math.max(...state.score);
-    const tie = state.score.filter((s) => s === top).length > 1;
+    const best = Math.max(...state.hp);
+    const tie = state.hp.filter((h) => h === best).length > 1;
     return state.players.map((p, seat) => ({
       userId: p.id,
-      result: tie ? 'draw' : state.score[seat] === top ? 'win' : 'lose',
-      score: state.score[seat],
-      place: state.score[seat] === top ? 1 : 2,
+      result: tie ? 'draw' : state.hp[seat] === best ? 'win' : 'lose',
+      // Điểm ghi nhận là lượng máu đã lấy được của đối thủ.
+      score: state.startHp - state.hp[1 - seat],
+      place: state.hp[seat] === best ? 1 : 2,
     }));
   },
 
@@ -348,13 +353,13 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
 };
 
 function finish(state: SheepState, reason: string): SheepState {
-  const top = Math.max(...state.score);
-  const winners = state.players.filter((_, seat) => state.score[seat] === top);
+  const best = Math.max(...state.hp);
+  const winners = state.players.filter((_, seat) => state.hp[seat] === best);
   const tie = winners.length === state.players.length;
   return {
     ...state,
     over: true,
     winnerIds: tie ? [] : winners.map((p) => p.id),
-    log: [...state.log, `${reason} — tỉ số ${state.score.join(' : ')}`],
+    log: [...state.log, `${reason} — máu còn lại ${state.hp.join(' : ')}`],
   };
 }

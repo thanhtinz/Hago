@@ -97,7 +97,7 @@ Mobile (RN/Expo) ──REST──> Express API ──> SQLite (WAL)
 | Cờ Caro | 2 | Board strategy | Normal/Ranked/Custom | Bàn cấu hình 9–19, luật đúng-5-quân |
 | Bắn Tàu | 2 | Turn-based | Normal/Ranked/Custom | Hidden board, trúng được bắn tiếp |
 | Ô Ăn Quan | 2 | Board dân gian | Normal/Ranked/Custom | Rải, ăn dây, rải lại khi hết dân |
-| Sheep Battle | 2 | Realtime lane battle | Normal/Ranked/Custom | Thả cừu theo làn, cấp 1–5 bốc ngẫu nhiên, bên nặng hơn đẩy lùi bên nhẹ |
+| Sheep Battle | 2 | Realtime lane battle | Normal/Ranked/Custom | Đấu làn 30 máu, cừu nhỏ trừ nhiều máu, cừu to đẩy khoẻ |
 | Cờ Tỷ Phú | 2–4 | Board/economy | Normal/Custom | Bàn 24 ô, độc quyền x2 tô, tù, phá sản |
 | Cờ Cá Ngựa | 2–4 | Board casual | Normal/Ranked/Custom | Ô an toàn, đá ngựa, ra 6 đi tiếp |
 | Ma Sói | 4–16 | Social deduction | Normal/Custom | State machine đêm/ngày/vote, 6 vai |
@@ -139,13 +139,29 @@ báo cáo người chơi, lọc từ ngữ tục tĩu, rate limit chống spam.
 Trong phòng: kick, mời bạn bè, đánh dấu sẵn sàng, chat phòng. Quick Match ghép theo
 game + mode + region với cửa sổ Elo nới dần theo thời gian chờ.
 
-**Sheep Battle** — đúng luật game gốc: hàng chờ cừu tự hồi, mỗi con bốc ngẫu nhiên
-cấp 1–5 (40/30/17/9/4 %), chạm vào làn để thả — làn đang có cừu đứng ngay ô xuất
-phát thì không thả được. Hai đàn gặp nhau trong một làn thì **ghì nhau**: mỗi bên
-cộng cấp của cả dây cừu liền nhau thành trọng lượng, bên nặng hơn đẩy nguyên cụm
-lùi một ô mỗi 700ms, ngang cân thì đứng im. Cừu lọt qua vạch cuối sân đối thủ ghi
-điểm bằng đúng cấp của nó — bị đẩy ngược qua vạch nhà mình thì đối thủ được điểm.
-Ai chạm mốc 20 điểm trước hoặc dẫn điểm khi hết 2 phút là thắng.
+**Sheep Battle** — dựng lại luật của bản Unity gốc, số liệu lấy thẳng từ prefab và
+`GameManager` trong kho [TomoSheepFight](https://github.com/dotrungkien/TomoSheepFight):
+
+| Cấp | Trọng lượng | Sát thương |
+|---|---|---|
+| 1 cừu non | 10 | 7 |
+| 2 nhú sừng | 20 | 5 |
+| 3 sừng xoắn | 40 | 3 |
+| 4 đeo băng đầu | 60 | 2 |
+| 5 cừu chúa | 80 | 1 |
+
+Mỗi bên bắt đầu **30 máu**, ai về 0 trước là thua. Cấp cừu bốc ngẫu nhiên đều nhau
+(`rand % 5`), hàng chờ hiện trước 3 con, mỗi lần thả cách nhau **5 giây** hồi chiêu.
+Nút thắt nằm ở chỗ **cừu càng nặng thì càng ít sát thương**: cừu non nhẹ hều nhưng
+trừ 7 máu, cừu chúa nặng gấp 8 lần mà chỉ trừ 1 — cừu to là để mở đường, cừu nhỏ mới
+là thứ phải lùa qua vạch.
+
+Hai đàn gặp nhau trong một làn thì **ghì nhau**: mỗi bên cộng trọng lượng của cả dây
+cừu liền nhau, bên nặng hơn đẩy nguyên cụm về phía sân bên nhẹ, ngang cân thì cả hai
+đứng im. Cừu lọt qua vạch sân địch trừ máu đối thủ đúng bằng sát thương của nó; bị
+đẩy lùi qua vạch nhà mình thì chỉ mất xác chứ đối thủ không được gì. Bản gốc chơi
+tới khi có bên hết máu — ở đây thêm mốc 3 phút, hết giờ thì bên còn nhiều máu hơn
+thắng, để trận không kéo dài vô hạn trên nền matchmaking.
 
 **Realtime** — Socket.IO, idempotency theo `action_id`, version state tăng dần,
 reconnect tự động khôi phục ván đang chơi, grace period 60s trước khi xử thua AFK.
@@ -266,7 +282,8 @@ sừng vàng mặt dữ — và hai phe khác hẳn nhau chứ không chỉ đ�
 nhìn từ sau lưng (đang đi lên), đàn đen nhìn chính diện (đang đi xuống).
 
 - `<SheepSprite>` chạy strip 6 khung, đổi sang animation *húc* khi hai con chạm nhau.
-- Chạm nhau thì hai bên **ghì nhau 700ms** (`PUSH_MS` trong engine) rồi mới phân
+- Chạm nhau thì hai bên **ghì nhau ~1s** (`PUSH_MS` trong engine — bản gốc hạ tốc độ
+  từ 0.5 xuống 0.3 khi đang đẩy) rồi mới phân
   thắng bại, kèm đám bụi 8 khung `push-effect` bốc lên giữa hai con — không có
   nhịp này thì va chạm xong trong một tick, người chơi chỉ thấy cừu biến mất.
 - Chạm vào làn nào thì làn đó loé `lane-effect` 4 khung.

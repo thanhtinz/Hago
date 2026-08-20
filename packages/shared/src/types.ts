@@ -81,7 +81,7 @@ export const GAME_CATALOG: Record<GameType, GameMeta> = {
     id: 'sheep',
     name: 'Sheep Battle',
     nameEn: 'Sheep Fight',
-    tagline: 'Thả cừu, dồn sức đẩy đàn địch về sân nhà',
+    tagline: 'Cừu nhỏ trừ nhiều máu, cừu to đẩy khoẻ — lùa cừu qua sân địch',
     minPlayers: 2,
     maxPlayers: 2,
     category: 'Realtime lane battle',

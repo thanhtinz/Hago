@@ -48,6 +48,9 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
   const fieldH = cell * len;
 
   const left = Math.max(0, (view.endsAt ?? 0) - now);
+  /** Hồi chiêu 5 giây giữa hai lần thả, đúng như maxCooldown của bản gốc. */
+  const ready = Math.max(0, (view.readyAt ?? 0) - now);
+  const nextLevel: number | undefined = view.myQueue?.[0];
 
   const rowOf = (pos: number) => (me === 0 ? len - 1 - pos : pos);
 
@@ -88,10 +91,9 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
       {/* Đối thủ */}
       <SideBar
         name={view.players[foe]?.name ?? 'Đối thủ'}
-        score={view.score[foe]}
-        target={view.targetScore}
+        hp={view.hp[foe]}
+        startHp={view.startHp}
         color={SEAT_COLORS[foe]}
-        queueCount={view.foeQueueCount}
         width={fieldW}
       />
 
@@ -210,15 +212,15 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
       {/* Bên mình */}
       <SideBar
         name={`${view.players[me]?.name ?? 'Bạn'} (bạn)`}
-        score={view.score[me]}
-        target={view.targetScore}
+        hp={view.hp[me]}
+        startHp={view.startHp}
         color={SEAT_COLORS[me]}
         width={fieldW}
         mine
         timeLeft={left}
       />
 
-      {/* Hàng chờ cừu */}
+      {/* Hàng chờ cừu — con đầu là con sắp thả, kèm chỉ số nặng / sát thương */}
       <View
         style={{
           flexDirection: 'row',
@@ -233,29 +235,41 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
         }}
       >
         <Txt size={11} weight="bold" color={C.inkSoft}>
-          Sắp tới
+          {ready > 0 ? `Chờ ${(ready / 1000).toFixed(1)}s` : 'Sắp tới'}
         </Txt>
         {Array.from({ length: view.queueSize }, (_, i) => {
           const lvl = view.myQueue[i];
+          const head = i === 0;
           return (
             <View
               key={i}
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: 19,
+                width: head ? 44 : 38,
+                height: head ? 44 : 38,
+                borderRadius: 22,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: lvl ? (i === 0 ? C.mintSoft : C.surfaceAlt) : 'transparent',
+                opacity: head && ready > 0 ? 0.45 : 1,
+                backgroundColor: lvl ? (head ? C.mintSoft : C.surfaceAlt) : 'transparent',
                 borderWidth: 2,
-                borderColor: lvl ? (i === 0 ? C.mint : C.line) : C.line,
+                borderColor: lvl ? (head ? C.mint : C.line) : C.line,
                 borderStyle: lvl ? 'solid' : 'dashed',
               }}
             >
-              {lvl ? <SheepBadge tier={lvl} team="w" size={30} /> : null}
+              {lvl ? <SheepBadge tier={lvl} team="w" size={head ? 34 : 30} /> : null}
             </View>
           );
         })}
+        {nextLevel ? (
+          <View style={{ gap: 1, paddingLeft: 2 }}>
+            <Txt size={10} weight="bold" color={C.danger}>
+              -{view.points?.[nextLevel] ?? 0} máu
+            </Txt>
+            <Txt size={10} color={C.inkFaint}>
+              nặng {view.weights?.[nextLevel] ?? 0}
+            </Txt>
+          </View>
+        ) : null}
       </View>
 
     </View>
@@ -264,23 +278,22 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
 
 function SideBar({
   name,
-  score,
-  target,
+  hp,
+  startHp,
   color,
   width,
-  queueCount,
   mine,
   timeLeft,
 }: {
   name: string;
-  score: number;
-  target: number;
+  hp: number;
+  startHp: number;
   color: string;
   width: number;
-  queueCount?: number;
   mine?: boolean;
   timeLeft?: number;
 }) {
+  const low = hp <= startHp * 0.3;
   return (
     <View style={{ width, gap: 3 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -289,11 +302,6 @@ function SideBar({
           <Txt size={12} weight="bold" numberOfLines={1}>
             {name}
           </Txt>
-          {queueCount !== undefined ? (
-            <Txt size={10} color={C.inkFaint}>
-              · {queueCount} cừu chờ
-            </Txt>
-          ) : null}
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {mine && timeLeft !== undefined ? (
@@ -301,12 +309,12 @@ function SideBar({
               {Math.ceil(timeLeft / 1000)}s
             </Txt>
           ) : null}
-          <Txt size={14} weight="display" color={color}>
-            {score}/{target}
+          <Txt size={14} weight="display" color={low ? C.danger : color}>
+            {hp}/{startHp} máu
           </Txt>
         </View>
       </View>
-      <Bar value={score} max={target} color={color} height={9} />
+      <Bar value={hp} max={startHp} color={low ? C.danger : color} height={9} />
     </View>
   );
 }

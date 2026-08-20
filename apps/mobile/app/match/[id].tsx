@@ -32,7 +32,7 @@ const FLASH: Record<string, { icon: IconName; text: string }> = {
   win: { icon: 'trophy', text: 'Thắng rồi!' },
   kick: { icon: 'flame', text: 'Đá ngựa!' },
   bump: { icon: 'flame', text: 'Húc trúng!' },
-  score: { icon: 'star', text: 'Ghi điểm!' },
+  score: { icon: 'star', text: 'Trừ máu!' },
   rent: { icon: 'coin', text: 'Thu tô!' },
   bankrupt: { icon: 'flame', text: 'Phá sản!' },
   chance: { icon: 'question', text: 'Cơ hội!' },
@@ -80,7 +80,7 @@ export default function MatchScreen() {
     const res: any = await emitAck('game.action', { matchId: id, actionId: newActionId(), type, payload });
     // Bấm nhanh hơn tốc độ hồi cừu, hoặc ô xuất phát đang có cừu khác cấp —
     // đều là nhịp chơi bình thường, không phải lỗi cần báo.
-    const quiet = ['QUEUE_EMPTY', 'LANE_BLOCKED', 'MAX_LEVEL_REACHED'];
+    const quiet = ['QUEUE_EMPTY', 'LANE_BLOCKED', 'COOLDOWN'];
     if (!res?.ok && !quiet.includes(res?.error)) showToast(friendlyError(res?.error ?? 'NETWORK'), 'warn');
   };
 
