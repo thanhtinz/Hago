@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+.expo/
+web-build/
+*.log
+*.db
+*.db-journal
+*.sqlite
+.env
+.DS_Store
+apps/mobile/dist/

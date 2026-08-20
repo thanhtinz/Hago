@@ -1,0 +1,14 @@
+{
+  "name": "hago",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Hago - Social Mini-Game Platform (mobile-first, chibi)",
+  "workspaces": ["packages/*", "apps/server", "apps/admin"],
+  "scripts": {
+    "build:shared": "npm run build -w @hago/shared",
+    "dev:server": "npm run dev -w @hago/server",
+    "dev:admin": "npm run dev -w @hago/admin",
+    "dev:mobile": "cd apps/mobile && npx expo start"
+  },
+  "engines": { "node": ">=20" }
+}
