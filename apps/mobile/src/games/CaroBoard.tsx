@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Txt } from '../components/ui';
-import { Icon } from '../components/Icon';
 import { CaroMark } from '../components/Piece';
 import { C, R, S, SEAT_COLORS } from '../theme';
 import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
@@ -74,11 +73,7 @@ export default function CaroBoard({ view, mySeat, send, deadline, space }: Board
 function Legend({ color, label, shape }: { color: string; label: string; shape: 'o' | 'x' }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-      {shape === 'o' ? (
-        <View style={{ width: 15, height: 15, borderRadius: 8, borderWidth: 3, borderColor: color }} />
-      ) : (
-        <Icon name="close" size={15} color={color} strokeWidth={3.2} />
-      )}
+      <CaroMark kind={shape} color={color} size={18} />
       <Txt size={12} weight="medium" color={C.inkSoft}>
         {label}
       </Txt>

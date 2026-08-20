@@ -128,10 +128,11 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
                   borderColor: mine ? SEAT_COLORS[me] : SEAT_COLORS[foe],
                 }}
               />
+              {/* Cừu mình trắng, cừu đối thủ sẫm — nhìn lướt vẫn phân biệt được phe. */}
               <SheepPiece
                 size={cell * (LEVEL_SCALE[u.level] ?? 0.78)}
                 level={u.level}
-                outline={mine ? SEAT_COLORS[me] : SEAT_COLORS[foe]}
+                body={mine ? '#FFFFFF' : '#3B2A5A'}
               />
               {u.level > 1 ? (
                 <View
@@ -200,7 +201,8 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
                 borderStyle: lvl ? 'solid' : 'dashed',
               }}
             >
-              {lvl ? <SheepPiece size={28} level={lvl} outline={SEAT_COLORS[me]} /> : null}
+              {/* Trên nền trắng của hàng chờ thì cừu tô màu phe mới nhìn ra. */}
+              {lvl ? <SheepPiece size={30} level={lvl} body={i === 0 ? '#1F8F5F' : SEAT_COLORS[me]} /> : null}
             </View>
           );
         })}

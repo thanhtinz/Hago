@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Btn, Card, Chip, Txt } from '../components/ui';
 import { Icon, IconName } from '../components/Icon';
+import { Art, ArtName } from '../components/Art';
 import { DieFace, TokenDot } from '../components/Piece';
 import { GameIcon } from '../components/GameIcon';
 import { C, R, S, SEAT_COLORS } from '../theme';
@@ -25,13 +26,14 @@ function tilePos(i: number, n: number, cell: number): { x: number; y: number } {
   }
 }
 
-const KIND_ICON: Record<string, IconName> = {
-  start: 'flag',
-  tax: 'receipt',
-  chance: 'question',
-  jail: 'lock',
-  gotojail: 'ban',
-  park: 'parking',
+/** Ô đặc biệt dùng asset game-icons thay vì icon nét. */
+const KIND_ART: Record<string, ArtName> = {
+  start: 'tile-start',
+  tax: 'tile-tax',
+  chance: 'tile-chance',
+  jail: 'tile-jail',
+  gotojail: 'tile-gotojail',
+  park: 'tile-park',
 };
 
 export default function MonopolyBoard({ view, mySeat, send, deadline, space }: BoardProps) {
@@ -87,7 +89,7 @@ export default function MonopolyBoard({ view, mySeat, send, deadline, space }: B
                     {t.name}
                   </Txt>
                 ) : (
-                  <Icon name={KIND_ICON[t.kind] ?? 'question'} size={cell * 0.5} color="#6B5B45" strokeWidth={2} />
+                  <Art name={KIND_ART[t.kind] ?? 'tile-chance'} size={cell * 0.62} color="#6B5B45" hi="#FFF6E8" />
                 )}
                 <View style={{ flexDirection: 'row', gap: 1, marginTop: 1 }}>
                   {here.map((c: any) => (

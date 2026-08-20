@@ -233,27 +233,31 @@ bằng component riêng:
 
 | Loại | Nguồn | Giấy phép |
 |---|---|---|
-| Icon giao diện (≈55 icon) | **Tự vẽ SVG** — `apps/mobile/src/components/Icon.tsx` | — |
-| Mark 7 game | **Tự vẽ SVG** — `apps/mobile/src/components/GameIcon.tsx` | — |
-| Quân cờ, cừu, ngựa, sỏi, sticker chat | **Tự vẽ SVG** — `apps/mobile/src/components/Piece.tsx` | — |
-| Icon trang quản trị | **Tự vẽ SVG** — `apps/admin/src/Icon.tsx` | — |
+| Art trong trận: mark 7 game, quân cờ, xúc xắc, vai Ma Sói, ô bàn Tỷ Phú, sticker | [game-icons.net](https://github.com/game-icons/icons) — 54 asset trong `apps/mobile/assets/game-icons/` | CC BY 3.0 |
 | Avatar người chơi | [DiceBear](https://github.com/dicebear/dicebear) — render SVG server-side, 10 bộ style | MIT |
 | Font tiêu đề | [Baloo 2](https://github.com/googlefonts/baloo) qua `@expo-google-fonts` | OFL |
 | Font nội dung | [Be Vietnam Pro](https://github.com/bettergui/BeVietnamPro) — hỗ trợ tiếng Việt đầy đủ | OFL |
-| Khung, nền, bàn cờ, hiệu ứng cosmetic | **CSS/gradient tự vẽ** trong `src/theme.ts` | — |
+| Icon điều hướng, nút, trạng thái | Bộ icon nét trong `src/components/Icon.tsx` | — |
+| Khung, nền, bàn cờ, hiệu ứng cosmetic | CSS/gradient trong `src/theme.ts` | — |
 
-**Không dùng emoji ở bất kỳ đâu trong giao diện.** Emoji mỗi hệ điều hành vẽ một kiểu,
-không đổi được màu theo ngữ cảnh và không canh được nét với chữ — nên toàn bộ hình
-trong app là SVG vẽ tay bằng `react-native-svg`:
+**Art của game lấy từ kho có sẵn, không vẽ tay.** game-icons.net là kho 4000+ icon
+game do hoạ sĩ vẽ, cùng khung 512×512 và cùng ngôn ngữ tạo hình silhouette — nhờ
+vậy 7 game xếp cạnh nhau vẫn ăn khớp, thứ mà tự vẽ từng cái rất khó giữ đồng bộ.
+Ghi công từng asset trong `apps/mobile/assets/game-icons/CREDITS.md`.
 
-- `<Icon>` — icon nét đồng bộ độ dày, nhận `color` và `strokeWidth` theo ngữ cảnh.
-- `<GameIcon>` — mark riêng của từng game, thiết kế cho nền gradient; đặt trên nền
-  sáng thì truyền `tint` để khối trắng không bị tàng hình.
-- `<Piece>` — quân cờ và nhân vật trong trận (cừu 5 bậc, quân mã, X/O, sỏi, mặt ghế
-  Ma Sói, mặt xúc xắc, sticker chat).
+Tải và cập nhật bộ asset:
 
-Toàn bộ vector nằm trong repo nên không phụ thuộc CDN, đổi màu theo theme được và
-hiển thị **giống hệt nhau trên iOS / Android / Web**.
+```bash
+node apps/mobile/scripts/fetch-game-art.mjs
+```
+
+Script tải SVG gốc về `apps/mobile/assets/game-icons/` (giữ nguyên file để tuân thủ
+giấy phép) rồi sinh `src/art/gameArt.ts` — dữ liệu vector đã bỏ nền đen và đánh dấu
+chỗ ăn màu, để `<Art>` vẽ bằng `react-native-svg` và tô theo phe / theo trạng thái.
+Muốn đổi hình cho game nào chỉ cần sửa một dòng trong bảng `ART` của script.
+
+**Không dùng emoji ở bất kỳ đâu trong giao diện** — emoji mỗi hệ điều hành vẽ một
+kiểu, không đổi được màu theo ngữ cảnh và không canh được nét với chữ.
 
 Cosmetic trong shop vẫn vẽ bằng gradient nên thêm item mới chỉ cần một dòng cấu hình màu.
 

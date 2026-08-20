@@ -9,8 +9,8 @@ import { api, friendlyError } from '../../src/lib/api';
 import { emitAck } from '../../src/lib/socket';
 import { useStore } from '../../src/state/store';
 
-/** Sticker vẽ tay bằng SVG, không dùng ký tự emoji. */
-const STICKERS: StickerName[] = ['happy', 'sad', 'angry', 'love', 'cool', 'shock', 'fire', 'trophy', 'gem', 'crown'];
+/** Sticker dùng asset game-icons, không dùng ký tự emoji. */
+const STICKERS: StickerName[] = ['happy', 'sad', 'love', 'fire', 'win', 'crown', 'star', 'gem', 'paw', 'skull'];
 
 export default function ChatScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();

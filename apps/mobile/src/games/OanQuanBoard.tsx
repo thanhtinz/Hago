@@ -29,7 +29,7 @@ function StoneCloud({ count, big }: { count: number; big: boolean }) {
 export default function OanQuanBoard({ view, mySeat, send, deadline, space }: BoardProps) {
   const [picked, setPicked] = React.useState<number | null>(null);
   // Bàn dân gian nằm ngang nên chiều cao ô co giãn theo phần màn hình còn trống.
-  const cellH = Math.max(74, Math.min(170, Math.floor((space.height - 250) / 2)));
+  const cellH = Math.max(74, Math.min(250, Math.floor((space.height - 230) / 2)));
   const quanH = cellH * 2 + 12;
   const yourTurn = view.turnSeat === mySeat && !view.over;
   const mine: number[] = view.own?.[mySeat] ?? [1, 2, 3, 4, 5];
@@ -86,7 +86,7 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
       }}
     >
       {view.quan[side] ? (
-        <MandarinStone size={32} />
+        <MandarinStone size={44} />
       ) : (
         <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.55)' }} />
       )}
@@ -115,7 +115,6 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
         text={view.over ? 'Tàn cuộc' : yourTurn ? (picked == null ? 'Chọn 1 ô của bạn' : 'Chọn hướng rải') : 'Đối thủ đang tính nước...'}
       />
 
-      <View style={{ flex: 1 }} />
       <View style={{ backgroundColor: '#EFD9B8', padding: 8, borderRadius: R.lg, borderWidth: 3, borderColor: '#C99C6B', flexDirection: 'row', alignItems: 'center' }}>
         <Quan index={0} side={0} />
         <View style={{ flex: 1 }}>

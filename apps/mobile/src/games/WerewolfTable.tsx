@@ -2,34 +2,32 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Btn, Card, Chip, Txt } from '../components/ui';
-import { Icon, IconName } from '../components/Icon';
-import { SeatFace } from '../components/Piece';
-import { GameIcon } from '../components/GameIcon';
+import { Icon } from '../components/Icon';
+import { Art, ArtName } from '../components/Art';
+import { RoleArt, RoleName, SeatFace } from '../components/Piece';
 import { C, R, S } from '../theme';
 import { BoardProps, GameLog } from './shared';
 
-const ROLE_INFO: Record<string, { icon: IconName | 'wolf'; name: string; hint: string; color: string }> = {
-  werewolf: { icon: 'wolf', name: 'Sói', hint: 'Mỗi đêm chọn một dân làng để cắn', color: '#E9556D' },
-  seer: { icon: 'eye', name: 'Tiên Tri', hint: 'Mỗi đêm soi 1 người xem có phải Sói', color: '#7C6BFF' },
-  guard: { icon: 'shield', name: 'Bảo Vệ', hint: 'Bảo vệ 1 người mỗi đêm, không lặp lại 2 đêm liền', color: '#2FA9F5' },
-  witch: { icon: 'flask', name: 'Phù Thuỷ', hint: 'Có bình cứu và bình độc, mỗi loại dùng 1 lần', color: '#39C77F' },
-  hunter: { icon: 'bow', name: 'Thợ Săn', hint: 'Khi chết có thể bắn theo 1 người', color: '#FF8A3D' },
-  villager: { icon: 'user', name: 'Dân Làng', hint: 'Không có kỹ năng — hãy suy luận và bỏ phiếu đúng', color: '#8E96A8' },
+const ROLE_INFO: Record<string, { name: string; hint: string; color: string }> = {
+  werewolf: { name: 'Sói', hint: 'Mỗi đêm chọn một dân làng để cắn', color: '#E9556D' },
+  seer: { name: 'Tiên Tri', hint: 'Mỗi đêm soi 1 người xem có phải Sói', color: '#7C6BFF' },
+  guard: { name: 'Bảo Vệ', hint: 'Bảo vệ 1 người mỗi đêm, không lặp lại 2 đêm liền', color: '#2FA9F5' },
+  witch: { name: 'Phù Thuỷ', hint: 'Có bình cứu và bình độc, mỗi loại dùng 1 lần', color: '#39C77F' },
+  hunter: { name: 'Thợ Săn', hint: 'Khi chết có thể bắn theo 1 người', color: '#FF8A3D' },
+  villager: { name: 'Dân Làng', hint: 'Không có kỹ năng — hãy suy luận và bỏ phiếu đúng', color: '#8E96A8' },
 };
 
-/** Sói dùng chính mark của game thay cho icon nét. */
+/** Mỗi vai một asset riêng trong bộ game-icons. */
 function RoleMark({ role, size, color }: { role: string; size: number; color: string }) {
-  const info = ROLE_INFO[role];
-  if (!info) return null;
-  if (info.icon === 'wolf') return <GameIcon name="werewolf" size={size} accent={color} tint="#8B7BC7" />;
-  return <Icon name={info.icon as IconName} size={size} color={color} strokeWidth={2.1} />;
+  if (!ROLE_INFO[role]) return null;
+  return <RoleArt role={role as RoleName} size={size} color={color} />;
 }
 
-const PHASE_TEXT: Record<string, { title: string; icon: IconName; colors: [string, string] }> = {
-  night: { title: 'Đêm xuống', icon: 'moon', colors: ['#3A2E6E', '#1C1636'] },
-  day: { title: 'Trời sáng — thảo luận', icon: 'sun', colors: ['#FFD9A0', '#FFF3E0'] },
-  vote: { title: 'Bỏ phiếu treo cổ', icon: 'ballot', colors: ['#FFB4A2', '#FFE5DC'] },
-  result: { title: 'Kết thúc', icon: 'flag', colors: ['#C8B6FF', '#EDE7FF'] },
+const PHASE_TEXT: Record<string, { title: string; art: ArtName; colors: [string, string] }> = {
+  night: { title: 'Đêm xuống', art: 'moon', colors: ['#3A2E6E', '#1C1636'] },
+  day: { title: 'Trời sáng — thảo luận', art: 'sun', colors: ['#FFD9A0', '#FFF3E0'] },
+  vote: { title: 'Bỏ phiếu treo cổ', art: 'vote', colors: ['#FFB4A2', '#FFE5DC'] },
+  result: { title: 'Kết thúc', art: 'win', colors: ['#C8B6FF', '#EDE7FF'] },
 };
 
 export default function WerewolfTable({ view, mySeat, send, space }: BoardProps) {
@@ -56,7 +54,7 @@ export default function WerewolfTable({ view, mySeat, send, space }: BoardProps)
   return (
     <View style={{ gap: S.md, flex: 1 }}>
       <LinearGradient colors={phase.colors} style={{ borderRadius: R.lg, padding: S.lg, gap: 4, alignItems: 'center' }}>
-        <Icon name={phase.icon} size={36} color={dark ? '#FFD36E' : C.ink} strokeWidth={1.9} />
+        <Art name={phase.art} size={44} color={dark ? '#FFD36E' : C.ink} hi={dark ? '#3A2E6E' : '#FFF3E0'} />
         <Txt size={20} weight="display" color={dark ? '#fff' : C.ink}>
           {phase.title}
         </Txt>
@@ -121,7 +119,12 @@ export default function WerewolfTable({ view, mySeat, send, space }: BoardProps)
                 opacity: s.alive ? 1 : 0.55,
               }}
             >
-              <SeatFace alive={s.alive} size={faceSize} color={s.seat === mySeat ? C.primary : '#FFC46B'} />
+              {/* Ghế nào lộ vai thì hiện luôn asset của vai đó. */}
+              {s.alive && s.role ? (
+                <RoleArt role={s.role as RoleName} size={faceSize} color={ROLE_INFO[s.role]?.color ?? C.inkSoft} />
+              ) : (
+                <SeatFace alive={s.alive} size={faceSize} color={s.seat === mySeat ? C.primary : '#A98BFF'} />
+              )}
               <Txt size={13} weight="bold" numberOfLines={1}>
                 {s.name}
                 {s.seat === mySeat ? ' (bạn)' : ''}
@@ -150,7 +153,7 @@ export default function WerewolfTable({ view, mySeat, send, space }: BoardProps)
 
       {view.winner ? (
         <Card style={{ alignItems: 'center', gap: 4, borderColor: C.primary }}>
-          {view.winner === 'wolves' ? <GameIcon name="werewolf" size={40} accent="#E9556D" tint="#8B7BC7" /> : <Icon name="home" size={38} color={C.mint} strokeWidth={1.9} />}
+          {view.winner === 'wolves' ? <Art name="role-werewolf" size={44} color="#E9556D" /> : <Art name="role-villager" size={44} color={C.mint} />}
           <Txt size={18} weight="display">
             Phe {view.winner === 'wolves' ? 'Sói' : 'Dân làng'} chiến thắng!
           </Txt>

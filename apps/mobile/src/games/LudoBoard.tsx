@@ -116,6 +116,11 @@ export default function LudoBoard({ view, mySeat, send, deadline, space }: Board
 
           {/* Khu trung tâm: chuồng + cầu về đích */}
           <View style={{ position: 'absolute', left: cell * 2.2, top: cell * 2.2, right: cell * 2.2, bottom: cell * 2.2, backgroundColor: '#FFFAF2', borderRadius: R.md, padding: 6, gap: 6, justifyContent: 'center' }}>
+            {view.dice ? (
+              <View style={{ alignItems: 'center', marginBottom: 2 }}>
+                <DieFace value={view.dice} size={Math.min(54, cell * 1.9)} color={C.ink} />
+              </View>
+            ) : null}
             {view.players.map((pl: any, seat: number) => {
               const home = view.pieces.filter((p: any) => p.seat === seat && p.state === 'home');
               const lane = view.pieces.filter((p: any) => p.seat === seat && p.state === 'lane');
@@ -170,7 +175,6 @@ export default function LudoBoard({ view, mySeat, send, deadline, space }: Board
       </View>
 
       <View style={{ alignItems: 'center', gap: S.sm }}>
-        <DieFace value={view.dice} size={58} color={view.dice ? C.primary : C.inkFaint} />
         {canRoll ? <Btn label="Tung xúc xắc" icon="dice" size="lg" style={{ alignSelf: 'center' }} onPress={() => send('roll', {})} /> : null}
         {yourTurn && view.rolled && moves.length ? (
           <Txt size={12} weight="bold" color={C.mint}>

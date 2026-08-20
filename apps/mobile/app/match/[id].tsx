@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Card, Txt } from '../../src/components/ui';
 import { Icon, IconName } from '../../src/components/Icon';
 import { GameIcon, GameIconName } from '../../src/components/GameIcon';
+import { DotPattern } from '../../src/components/decor';
 import { StickerArt } from '../../src/components/Piece';
 
 import { C, GAME_GRADIENT, R, S, softShadow } from '../../src/theme';
@@ -107,13 +108,15 @@ export default function MatchScreen() {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar hidden />
 
-      {/* Nền nhuộm nhẹ theo màu game để cả màn hình thuộc về ván đấu */}
+      {/* Nền nhuộm theo màu game: bàn cờ vuông luôn thừa chỗ trên màn dọc, để
+          trống trơn thì trông như lỗi bố cục — nhuộm màu thì thành mặt bàn. */}
       <LinearGradient
         pointerEvents="none"
-        colors={[grad[1] + '38', C.bg, C.bg]}
-        locations={[0, 0.42, 1]}
+        colors={[grad[0] + '4D', grad[1] + '26', C.bg]}
+        locations={[0, 0.45, 1]}
         style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
       />
+      <DotPattern rows={9} cols={9} gap={64} color={grad[1] + '26'} />
 
       {/* HUD mỏng, không chiếm chỗ của bàn chơi */}
       <LinearGradient
@@ -230,7 +233,7 @@ export default function MatchScreen() {
               return (
                 <>
                   {/* Mặt cảm xúc vẽ tay đọc rõ hơn icon nét ở cỡ lớn. */}
-                  <StickerArt name={win ? 'trophy' : draw ? 'cool' : 'sad'} size={72} />
+                  <StickerArt name={win ? 'win' : draw ? 'draw' : 'sad'} size={72} />
                   <Txt size={26} weight="display" color={win ? C.mint : draw ? C.sun : C.inkSoft}>
                     {win ? 'Chiến thắng!' : draw ? 'Hoà rồi!' : 'Thua mất rồi'}
                   </Txt>

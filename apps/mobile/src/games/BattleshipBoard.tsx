@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Btn, Chip, Txt } from '../components/ui';
 import { Icon } from '../components/Icon';
-import { ShotMark } from '../components/Piece';
+import { ShipPiece, ShotMark } from '../components/Piece';
 import { C, R, S } from '../theme';
 import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
 
@@ -120,7 +120,10 @@ function Grid({
         <View key={y} style={{ flexDirection: 'row' }}>
           {Array.from({ length: size }, (_, x) => {
             const shot = shotMap.get(`${x},${y}`);
-            const hasShip = sc.has(`${x},${y}`);
+            const part = sc.get(`${x},${y}`);
+            const hasShip = !!part;
+            // Chỉ ô giữa của mỗi tàu mới vẽ asset, các ô còn lại là thân tàu.
+            const isProw = part && part.part === Math.floor(part.ship.size / 2);
             return (
               <Pressable
                 key={x}
@@ -141,7 +144,13 @@ function Grid({
                 {shot ? (
                   <ShotMark kind={shot.sunk !== null ? 'sunk' : shot.hit ? 'hit' : 'miss'} size={cell * 0.72} />
                 ) : null}
-                {!shot && hasShip && !hideShips ? <View style={{ width: cell * 0.6, height: cell * 0.6, borderRadius: 3, backgroundColor: '#5E6B80' }} /> : null}
+                {!shot && hasShip && !hideShips ? (
+                  isProw ? (
+                    <ShipPiece size={cell * 0.94} color="#41506B" />
+                  ) : (
+                    <View style={{ width: cell * 0.72, height: cell * 0.52, borderRadius: 3, backgroundColor: '#5E6B80' }} />
+                  )
+                ) : null}
               </Pressable>
             );
           })}

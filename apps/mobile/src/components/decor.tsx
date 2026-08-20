@@ -67,7 +67,7 @@ export function TopSheen({ radius = 26 }: { radius?: number }) {
 }
 
 /** Nền chấm bi mờ cho vùng header. */
-export function DotPattern({ rows = 3, cols = 8, style }: { rows?: number; cols?: number; style?: ViewStyle }) {
+export function DotPattern({ rows = 3, cols = 8, color = 'rgba(255,255,255,0.18)', gap = 26, style }: { rows?: number; cols?: number; color?: string; gap?: number; style?: ViewStyle }) {
   return (
     <View pointerEvents="none" style={[{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }, style]}>
       {Array.from({ length: rows }, (_, r) =>
@@ -79,9 +79,9 @@ export function DotPattern({ rows = 3, cols = 8, style }: { rows?: number; cols?
               width: 5,
               height: 5,
               borderRadius: 3,
-              backgroundColor: 'rgba(255,255,255,0.18)',
+              backgroundColor: color,
               left: `${(c / cols) * 100 + 3}%`,
-              top: 10 + r * 26 + (c % 2) * 9,
+              top: 10 + r * gap + (c % 2) * 9,
             }}
           />
         )),
