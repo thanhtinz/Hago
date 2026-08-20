@@ -78,7 +78,10 @@ export default function MatchScreen() {
 
   const send = async (type: string, payload: any = {}) => {
     const res: any = await emitAck('game.action', { matchId: id, actionId: newActionId(), type, payload });
-    if (!res?.ok) showToast(friendlyError(res?.error ?? 'NETWORK'), 'warn');
+    // Bấm nhanh hơn tốc độ hồi cừu, hoặc ô xuất phát đang có cừu khác cấp —
+    // đều là nhịp chơi bình thường, không phải lỗi cần báo.
+    const quiet = ['QUEUE_EMPTY', 'LANE_BLOCKED', 'MAX_LEVEL_REACHED'];
+    if (!res?.ok && !quiet.includes(res?.error)) showToast(friendlyError(res?.error ?? 'NETWORK'), 'warn');
   };
 
   if (!state) {

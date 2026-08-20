@@ -32,6 +32,8 @@ export const SHEEP_STRIPS: Record<string, SheepStrip> = {
   'sheep-5-w-push': { w: 82, h: 84, count: 6, src: require('../../assets/sheep-fight/sheep-5-w-push.png') },
   'sheep-5-b-walk': { w: 83, h: 83, count: 6, src: require('../../assets/sheep-fight/sheep-5-b-walk.png') },
   'sheep-5-b-push': { w: 83, h: 80, count: 6, src: require('../../assets/sheep-fight/sheep-5-b-push.png') },
+  'push-effect': { w: 66, h: 59, count: 8, src: require('../../assets/sheep-fight/push-effect.png') },
+  'lane-effect': { w: 70, h: 640, count: 4, src: require('../../assets/sheep-fight/lane-effect.png') },
 };
 
 export const SHEEP_STILLS: Record<string, number> = {
@@ -46,7 +48,6 @@ export const SHEEP_STILLS: Record<string, number> = {
   'lvl5W': require('../../assets/sheep-fight/lvl5W.png'),
   'lvl5B': require('../../assets/sheep-fight/lvl5B.png'),
   'sheep-ready': require('../../assets/sheep-fight/sheep-ready.png'),
-  'push-effect': require('../../assets/sheep-fight/push-effect.png'),
   'grass-effect': require('../../assets/sheep-fight/grass-effect.png'),
 };
 

@@ -29,6 +29,8 @@ export interface SheepUnit {
   lastMoveAt: number;
   /** Đánh dấu để client chạy hiệu ứng va chạm. */
   clashAt?: number;
+  /** Đang ghì nhau tới thời điểm này thì chưa ai đi tiếp. */
+  lockUntil?: number;
 }
 
 export interface SheepState extends BaseState {
@@ -50,6 +52,8 @@ export interface SheepState extends BaseState {
 export const MAX_LEVEL = 5;
 /** Mỗi cừu đi 1 ô sau ngần này mili-giây. */
 const MOVE_MS = 620;
+/** Hai bên chạm nhau thì ghì nhau chừng này rồi mới phân thắng bại. */
+const PUSH_MS = 700;
 /** Hàng chờ hồi thêm 1 con cừu sau ngần này mili-giây. */
 const REFILL_MS = 1400;
 
@@ -181,6 +185,8 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
 
     for (const mover of order) {
       if (dead.has(mover.id)) continue;
+      // Đang ghì nhau: đứng tại chỗ đẩy, chưa đi và chưa phân thắng bại.
+      if (mover.lockUntil && now < mover.lockUntil) continue;
       if (now - mover.lastMoveAt < MOVE_MS) continue;
       mover.lastMoveAt = now;
       dirty = true;
@@ -214,7 +220,18 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
         continue;
       }
 
-      // Chạm cừu địch: hai bên trừ cấp cho nhau, bên còn dư cấp thì sống.
+      // Chạm cừu địch: ghì nhau một nhịp cho thấy hai bên đang đẩy, hết nhịp
+      // mới trừ cấp. Không có nhịp này thì va chạm xong trong một tick, người
+      // chơi chỉ thấy cừu biến mất.
+      if (!mover.lockUntil || !target.lockUntil) {
+        mover.lockUntil = now + PUSH_MS;
+        target.lockUntil = now + PUSH_MS;
+        mover.clashAt = now;
+        target.clashAt = now;
+        events.push({ type: 'clash', payload: { lane: mover.lane, pos: next, by: mover.seat } });
+        continue;
+      }
+
       const damage = Math.min(mover.level, target.level);
       mover.level -= damage;
       target.level -= damage;
@@ -224,6 +241,8 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
         type: 'clash',
         payload: { lane: mover.lane, pos: next, by: mover.seat },
       });
+      mover.lockUntil = undefined;
+      target.lockUntil = undefined;
       if (target.level <= 0) dead.add(target.id);
       if (mover.level <= 0) dead.add(mover.id);
       // Thắng giao tranh thì tràn lên ô vừa dọn sạch.
@@ -260,6 +279,7 @@ export const SheepEngine: GameEngine<SheepState, SheepConfig> = {
       maxLevel: MAX_LEVEL,
       // Client dùng nhịp này để trượt cừu sang ô mới đúng bằng thời gian server đi.
       moveMs: MOVE_MS,
+      pushMs: PUSH_MS,
       mySeat: seat,
       // Hàng chờ của đối thủ được giấu, chỉ lộ số lượng.
       myQueue: seat >= 0 ? state.queues[seat] : [],

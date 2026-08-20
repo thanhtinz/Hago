@@ -3,7 +3,7 @@ import { Image, Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bar, Txt } from '../components/ui';
 import { Icon } from '../components/Icon';
-import { SheepBadge, SheepSprite, SheepUnit } from '../components/SheepSprite';
+import { SheepBadge, SheepEffect, SheepSprite, SheepUnit } from '../components/SheepSprite';
 import { SHEEP_STILLS } from '../art/sheepFight';
 import { C, R, S, SEAT_COLORS, softShadow } from '../theme';
 import { BoardProps } from './shared';
@@ -13,6 +13,8 @@ const LEVEL_SCALE = [0.74, 0.74, 0.86, 0.98, 1.1, 1.24];
 
 export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
   const [now, setNow] = useState(Date.now());
+  /** Lần chạm gần nhất của từng làn, để chạy vệt sáng. */
+  const [tapped, setTapped] = useState<Record<number, number>>({});
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 200);
     return () => clearInterval(t);
@@ -31,8 +33,40 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
   const fieldH = cell * len;
 
   const left = Math.max(0, (view.endsAt ?? 0) - now);
-  /** Sân luôn xoay để phần của mình nằm dưới, bất kể ngồi ghế nào. */
+
   const rowOf = (pos: number) => (me === 0 ? len - 1 - pos : pos);
+
+  /**
+   * Chỗ hai phe đang tì nhau trong mỗi làn: lấy cặp gần nhau nhất rồi đặt đám
+   * bụi vào chính giữa, thay vì mỗi con tự vẽ một đám lệch nhau.
+   */
+  const clashSpots: { lane: number; row: number }[] = [];
+  {
+    const byLane = new Map<number, any[]>();
+    for (const u of view.units as any[]) {
+      const pushing = (u.lockUntil && now < u.lockUntil) || (u.clashAt && now - u.clashAt < 420);
+      if (!pushing) continue;
+      const list = byLane.get(u.lane) ?? [];
+      list.push(u);
+      byLane.set(u.lane, list);
+    }
+    byLane.forEach((units, lane) => {
+      const ours = units.filter((u) => u.seat === me);
+      const theirs = units.filter((u) => u.seat !== me);
+      let best: [any, any] | null = null;
+      let gap = Infinity;
+      for (const a of ours)
+        for (const b of theirs) {
+          const d = Math.abs(a.pos - b.pos);
+          if (d < gap) {
+            gap = d;
+            best = [a, b];
+          }
+        }
+      if (best) clashSpots.push({ lane, row: (rowOf(best[0].pos) + rowOf(best[1].pos)) / 2 });
+    });
+  }
+  /** Sân luôn xoay để phần của mình nằm dưới, bất kể ngồi ghế nào. */
 
   return (
     <View style={{ gap: S.sm, alignItems: 'center' }}>
@@ -130,11 +164,23 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
           />
         ))}
 
+        {/* Vệt sáng chạy dọc làn vừa thả cừu, cho biết chạm đã ăn */}
+        {Array.from({ length: lanes }, (_, i) =>
+          now - (tapped[i] ?? 0) < 380 ? (
+            <View key={`lanefx${i}`} pointerEvents="none" style={{ position: 'absolute', left: i * cell, top: 0 }}>
+              <SheepEffect name="lane-effect" width={cell} height={fieldH} frameMs={95} opacity={0.4} />
+            </View>
+          ) : null,
+        )}
+
         {/* Vùng chạm để thả cừu — cả cột làn */}
         {Array.from({ length: lanes }, (_, i) => (
           <Pressable
             key={`tap${i}`}
-            onPress={() => send('deploy', { lane: i })}
+            onPress={() => {
+              setTapped((t) => ({ ...t, [i]: Date.now() }));
+              send('deploy', { lane: i });
+            }}
             style={({ pressed }) => ({
               position: 'absolute',
               left: i * cell,
@@ -169,7 +215,7 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
         {view.units.map((u: any) => {
           const row = rowOf(u.pos);
           const mine = u.seat === me;
-          const clashing = !!u.clashAt && now - u.clashAt < 500;
+          const clashing = (!!u.lockUntil && now < u.lockUntil) || (!!u.clashAt && now - u.clashAt < 420);
           const body = cell * (LEVEL_SCALE[u.level] ?? 0.9);
           return (
             <SheepUnit
@@ -212,17 +258,29 @@ export default function SheepArena({ view, mySeat, send, space }: BoardProps) {
                   size={body}
                   frameMs={clashing ? 90 : 120}
                 />
-                {clashing ? (
-                  <Image
-                    source={SHEEP_STILLS['push-effect']}
-                    resizeMode="contain"
-                    style={{ position: 'absolute', bottom: cell * 0.5, width: cell * 0.9, height: cell * 0.28 }}
-                  />
-                ) : null}
               </View>
             </SheepUnit>
           );
         })}
+        {/* Bụi bốc lên chỗ hai phe tì nhau — hiệu ứng 8 khung của bộ art gốc */}
+        {clashSpots.map((spot) => (
+          <View
+            key={`clash${spot.lane}`}
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: spot.lane * cell,
+              top: spot.row * cell,
+              width: cell,
+              height: cell,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <SheepEffect name="push-effect" width={cell * 1.35} height={cell * 1.2} frameMs={60} />
+          </View>
+        ))}
+
       </View>
 
       {/* Bên mình */}

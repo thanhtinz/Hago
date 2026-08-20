@@ -263,6 +263,10 @@ sừng vàng mặt dữ — và hai phe khác hẳn nhau chứ không chỉ đ�
 nhìn từ sau lưng (đang đi lên), đàn đen nhìn chính diện (đang đi xuống).
 
 - `<SheepSprite>` chạy strip 6 khung, đổi sang animation *húc* khi hai con chạm nhau.
+- Chạm nhau thì hai bên **ghì nhau 700ms** (`PUSH_MS` trong engine) rồi mới phân
+  thắng bại, kèm đám bụi 8 khung `push-effect` bốc lên giữa hai con — không có
+  nhịp này thì va chạm xong trong một tick, người chơi chỉ thấy cừu biến mất.
+- Chạm vào làn nào thì làn đó loé `lane-effect` 4 khung.
 - `<SheepUnit>` trượt con cừu sang ô mới đúng bằng nhịp `moveMs` của server nên
   đàn cừu đi mượt thay vì nhảy cóc mỗi lần tick; lúc húc thì nảy gấp đôi nhịp.
 - Kích thước từng khung đọc thẳng từ file `.meta` của Unity đi kèm sprite —

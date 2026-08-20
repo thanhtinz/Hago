@@ -28,13 +28,11 @@ const TIERS = [1, 2, 3, 4, 5];
 const TEAMS = ['w', 'b'];
 const ANIMS = ['walk', 'push'];
 
-/** Ảnh tĩnh: icon cấp trong hàng chờ và các hiệu ứng trên sân. */
-const STILLS = [
-  ...TIERS.flatMap((t) => [`lvl${t}W`, `lvl${t}B`]),
-  'sheep-ready',
-  'push-effect',
-  'grass-effect',
-];
+/** Ảnh tĩnh: icon cấp trong hàng chờ, cụm cỏ, dấu sẵn sàng. */
+const STILLS = [...TIERS.flatMap((t) => [`lvl${t}W`, `lvl${t}B`]), 'sheep-ready', 'grass-effect'];
+
+/** Hiệu ứng có nhiều khung, cắt theo .meta giống sprite cừu. */
+const EFFECTS = ['push-effect', 'lane-effect'];
 
 async function download(rel, dest) {
   const res = await fetch(`${RAW}/${rel}`);
@@ -74,6 +72,12 @@ async function main() {
         console.log(`${name}.png  ${strips[name].count} khung ${strips[name].w}×${strips[name].h}`);
       }
     }
+  }
+
+  for (const name of EFFECTS) {
+    await download(`${name}.png`, path.join(OUT_IMG, `${name}.png`));
+    strips[name] = await frames(`${name}.png`);
+    console.log(`${name}.png  ${strips[name].count} khung ${strips[name].w}×${strips[name].h}`);
   }
 
   for (const name of STILLS) {
@@ -143,7 +147,9 @@ Sheep Fight của **Do Trung Kien**, phát hành theo giấy phép **MIT**
 | \`sheep-{1..5}-{w,b}-{walk,push}.png\` | 5 giống cừu theo bậc hợp thể × 2 phe × 2 animation, mỗi strip 6 khung |
 | \`lvl{1..5}{W,B}.png\` | Icon cấp cừu cho hàng chờ |
 | \`sheep-ready.png\` | Dấu cừu sẵn sàng |
-| \`push-effect.png\`, \`grass-effect.png\` | Hiệu ứng húc nhau và cỏ |
+| \`push-effect.png\` | Hiệu ứng bụi khi hai con húc nhau, 8 khung |
+| \`lane-effect.png\` | Vệt sáng chạy dọc làn khi thả cừu, 4 khung |
+| \`grass-effect.png\` | Cụm cỏ trên sân |
 
 Bậc cừu: 1 cừu non chưa có sừng · 2 nhú sừng · 3 sừng xoắn · 4 đeo băng đầu
 · 5 cừu chúa sừng vàng, mặt dữ. Phe trắng nhìn từ sau lưng (đi lên), phe đen

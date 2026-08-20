@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, View } from 'react-native';
-import { SheepAnim, SheepTeam, sheepBadge, sheepStrip } from '../art/sheepFight';
+import { SHEEP_STRIPS, SheepAnim, SheepTeam, sheepBadge, sheepStrip } from '../art/sheepFight';
 
 /**
  * Cừu trong Sheep Battle — sprite thật của game Sheep Fight, mỗi bậc hợp thể là
@@ -123,6 +123,8 @@ export function SheepUnit({
 
   return (
     <Animated.View
+      // Cừu không được nuốt cú chạm — vùng chạm thả cừu nằm dưới nó.
+      pointerEvents="none"
       style={{
         position: 'absolute',
         width,
@@ -134,5 +136,56 @@ export function SheepUnit({
     >
       {children}
     </Animated.View>
+  );
+}
+
+/**
+ * Hiệu ứng nhiều khung của bộ art (bụi húc nhau, vệt sáng làn).
+ * `loop = false` thì chạy hết một lượt rồi tắt.
+ */
+export function SheepEffect({
+  name,
+  width,
+  height,
+  frameMs = 70,
+  loop = true,
+  opacity = 1,
+}: {
+  name: 'push-effect' | 'lane-effect';
+  width: number;
+  height: number;
+  frameMs?: number;
+  loop?: boolean;
+  opacity?: number;
+}) {
+  const strip = SHEEP_STRIPS[name];
+  const [frame, setFrame] = useState(0);
+
+  useEffect(() => {
+    setFrame(0);
+    const timer = setInterval(() => {
+      setFrame((f) => {
+        const next = f + 1;
+        if (next >= strip.count) return loop ? 0 : strip.count - 1;
+        return next;
+      });
+    }, frameMs);
+    return () => clearInterval(timer);
+  }, [strip.count, frameMs, loop, name]);
+
+  return (
+    <View style={{ width, height, overflow: 'hidden', opacity }} pointerEvents="none">
+      <Image
+        source={strip.src}
+        resizeMode="stretch"
+        style={{
+          position: 'absolute',
+          width: width * strip.count,
+          height,
+          left: -frame * width,
+          top: 0,
+        }}
+      />
+    </View>
   );
 }
