@@ -16,10 +16,12 @@ import { BoardProps } from './shared';
 const MAP_LANES = { x: 113, width: 418, full: 540 };
 
 /**
- * Dải trời và nông trại nằm ở y 0–190 của ảnh gốc. Cắt bỏ để cừu không đi lên
- * cả bầu trời; giữ từ đầu làn cỏ (y 190) xuống hết đồng hoa (y 960).
+ * Chỉ giữ đúng phần cỏ có làn: dải trời và nông trại nằm ở y 0–190, còn từ y 825
+ * xuống đáy là đồng hoa phẳng lì không có bụi ngăn làn — để lại thì đáy sân (phía
+ * người chơi) trông trống trơn, không liền với phần cỏ bên trên. Đo bằng độ nhiễu
+ * màu theo từng hàng: bụi cỏ chạy đều tới y 820 rồi tắt hẳn ở 825.
  */
-const MAP_ROWS = { y: 190, height: 770, full: 960 };
+const MAP_ROWS = { y: 190, height: 635, full: 960 };
 
 /** Cừu càng cấp cao càng to và nhiều chi tiết (sừng, gạc, vương miện). */
 const LEVEL_SCALE = [0.74, 0.74, 0.86, 0.98, 1.1, 1.24];
