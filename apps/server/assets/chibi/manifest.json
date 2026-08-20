@@ -43,6 +43,34 @@
       "file": "sheep-golden.svg",
       "codepoint": "1f40f"
     },
+    "sheep-lv1": {
+      "file": "sheep-lv1.svg",
+      "codepoint": "1f411"
+    },
+    "sheep-lv2": {
+      "file": "sheep-lv2.svg",
+      "codepoint": "1f40f"
+    },
+    "sheep-lv3": {
+      "file": "sheep-lv3.svg",
+      "codepoint": "1f410"
+    },
+    "sheep-lv4": {
+      "file": "sheep-lv4.svg",
+      "codepoint": "1f98c"
+    },
+    "sheep-lv5": {
+      "file": "sheep-lv5.svg",
+      "codepoint": "1f984"
+    },
+    "grass": {
+      "file": "grass.svg",
+      "codepoint": "1f33f"
+    },
+    "swords": {
+      "file": "swords.svg",
+      "codepoint": "2694"
+    },
     "horse": {
       "file": "horse.svg",
       "codepoint": "1f434"

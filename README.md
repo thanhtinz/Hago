@@ -34,7 +34,7 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/20-game-caro.png) | ![](docs/screenshots/21-game-battleship.png) | ![](docs/screenshots/22-game-oanquan.png) |
 
-| Cờ Cá Ngựa | Cờ Tỷ Phú | Sheep Battle |
+| Cờ Cá Ngựa | Cờ Tỷ Phú | Sheep Battle (đấu làn) |
 |---|---|---|
 | ![](docs/screenshots/23-game-ludo.png) | ![](docs/screenshots/24-game-monopoly.png) | ![](docs/screenshots/25-game-sheep.png) |
 
@@ -97,7 +97,7 @@ Mobile (RN/Expo) ──REST──> Express API ──> SQLite (WAL)
 | Cờ Caro | 2 | Board strategy | Normal/Ranked/Custom | Bàn cấu hình 9–19, luật đúng-5-quân |
 | Bắn Tàu | 2 | Turn-based | Normal/Ranked/Custom | Hidden board, trúng được bắn tiếp |
 | Ô Ăn Quan | 2 | Board dân gian | Normal/Ranked/Custom | Rải, ăn dây, rải lại khi hết dân |
-| Sheep Battle | 2–4 | Realtime casual | Normal/Ranked/Custom | Tick 5Hz, cooldown di chuyển, húc rơi cừu |
+| Sheep Battle | 2 | Realtime lane battle | Normal/Ranked/Custom | Thả cừu theo làn, hợp thể 5 cấp, chạm nhau trừ cấp |
 | Cờ Tỷ Phú | 2–4 | Board/economy | Normal/Custom | Bàn 24 ô, độc quyền x2 tô, tù, phá sản |
 | Cờ Cá Ngựa | 2–4 | Board casual | Normal/Ranked/Custom | Ô an toàn, đá ngựa, ra 6 đi tiếp |
 | Ma Sói | 4–16 | Social deduction | Normal/Custom | State machine đêm/ngày/vote, 6 vai |
@@ -138,6 +138,11 @@ báo cáo người chơi, lọc từ ngữ tục tĩu, rate limit chống spam.
 
 Trong phòng: kick, mời bạn bè, đánh dấu sẵn sàng, chat phòng. Quick Match ghép theo
 game + mode + region với cửa sổ Elo nới dần theo thời gian chờ.
+
+**Sheep Battle** — bản đấu cừu theo làn giống hệt game gốc: hàng chờ cừu tự hồi,
+chạm vào làn để thả, thả trúng cừu cùng cấp thì hợp thể (cừu → cừu sừng → dê → hươu →
+kỳ lân), cừu hai bên chạm nhau trừ cấp lẫn nhau, cừu lọt qua sân đối thủ ghi điểm bằng
+đúng cấp của nó. Ai chạm mốc 20 điểm trước hoặc dẫn điểm khi hết 2 phút là thắng.
 
 **Realtime** — Socket.IO, idempotency theo `action_id`, version state tăng dần,
 reconnect tự động khôi phục ván đang chơi, grace period 60s trước khi xử thua AFK.

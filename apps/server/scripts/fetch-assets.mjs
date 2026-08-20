@@ -24,9 +24,16 @@ const ASSETS = {
   'game-ludo': '1f434',
   'game-werewolf': '1f43a',
 
-  // Quân cờ & vật thể trong trận
+  // Sheep Battle — 5 bậc tiến hoá của cừu
   sheep: '1f411',
   'sheep-golden': '1f40f',
+  'sheep-lv1': '1f411',
+  'sheep-lv2': '1f40f',
+  'sheep-lv3': '1f410',
+  'sheep-lv4': '1f98c',
+  'sheep-lv5': '1f984',
+  grass: '1f33f',
+  swords: '2694',
   horse: '1f434',
   wolf: '1f43a',
   dice: '1f3b2',

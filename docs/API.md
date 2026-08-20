@@ -130,7 +130,7 @@ tài khoản bị khoá.
 | oanquan | `sow` | `{cell, dir}` — `dir` là `1` hoặc `-1` |
 | ludo | `roll` / `move` | `{}` / `{pieceId}` |
 | monopoly | `roll` / `buy` / `skip` | `{}` |
-| sheep | `move` | `{dir: 'up'\|'down'\|'left'\|'right'}` |
+| sheep | `deploy` | `{lane}` — thả cừu đầu hàng chờ vào làn |
 | werewolf | `night_action` / `vote` / `ready_vote` | `{target}` / `{target}` / `{}` |
 
 ### Mã lỗi thường gặp

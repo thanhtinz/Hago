@@ -85,18 +85,30 @@ function decide(gameType, view, mySeat) {
       return { type: me && me.cash - price > 200 ? 'buy' : 'skip', payload: {} };
     }
     case 'sheep': {
-      const me = view.actors?.[mySeat];
-      if (!me) return null;
-      const target =
-        me.carrying != null
-          ? view.pens[mySeat]
-          : view.sheep.filter((s) => !s.penned && s.heldBy == null).sort((a, b) => dist(a, me) - dist(b, me))[0];
-      if (!target) return null;
-      const dx = target.x - me.x;
-      const dy = target.y - me.y;
-      if (dx === 0 && dy === 0) return null;
-      const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up';
-      return { type: 'move', payload: { dir } };
+      const level = view.myQueue?.[0];
+      if (!level) return null;
+      const spawn = mySeat === 0 ? 0 : view.laneLength - 1;
+      const occupied = new Map();
+      for (const u of view.units ?? []) if (u.pos === spawn) occupied.set(u.lane, u);
+
+      // Ưu tiên thả chồng lên cừu cùng cấp để tiến hoá, sau đó tới làn trống,
+      // ưu tiên làn đang bị địch áp đảo.
+      const merges = [];
+      const empties = [];
+      for (let lane = 0; lane < view.lanes; lane++) {
+        const at = occupied.get(lane);
+        if (!at) empties.push(lane);
+        else if (at.seat === mySeat && at.level === level && at.level < view.maxLevel) merges.push(lane);
+      }
+      if (merges.length) return { type: 'deploy', payload: { lane: pick(merges) } };
+      if (!empties.length) return null;
+      const threat = (lane) =>
+        (view.units ?? [])
+          .filter((u) => u.lane === lane && u.seat !== mySeat)
+          .reduce((sum, u) => sum + u.level, 0);
+      empties.sort((a, b) => threat(b) - threat(a));
+      const lane = threat(empties[0]) > 0 ? empties[0] : pick(empties);
+      return { type: 'deploy', payload: { lane } };
     }
     case 'werewolf': {
       const me = view.seats?.[mySeat];
@@ -118,8 +130,6 @@ function decide(gameType, view, mySeat) {
       return null;
   }
 }
-
-const dist = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 
 async function spawn(username, opts) {
   const { token, profile } = await login(username);
@@ -158,7 +168,7 @@ async function spawn(username, opts) {
         const action = decide(res.state.gameType, res.state.view, mySeat);
         if (action) socket.emit('game.action', { matchId: res.state.matchId, actionId: actionId(), ...action });
       });
-    }, 700);
+    }, 550);
   }
 
   // Giữ presence để bạn bè thấy online.
