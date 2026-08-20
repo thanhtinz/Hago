@@ -1,41 +1,69 @@
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { Btn, Chip, Txt } from '../components/ui';
-import { MandarinStone, StonePiece } from '../components/Piece';
+import { Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Btn, Txt } from '../components/ui';
 import { C, R, S, SEAT_COLORS, softShadow } from '../theme';
 import { BoardProps, GameLog, TurnBanner, VersusBar } from './shared';
+import { GoldFlower, LeafSpray, MandarinChibi, Pit, QuanLid, QuanPit, Seed, WOOD, WoodGrain } from './OanQuanArt';
 
-/** Rải sỏi thành các hàng cố định để không tràn khỏi ô. */
-function StoneCloud({ count, big }: { count: number; big: boolean }) {
-  const per = 3;
-  const shown = Math.min(count, big ? 9 : 6);
-  const size = big ? 11 : 9;
-  const rows: number[] = [];
-  for (let left = shown; left > 0; left -= per) rows.push(Math.min(per, left));
+/**
+ * Bàn Ô Ăn Quan dựng theo bản thiết kế: tấm gỗ nằm ngang, hai đầu là ô Quan
+ * bầu dục khắc chữ, ở giữa hai hàng năm ô dân khoét tròn, vạch chia có hoa văn
+ * vàng, bốn góc gắn hoa lá.
+ *
+ * Hàng dưới luôn là ô của người đang xem, hàng trên của đối thủ.
+ */
+
+/** Rải hạt trong lòng ô theo vòng tròn để nhìn như sỏi đổ thật. */
+function SeedPile({ count, radius, seedSize, salt }: { count: number; radius: number; seedSize: number; salt: number }) {
+  if (!count) return null;
+  const shown = Math.min(count, 12);
   return (
-    <View style={{ alignItems: 'center', gap: 2 }}>
-      {rows.map((n, r) => (
-        <View key={r} style={{ flexDirection: 'row', gap: 2 }}>
-          {Array.from({ length: n }, (_, i) => (
-            <StonePiece key={i} size={size} />
-          ))}
-        </View>
-      ))}
+    <View style={{ position: 'absolute', width: radius * 2, height: radius * 2, alignItems: 'center', justifyContent: 'center' }}>
+      {Array.from({ length: shown }, (_, i) => {
+        // Vòng trong tối đa 4 hạt, còn lại xoè ra vòng ngoài.
+        const ring = i < 4 ? 0 : 1;
+        const inRing = ring === 0 ? Math.min(shown, 4) : shown - 4;
+        const idx = ring === 0 ? i : i - 4;
+        const r = ring === 0 ? radius * 0.3 : radius * 0.62;
+        const angle = (idx / Math.max(1, inRing)) * Math.PI * 2 + (ring ? 0.5 : 0) + salt;
+        return (
+          <View
+            key={i}
+            style={{
+              position: 'absolute',
+              transform: [{ translateX: Math.cos(angle) * r }, { translateY: Math.sin(angle) * r }],
+            }}
+          >
+            <Seed size={seedSize} tone={i + salt} />
+          </View>
+        );
+      })}
     </View>
   );
 }
 
-/** Bố cục dân gian: hàng dưới là ô của người chơi ghế 0, hàng trên của ghế 1. */
 export default function OanQuanBoard({ view, mySeat, send, deadline, space }: BoardProps) {
   const [picked, setPicked] = React.useState<number | null>(null);
-  // Bàn dân gian nằm ngang nên chiều cao ô co giãn theo phần màn hình còn trống.
-  const cellH = Math.max(74, Math.min(148, Math.floor((space.height - 230) / 2)));
-  const quanH = cellH * 2 + 12;
   const yourTurn = view.turnSeat === mySeat && !view.over;
   const mine: number[] = view.own?.[mySeat] ?? [1, 2, 3, 4, 5];
-  const topRow = [11, 10, 9, 8, 7];
-  const bottomRow = [1, 2, 3, 4, 5];
+  const iAmSeatZero = mine === view.own?.[0] || mySeat === 0;
+  // Hàng của mình luôn nằm dưới.
+  const bottomRow = iAmSeatZero ? [1, 2, 3, 4, 5] : [7, 8, 9, 10, 11];
+  const topRow = iAmSeatZero ? [11, 10, 9, 8, 7] : [5, 4, 3, 2, 1];
+
+  /**
+   * Bàn nằm ngang, chiếm hết bề ngang màn hình: 5 ô dân ở giữa, hai đầu là ô
+   * Quan rộng bằng 1.2 ô. Chiều cao ô co theo phần màn hình còn trống.
+   */
+  const pad = 9;
+  const usable = Math.max(280, space.width - 4);
+  const byWidth = (usable - pad * 2 - 8) / (5 + 1.2 * 2);
+  const byHeight = (space.height - 280) / 2;
+  const cell = Math.max(44, Math.floor(Math.min(byWidth, byHeight)));
+  const quanW = Math.round(cell * 1.2);
+  const boardW = cell * 5 + quanW * 2 + pad * 2 + 8;
+  const boardH = cell * 2 + pad * 2 + 20;
 
   const sow = (dir: number) => {
     if (picked == null) return;
@@ -43,76 +71,88 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
     setPicked(null);
   };
 
-  const Cell = ({ index }: { index: number }) => {
+  const DanCell = ({ index }: { index: number }) => {
     const count = view.cells[index];
     const own = mine.includes(index);
     const selectable = yourTurn && own && count > 0;
-    const inPath = view.lastPath?.includes(index);
-    const seatTone = SEAT_COLORS[mine === view.own?.[0] ? 0 : 1];
+    const tone = picked === index ? 'picked' : view.lastPath?.includes(index) ? 'path' : 'idle';
     return (
-      <Pressable disabled={!selectable} onPress={() => setPicked(index)} style={{ flex: 1, margin: 3 }}>
-        <LinearGradient
-          // Lòng ô sẫm ở trên, sáng dần xuống dưới cho ra cảm giác lõm như ô khoét.
-          colors={
-            picked === index
-              ? ['#F0BE72', '#FFE7C0']
-              : inPath
-                ? ['#E7CFA6', '#FFF3DE']
-                : ['#DCC49B', '#FBEAD0']
-          }
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 0.75 }}
+      <Pressable
+        disabled={!selectable}
+        onPress={() => setPicked(index)}
+        style={{ width: cell, height: cell, alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Pit size={cell} tone={tone as any} />
+        <SeedPile count={count} radius={cell * 0.34} seedSize={Math.max(9, cell * 0.23)} salt={index} />
+        {/* Ô đang chọn được viền vàng đậm; ô mình đi được chỉ sáng vành nhẹ */}
+        {selectable || picked === index ? (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              width: cell - 5,
+              height: cell - 5,
+              borderRadius: cell,
+              borderWidth: picked === index ? 3 : 2,
+              borderColor: picked === index ? C.primary : 'rgba(255,236,190,0.85)',
+            }}
+          />
+        ) : null}
+        <View
+          pointerEvents="none"
           style={{
-            height: cellH,
-            borderRadius: R.md,
+            position: 'absolute',
+            minWidth: 18,
+            paddingHorizontal: 4,
+            borderRadius: R.pill,
             alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 2,
-            borderColor: picked === index ? C.primary : own ? seatTone + '99' : '#C8A87C',
-            borderTopWidth: 3,
-            borderTopColor: picked === index ? C.primary : '#BC9968',
+            backgroundColor: 'rgba(255,247,232,0.88)',
           }}
         >
-          <StoneCloud count={count} big={cellH > 110} />
-          <Txt size={13} weight="display" color="#6B4423">
+          <Txt size={Math.max(11, Math.round(cell * 0.2))} weight="display" color="#5E3F1C">
             {count}
           </Txt>
-        </LinearGradient>
+        </View>
       </Pressable>
     );
   };
 
-  const Quan = ({ index, side }: { index: number; side: 0 | 1 }) => (
-    <LinearGradient
-      colors={view.quan[side] ? ['#D79A2E', '#FFDF9B'] : ['#BDB3A5', '#E4DCD1']}
-      start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 0.8 }}
-      style={{
-        width: 68,
-        height: quanH,
-        borderRadius: 40,
-        alignItems: 'center',
-        justifyContent: 'center',
-        margin: 3,
-        borderWidth: 3,
-        borderColor: view.quan[side] ? '#A5741C' : '#9E958A',
-        borderTopWidth: 4,
-        borderTopColor: view.quan[side] ? '#8E6212' : '#8B837A',
-      }}
-    >
-      {view.quan[side] ? (
-        <MandarinStone size={44} />
-      ) : (
-        <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.55)' }} />
-      )}
-      <Txt size={11} weight="bold" color="#6B4423">
-        {view.quan[side] ? `Quan ${view.quanValue}đ` : 'Quan đã bị ăn'}
-      </Txt>
-      <Txt size={10} color="#8C6239">
-        +{view.cells[index]} dân
-      </Txt>
-    </LinearGradient>
-  );
+  const QuanCell = ({ index, side }: { index: number; side: 0 | 1 }) => {
+    const alive = view.quan[side];
+    const tone = side === 0 ? 'blue' : 'red';
+    const h = cell * 2 + 12;
+    return (
+      <View style={{ width: quanW, height: h, alignItems: 'center', justifyContent: 'center' }}>
+        <QuanPit width={quanW} height={h} empty={!alive} />
+        <View style={{ position: 'absolute', alignItems: 'center' }}>
+          {alive ? <MandarinChibi size={quanW * 0.78} tone={tone} /> : <QuanLid size={quanW * 0.68} tone={tone} />}
+        </View>
+        {/* Nhãn nằm dưới đáy ô, không đè lên quân */}
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 10,
+            paddingHorizontal: 7,
+            paddingVertical: 2,
+            borderRadius: R.pill,
+            alignItems: 'center',
+            backgroundColor: 'rgba(255,246,229,0.9)',
+            borderWidth: 1,
+            borderColor: WOOD.rim,
+          }}
+        >
+          <Txt size={10} weight="bold" color={WOOD.ink}>
+            {alive ? `Quan ${view.quanValue}` : 'Đã ăn'}
+          </Txt>
+          {view.cells[index] ? (
+            <Txt size={9} color="#8C6239">
+              +{view.cells[index]} dân
+            </Txt>
+          ) : null}
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={{ gap: S.md }}>
@@ -129,30 +169,65 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
         text={view.over ? 'Tàn cuộc' : yourTurn ? (picked == null ? 'Chọn 1 ô của bạn' : 'Chọn hướng rải') : 'Đối thủ đang tính nước...'}
       />
 
-      <LinearGradient
-        colors={['#E3C395', '#CBA470']}
-        start={{ x: 0.1, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
-        style={[
-          { padding: 8, borderRadius: R.lg, borderWidth: 3, borderColor: '#A9773F', flexDirection: 'row', alignItems: 'center' },
-          softShadow(0.18, 16, 8),
-        ]}
-      >
-        <Quan index={0} side={0} />
-        <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row' }}>
-            {topRow.map((i) => (
-              <Cell key={i} index={i} />
-            ))}
+      <View style={{ alignItems: 'center' }}>
+        <LinearGradient
+          colors={[WOOD.face, WOOD.faceLo]}
+          start={{ x: 0.15, y: 0 }}
+          end={{ x: 0.85, y: 1 }}
+          style={[
+            {
+              width: boardW,
+              height: boardH,
+              borderRadius: 30,
+              borderWidth: 4,
+              borderColor: WOOD.rimDark,
+              padding: pad,
+              flexDirection: 'row',
+              alignItems: 'center',
+              overflow: 'hidden',
+            },
+            softShadow(0.22, 18, 9),
+          ]}
+        >
+          <WoodGrain width={boardW} height={boardH} />
+
+          <QuanCell index={0} side={0} />
+
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row' }}>
+              {topRow.map((i) => (
+                <DanCell key={i} index={i} />
+              ))}
+            </View>
+            {/* Vạch chia hai hàng, giữa gắn hoa văn */}
+            <View style={{ height: 18, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ position: 'absolute', left: 6, right: 6, height: 2, backgroundColor: WOOD.rim, opacity: 0.55 }} />
+              <GoldFlower size={16} />
+            </View>
+            <View style={{ flexDirection: 'row' }}>
+              {bottomRow.map((i) => (
+                <DanCell key={i} index={i} />
+              ))}
+            </View>
           </View>
-          <View style={{ flexDirection: 'row' }}>
-            {bottomRow.map((i) => (
-              <Cell key={i} index={i} />
-            ))}
+
+          <QuanCell index={6} side={1} />
+
+          {/* Hoa lá bốn góc như trong bản thiết kế */}
+          <View pointerEvents="none" style={{ position: 'absolute', left: -2, top: -2 }}>
+            <LeafSpray size={30} />
           </View>
-        </View>
-        <Quan index={6} side={1} />
-      </LinearGradient>
+          <View pointerEvents="none" style={{ position: 'absolute', right: -2, top: -2 }}>
+            <LeafSpray size={30} flip />
+          </View>
+          <View pointerEvents="none" style={{ position: 'absolute', left: -2, bottom: -2 }}>
+            <LeafSpray size={30} flip />
+          </View>
+          <View pointerEvents="none" style={{ position: 'absolute', right: -2, bottom: -2 }}>
+            <LeafSpray size={30} />
+          </View>
+        </LinearGradient>
+      </View>
 
       {picked != null ? (
         <View style={{ flexDirection: 'row', gap: S.md, justifyContent: 'center' }}>
