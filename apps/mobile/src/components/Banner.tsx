@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { C, R, S, softShadow } from '../theme';
+import { C, R, S, glowShadow } from '../theme';
 import { Txt } from './ui';
-import { Icon, IconName } from './Icon';
+import { ArtToken } from './ArtToken';
+import { ArtName } from './Art';
 import { Bubbles, Gloss } from './decor';
 
 export interface BannerItem {
@@ -11,7 +12,7 @@ export interface BannerItem {
   title: string;
   description: string;
   colors: [string, string];
-  icon: IconName;
+  art: ArtName;
   tag?: string;
   onPress?: () => void;
 }
@@ -56,7 +57,7 @@ export function BannerCarousel({ items, height = 132 }: { items: BannerItem[]; h
               colors={b.colors}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={[{ width: cardW, height, borderRadius: 24, padding: S.lg, overflow: 'hidden', justifyContent: 'center' }, softShadow(0.16, 14, 6)]}
+              style={[{ width: cardW, height, borderRadius: 26, padding: S.lg, overflow: 'hidden', justifyContent: 'center' }, glowShadow(b.colors[1], 0.34, 18, 9)]}
             >
               <Bubbles
                 spec={[
@@ -81,9 +82,7 @@ export function BannerCarousel({ items, height = 132 }: { items: BannerItem[]; h
                     {b.description}
                   </Txt>
                 </View>
-                <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name={b.icon} size={34} color="#fff" strokeWidth={1.9} />
-                </View>
+                <ArtToken name={b.art} size={72} art={44} shadow={0.22} glyph />
               </View>
             </LinearGradient>
           </Pressable>

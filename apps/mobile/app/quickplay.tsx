@@ -6,7 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Card, Chip, Txt } from '../src/components/ui';
 import { Icon } from '../src/components/Icon';
 import { GameIcon, GameIconName } from '../src/components/GameIcon';
-import { C, GAME_GRADIENT, R, S } from '../src/theme';
+import { ArtToken } from '../src/components/ArtToken';
+import { Art, ArtName } from '../src/components/Art';
+import { C, GAME_GRADIENT, R, S, glowShadow } from '../src/theme';
 import { api, friendlyError } from '../src/lib/api';
 import { emitAck } from '../src/lib/socket';
 import { useStore } from '../src/state/store';
@@ -81,7 +83,7 @@ export default function QuickPlayScreen() {
             colors={(GAME_GRADIENT[selected ?? 'caro'] ?? ['#FF8A65', '#FF5E7D']) as [string, string]}
             style={{ width: 170, height: 170, borderRadius: 85, alignItems: 'center', justifyContent: 'center' }}
           >
-            <GameIcon name={(selected ?? 'caro') as GameIconName} size={86} />
+            <ArtToken name={`game-${selected ?? 'caro'}` as ArtName} size={120} art={74} shadow={0.28} />
           </LinearGradient>
           <ActivityIndicator size="large" color={C.primary} />
           <Txt size={22} weight="display">
@@ -146,8 +148,11 @@ export default function QuickPlayScreen() {
                       backgroundColor: selected === g.id ? C.primarySoft : C.surface,
                     }}
                   >
-                    <LinearGradient colors={(GAME_GRADIENT[g.id] ?? ['#eee', '#ddd']) as [string, string]} style={{ width: 48, height: 48, borderRadius: R.md, alignItems: 'center', justifyContent: 'center' }}>
-                      <GameIcon name={g.id as GameIconName} size={32} />
+                    <LinearGradient
+                      colors={(GAME_GRADIENT[g.id] ?? ['#eee', '#ddd']) as [string, string]}
+                      style={[{ width: 52, height: 52, borderRadius: R.md, alignItems: 'center', justifyContent: 'center' }, glowShadow((GAME_GRADIENT[g.id] ?? ['#999'])[0], 0.3, 10, 5)]}
+                    >
+                      <Art name={`game-${g.id}` as ArtName} size={34} color="#fff" shadow />
                     </LinearGradient>
                     <View style={{ flex: 1 }}>
                       <Txt size={15} weight="bold">

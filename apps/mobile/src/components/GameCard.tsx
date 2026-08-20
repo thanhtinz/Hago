@@ -1,10 +1,11 @@
 import React from 'react';
 import { Image, Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { C, GAME_GRADIENT, R, S, softShadow } from '../theme';
+import { C, GAME_GRADIENT, R, S, glowShadow, softShadow } from '../theme';
 import { Txt } from './ui';
 import { Bubbles, Gloss } from './decor';
-import { GameIcon, GameIconName } from './GameIcon';
+import { ArtToken } from './ArtToken';
+import { ArtName } from './Art';
 import { Icon } from './Icon';
 
 export interface GameMeta {
@@ -37,7 +38,7 @@ export function HotGameCard({
         colors={grad}
         start={{ x: 0.1, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[{ width: 208, height: 244, borderRadius: 28, padding: S.lg, overflow: 'hidden' }, softShadow(0.18, 16, 8)]}
+        style={[{ width: 214, height: 258, borderRadius: 30, padding: S.lg, overflow: 'hidden' }, glowShadow(grad[0], 0.4, 22, 12)]}
       >
         <Bubbles
           spec={[
@@ -68,18 +69,18 @@ export function HotGameCard({
         </View>
 
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          {/* Bệ tròn mờ để nhân vật nổi khỏi nền gradient */}
-          <View style={{ position: 'absolute', width: 104, height: 104, borderRadius: 52, backgroundColor: 'rgba(255,255,255,0.24)' }} />
-          <GameIcon name={game.id as GameIconName} size={92} />
+          {/* Quầng sáng sau đồng xu để khối art tách hẳn khỏi nền gradient */}
+          <View style={{ position: 'absolute', width: 132, height: 132, borderRadius: 66, backgroundColor: 'rgba(255,255,255,0.14)' }} />
+          <ArtToken name={`game-${game.id}` as ArtName} size={112} art={68} shadow={0.26} />
         </View>
 
         {/* Chuyển màu mờ dần ở chân thẻ để chữ trắng luôn đọc được mà không tạo mép cứng */}
         <LinearGradient
           pointerEvents="none"
-          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.06)', 'rgba(0,0,0,0.2)']}
-          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 120 }}
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.32)']}
+          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 132 }}
         />
-        <Txt size={19} weight="display" color="#fff">
+        <Txt size={20} weight="display" color="#fff">
           {game.name}
         </Txt>
         <Txt size={11} weight="medium" color="rgba(255,255,255,0.92)" numberOfLines={1}>
@@ -103,15 +104,12 @@ export function GameCard({ game, onPress, hotCount }: { game: GameMeta; onPress?
         colors={grad}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[{ borderRadius: R.lg, padding: S.lg, gap: 3, overflow: 'hidden', minHeight: 172 }, softShadow(0.14, 14, 6)]}
+        style={[{ borderRadius: 26, padding: S.lg, gap: 3, overflow: 'hidden', minHeight: 182 }, glowShadow(grad[0], 0.34, 18, 9)]}
       >
         <Bubbles spec={[{ size: 104, right: -22, bottom: -22, alpha: 0.2 }]} />
         <Gloss opacity={0.11} />
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-            <View style={{ position: 'absolute', width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.22)' }} />
-            <GameIcon name={game.id as GameIconName} size={54} />
-          </View>
+          <ArtToken name={`game-${game.id}` as ArtName} size={68} art={42} shadow={0.2} />
           {hotCount ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(0,0,0,0.18)', paddingHorizontal: 7, paddingVertical: 3, borderRadius: R.pill }}>
               <Icon name="flame" size={11} color="#fff" strokeWidth={2.4} />
@@ -127,6 +125,11 @@ export function GameCard({ game, onPress, hotCount }: { game: GameMeta; onPress?
         <Txt size={11} weight="medium" color="rgba(255,255,255,0.9)" numberOfLines={2}>
           {game.tagline}
         </Txt>
+        <LinearGradient
+          pointerEvents="none"
+          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.18)']}
+          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 96 }}
+        />
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 'auto', paddingTop: 8, flexWrap: 'wrap' }}>
           <Badge text={`${game.minPlayers}${game.maxPlayers > game.minPlayers ? `–${game.maxPlayers}` : ''} người`} />
           <Badge text={`~${game.avgMinutes} phút`} />

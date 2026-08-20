@@ -8,7 +8,9 @@ import { GameCard, GameMeta } from '../../src/components/GameCard';
 import { Icon, IconName } from '../../src/components/Icon';
 import { Bubbles, DotPattern, Gloss } from '../../src/components/decor';
 import { GameIcon, GameIconName } from '../../src/components/GameIcon';
-import { ACTION_GRADIENT, C, GAME_GRADIENT, HERO_GRADIENT, R, S, softShadow } from '../../src/theme';
+import { Art, ArtName } from '../../src/components/Art';
+import { ArtToken } from '../../src/components/ArtToken';
+import { ACTION_GRADIENT, C, GAME_GRADIENT, HERO_GRADIENT, R, S, glowShadow, softShadow } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
 import { emitAck } from '../../src/lib/socket';
 import { useStore } from '../../src/state/store';
@@ -91,14 +93,14 @@ export default function GamesScreen() {
       {/* Hai lối vào phòng, nổi lên trên mép header */}
       <View style={{ flexDirection: 'row', gap: S.md, paddingHorizontal: S.lg, marginTop: -26 }}>
         <RoomShortcut
-          icon="door"
+          art="ui-find"
           title="Tìm phòng"
           sub={`${rooms.length} phòng đang mở`}
           colors={ACTION_GRADIENT.find}
           onPress={() => router.push('/rooms?tab=find')}
         />
         <RoomShortcut
-          icon="key"
+          art="ui-create"
           title="Tạo phòng"
           sub="Tuỳ chỉnh luật chơi"
           colors={ACTION_GRADIENT.create}
@@ -183,7 +185,7 @@ export default function GamesScreen() {
                     style={{ width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
                   >
                     <Gloss opacity={0.14} angle="top" />
-                    <GameIcon name={r.gameType as GameIconName} size={32} />
+                    <Art name={`game-${r.gameType}` as ArtName} size={32} color="#fff" shadow />
                   </LinearGradient>
                   <View style={{ flex: 1 }}>
                     <Txt size={14} weight="bold">
@@ -226,13 +228,13 @@ export default function GamesScreen() {
 }
 
 function RoomShortcut({
-  icon,
+  art,
   title,
   sub,
   colors,
   onPress,
 }: {
-  icon: IconName;
+  art: ArtName;
   title: string;
   sub: string;
   colors: [string, string];
@@ -246,13 +248,13 @@ function RoomShortcut({
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[
-            { borderRadius: 20, padding: S.lg, gap: 3, overflow: 'hidden', transform: [{ translateY: pressed ? 2 : 0 }] },
-            softShadow(0.16, 12, 6),
+            { borderRadius: 22, padding: S.lg, gap: 3, overflow: 'hidden', transform: [{ translateY: pressed ? 2 : 0 }] },
+            glowShadow(colors[1], 0.32, 14, 7),
           ]}
         >
           <Gloss opacity={0.16} angle="top" />
           <Bubbles spec={[{ size: 76, right: -22, bottom: -26, alpha: 0.18 }]} />
-          <Icon name={icon} size={28} color="#fff" strokeWidth={2} />
+          <ArtToken name={art} size={44} art={26} shadow={0.16} glyph style={{ marginBottom: 4 }} />
           <Txt size={15} weight="heading" color="#fff">
             {title}
           </Txt>

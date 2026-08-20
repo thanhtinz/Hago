@@ -7,6 +7,7 @@ import { Avatar, Btn, Card, Chip, Empty, Field, Txt } from '../src/components/ui
 import { HeaderTabs, ScreenHeader } from '../src/components/ScreenHeader';
 import { Icon, IconName } from '../src/components/Icon';
 import { GameIcon, GameIconName } from '../src/components/GameIcon';
+import { Art, ArtName } from '../src/components/Art';
 import { Gloss } from '../src/components/decor';
 
 import { C, GAME_GRADIENT, R, S, softShadow } from '../src/theme';
@@ -199,7 +200,7 @@ export default function RoomsScreen() {
                       style={{ width: 52, height: 52, borderRadius: 17, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
                     >
                       <Gloss opacity={0.15} angle="top" />
-                      <GameIcon name={r.gameType as GameIconName} size={34} />
+                      <Art name={`game-${r.gameType}` as ArtName} size={34} color="#fff" shadow />
                     </LinearGradient>
                     <View style={{ flex: 1 }}>
                       <Txt size={15} weight="heading">
@@ -301,7 +302,7 @@ export default function RoomsScreen() {
                         active ? softShadow(0.14, 10, 4) : null,
                       ]}
                     >
-                      <GameIcon name={g.id as GameIconName} size={40} accent={active ? '#FFD36E' : C.inkFaint} tint={active ? undefined : C.inkFaint} />
+                      <Art name={`game-${g.id}` as ArtName} size={40} color={active ? '#fff' : C.inkFaint} shadow={active} />
                     </LinearGradient>
                     <Txt size={10} weight={active ? 'bold' : 'medium'} color={active ? C.ink : C.inkFaint} center numberOfLines={1}>
                       {g.name}
@@ -473,7 +474,7 @@ function FilterChip({ label, active, onPress, icon, game }: { label: string; act
         borderColor: active ? C.primary : C.line,
       }}
     >
-      {game ? <GameIcon name={game as GameIconName} size={17} accent={active ? C.primary : C.inkFaint} tint={active ? C.primaryDark : C.inkFaint} /> : icon ? <Icon name={icon} size={15} color={active ? C.primaryDark : C.inkSoft} strokeWidth={2.2} /> : null}
+      {game ? <Art name={`game-${game}` as ArtName} size={17} color={active ? C.primaryDark : C.inkFaint} /> : icon ? <Icon name={icon} size={15} color={active ? C.primaryDark : C.inkSoft} strokeWidth={2.2} /> : null}
       <Txt size={12} weight="bold" color={active ? C.primaryDark : C.inkSoft}>
         {label}
       </Txt>

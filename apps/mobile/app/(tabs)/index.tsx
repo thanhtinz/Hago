@@ -6,9 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Bar, Card, Empty, Txt } from '../../src/components/ui';
 import { HotGameCard, GameMeta } from '../../src/components/GameCard';
 import { Icon, IconName } from '../../src/components/Icon';
+import { ArtToken } from '../../src/components/ArtToken';
+import { ArtName } from '../../src/components/Art';
 import { BannerCarousel, BannerItem } from '../../src/components/Banner';
 import { Bubbles, DotPattern, Gloss } from '../../src/components/decor';
-import { ACTION_GRADIENT, C, HERO_GRADIENT, R, S, softShadow } from '../../src/theme';
+import { ACTION_GRADIENT, C, HERO_GRADIENT, R, S, glowShadow, softShadow } from '../../src/theme';
 import { api } from '../../src/lib/api';
 import { useStore } from '../../src/state/store';
 
@@ -32,10 +34,10 @@ const EVENT_COLORS: Record<string, [string, string]> = {
   tournament: ['#3BB4FF', '#1E6FE0'],
   seasonal: ['#5FDBA7', '#22A97A'],
 };
-const EVENT_ICON: Record<string, IconName> = {
-  login: 'gift',
-  winstreak: 'flame',
-  tournament: 'trophy',
+const EVENT_ART: Record<string, ArtName> = {
+  login: 'ui-gift',
+  winstreak: 'fire',
+  tournament: 'win',
   seasonal: 'star',
 };
 
@@ -77,7 +79,7 @@ export default function HomeScreen() {
     title: e.title,
     description: e.description,
     colors: EVENT_COLORS[e.kind] ?? ['#8A6BFF', '#FF6FA5'],
-    icon: EVENT_ICON[e.kind] ?? 'gift',
+    art: EVENT_ART[e.kind] ?? 'ui-gift',
     tag: `Còn ${Math.max(0, Math.ceil((e.endAt - Date.now()) / 86400000))} ngày`,
     onPress: () => router.push('/quests'),
   }));
@@ -215,21 +217,21 @@ export default function HomeScreen() {
       {/* ---------------- Hành động nhanh ---------------- */}
       <View style={{ flexDirection: 'row', gap: S.md, paddingHorizontal: S.lg, marginTop: S.lg }}>
         <ActionTile
-          icon="bolt"
+          art="ui-quick"
           title="Chơi nhanh"
           sub="Tự ghép đối thủ"
           colors={ACTION_GRADIENT.quick}
           onPress={() => router.push('/quickplay')}
         />
         <ActionTile
-          icon="door"
+          art="ui-find"
           title="Tìm phòng"
           sub={`${data?.openRooms?.length ?? 0} phòng mở`}
           colors={ACTION_GRADIENT.find}
           onPress={() => router.push('/rooms?tab=find')}
         />
         <ActionTile
-          icon="key"
+          art="ui-create"
           title="Tạo phòng"
           sub="Rủ bạn bè"
           colors={ACTION_GRADIENT.create}
@@ -424,13 +426,13 @@ function Wallet({ icon, value }: { icon: IconName; value: string }) {
 }
 
 function ActionTile({
-  icon,
+  art,
   title,
   sub,
   colors,
   onPress,
 }: {
-  icon: IconName;
+  art: ArtName;
   title: string;
   sub: string;
   colors: [string, string];
@@ -445,19 +447,20 @@ function ActionTile({
           end={{ x: 1, y: 1 }}
           style={[
             {
-              borderRadius: 20,
-              paddingVertical: S.md,
+              borderRadius: 22,
+              paddingTop: 14,
+              paddingBottom: 12,
               paddingHorizontal: 10,
-              gap: 2,
+              gap: 4,
               alignItems: 'center',
               overflow: 'hidden',
               transform: [{ translateY: pressed ? 2 : 0 }],
             },
-            softShadow(0.14, 10, 5),
+            glowShadow(colors[1], 0.34, 14, 7),
           ]}
         >
           <Gloss opacity={0.22} angle="top" />
-          <Icon name={icon} size={26} color="#fff" strokeWidth={2} />
+          <ArtToken name={art} size={46} art={28} shadow={0.16} glyph />
           <Txt size={12} weight="bold" color="#fff" center numberOfLines={1}>
             {title}
           </Txt>

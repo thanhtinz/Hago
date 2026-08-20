@@ -84,6 +84,27 @@ export function softShadow(opacity = 0.12, radius = 16, dy = 6) {
   });
 }
 
+/** Bóng ăn theo màu thẻ — bóng xám trên nền màu trông bẩn, bóng cùng tông thì nổi khối. */
+export function glowShadow(color: string, opacity = 0.45, radius = 20, dy = 10) {
+  return Platform.select({
+    web: { boxShadow: `0 ${dy}px ${radius}px ${hexA(color, opacity)}` } as any,
+    default: {
+      shadowColor: color,
+      shadowOffset: { width: 0, height: dy },
+      shadowOpacity: opacity,
+      shadowRadius: radius,
+      elevation: 8,
+    },
+  });
+}
+
+/** #RRGGBB + alpha 0..1 -> rgba() */
+export function hexA(hex: string, alpha: number) {
+  const h = hex.replace('#', '');
+  const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
 /** Gradient tím→hồng dùng cho các vùng hero (header, banner nổi bật). */
 export const HERO_GRADIENT: [string, string, string] = ['#6C5CE7', '#A55BFF', '#FF6FA5'];
 

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Card, Chip, Empty, Txt } from '../../src/components/ui';
 import { Icon } from '../../src/components/Icon';
 import { GameIcon, GameIconName } from '../../src/components/GameIcon';
+import { Art, ArtName } from '../../src/components/Art';
 import { C, F, R, S } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
 import { emitAck } from '../../src/lib/socket';
@@ -92,7 +93,7 @@ export default function RoomScreen() {
         </Pressable>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-            <GameIcon name={room.gameType as GameIconName} size={24} accent={C.primary} tint={C.inkFaint} />
+            <Art name={`game-${room.gameType}` as ArtName} size={24} color={C.inkSoft} />
             <Txt size={20} weight="display">
               {meta?.name}
             </Txt>

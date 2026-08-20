@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { Btn, Chip, Txt } from '../components/ui';
 import { MandarinStone, StonePiece } from '../components/Piece';
 import { C, R, S, SEAT_COLORS } from '../theme';
-import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
+import { BoardProps, GameLog, TurnBanner, VersusBar } from './shared';
 
 /** Rải sỏi thành các hàng cố định để không tràn khỏi ô. */
 function StoneCloud({ count, big }: { count: number; big: boolean }) {
@@ -101,15 +101,14 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
 
   return (
     <View style={{ gap: S.md, flex: 1 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <PlayerStrip
-          players={view.players}
-          activeSeat={view.turnSeat}
-          mySeat={mySeat}
-          extra={(seat) => <Chip label={`${view.scores?.[seat] ?? 0}đ`} color={C.inkSoft} soft={C.surfaceAlt} size={10} />}
-        />
-        <TurnTimer deadline={deadline} total={35} />
-      </View>
+      <VersusBar
+        players={view.players}
+        activeSeat={view.turnSeat}
+        mySeat={mySeat}
+        deadline={deadline}
+        total={35}
+        score={(seat) => `${view.scores?.[seat] ?? 0} điểm`}
+      />
       <TurnBanner
         yourTurn={yourTurn}
         text={view.over ? 'Tàn cuộc' : yourTurn ? (picked == null ? 'Chọn 1 ô của bạn' : 'Chọn hướng rải') : 'Đối thủ đang tính nước...'}

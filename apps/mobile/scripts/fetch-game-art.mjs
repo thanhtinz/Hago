@@ -79,6 +79,21 @@ export const ART = {
   'tile-park': 'delapouite/park-bench',
   'tile-gotojail': 'lorc/handcuffs',
 
+  // icon lớn của vỏ giao diện (ô hành động, banner, tab bar)
+  'ui-quick': 'badges/bolt',
+  'ui-find': 'lorc/magnifying-glass',
+  'ui-create': 'lorc/key',
+  'ui-shop': 'delapouite/shopping-bag',
+  'ui-gift': 'delapouite/present',
+  'ui-coins': 'delapouite/two-coins',
+  'ui-gem': 'lorc/emerald',
+  'ui-home': 'delapouite/house',
+  'ui-games': 'delapouite/gamepad',
+  'ui-chat': 'delapouite/chat-bubble',
+  'ui-profile': 'delapouite/person',
+  'ui-calendar': 'delapouite/calendar',
+  'ui-friends': 'delapouite/team-idea',
+
   // kết quả trận + sticker chat
   win: 'lorc/trophy',
   draw: 'lorc/laurels',
@@ -136,7 +151,7 @@ function parse(svg, name) {
     return { tag: n.tag, a };
   });
   if (!nodes.length) throw new Error(`Không tách được hình cho ${name}`);
-  return { viewBox, nodes };
+  return { viewBox, nodes, badge: badge.length > 0 };
 }
 
 const camel = (k) => k.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
@@ -159,7 +174,7 @@ async function main() {
   }
 
   const body = Object.entries(out)
-    .map(([name, { viewBox, nodes }]) => {
+    .map(([name, { viewBox, nodes, badge }]) => {
       const items = nodes
         .map(({ tag, a }) => {
           const props = Object.entries(a)
@@ -168,7 +183,7 @@ async function main() {
           return `{ tag: ${JSON.stringify(tag)}, props: { ${props} } }`;
         })
         .join(',\n      ');
-      return `  ${JSON.stringify(name)}: {\n    viewBox: ${JSON.stringify(viewBox)},\n    nodes: [\n      ${items},\n    ],\n  }`;
+      return `  ${JSON.stringify(name)}: {\n    viewBox: ${JSON.stringify(viewBox)},\n    badge: ${badge},\n    nodes: [\n      ${items},\n    ],\n  }`;
     })
     .join(',\n');
 
@@ -184,6 +199,8 @@ export interface ArtNode {
 export interface ArtShape {
   readonly viewBox: string;
   readonly nodes: readonly ArtNode[];
+  /** Hình dạng huy hiệu: có đĩa nền, ruột là ký hiệu. */
+  readonly badge: boolean;
 }
 
 export const GAME_ART = {

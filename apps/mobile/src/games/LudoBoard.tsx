@@ -3,7 +3,8 @@ import { Pressable, Text, View } from 'react-native';
 import { Btn, Chip, Txt } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { DieFace, HorsePiece } from '../components/Piece';
-import { C, R, S, SEAT_COLORS } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { C, R, S, SEAT_COLORS, softShadow } from '../theme';
 import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
 
 const RING = 13; // 13 ô mỗi cạnh → 52 ô vòng ngoài
@@ -50,15 +51,20 @@ export default function LudoBoard({ view, mySeat, send, deadline, space }: Board
       <TurnBanner yourTurn={yourTurn} text={view.over ? 'Kết thúc' : canRoll ? 'Tung xúc xắc đi!' : yourTurn ? 'Chọn ngựa để đi' : 'Chờ đối thủ...'} />
 
       <View style={{ alignItems: 'center' }}>
-        <View
-          style={{
-            width: BOARD,
-            height: BOARD,
-            backgroundColor: '#FFF3E4',
-            borderRadius: R.lg,
-            borderWidth: 3,
-            borderColor: '#E7C79E',
-          }}
+        <LinearGradient
+          colors={['#F8E6C8', '#E9CEA3']}
+          start={{ x: 0.15, y: 0 }}
+          end={{ x: 0.85, y: 1 }}
+          style={[
+            {
+              width: BOARD,
+              height: BOARD,
+              borderRadius: R.lg,
+              borderWidth: 3,
+              borderColor: '#C79A5E',
+            },
+            softShadow(0.18, 16, 8),
+          ]}
         >
           {/* Ô vòng ngoài */}
           {Array.from({ length: 52 }, (_, i) => {
@@ -171,7 +177,7 @@ export default function LudoBoard({ view, mySeat, send, deadline, space }: Board
               );
             })}
           </View>
-        </View>
+        </LinearGradient>
       </View>
 
       <View style={{ alignItems: 'center', gap: S.sm }}>

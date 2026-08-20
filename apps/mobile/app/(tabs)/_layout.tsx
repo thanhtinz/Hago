@@ -5,15 +5,15 @@ import { Tabs, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C, R, S, softShadow } from '../../src/theme';
 import { Txt } from '../../src/components/ui';
-import { Icon, IconName } from '../../src/components/Icon';
+import { Art, ArtName } from '../../src/components/Art';
 import { useStore } from '../../src/state/store';
 
 /** 4 tab + nút Chơi nhanh nổi ở giữa, bố cục quen thuộc của app game casual. */
-const TABS: { name: string; label: string; icon: IconName }[] = [
-  { name: 'index', label: 'Trang chủ', icon: 'home' },
-  { name: 'games', label: 'Game', icon: 'grid' },
-  { name: 'social', label: 'Bạn bè', icon: 'chat' },
-  { name: 'profile', label: 'Hồ sơ', icon: 'user' },
+const TABS: { name: string; label: string; art: ArtName }[] = [
+  { name: 'index', label: 'Trang chủ', art: 'ui-home' },
+  { name: 'games', label: 'Game', art: 'ui-games' },
+  { name: 'social', label: 'Bạn bè', art: 'ui-chat' },
+  { name: 'profile', label: 'Hồ sơ', art: 'ui-profile' },
 ];
 
 function TabBar({ state, navigation }: any) {
@@ -34,7 +34,7 @@ function TabBar({ state, navigation }: any) {
         style={{ flex: 1, alignItems: 'center', gap: 3, paddingVertical: 6 }}
       >
         <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name={tab.icon} size={focused ? 25 : 23} color={focused ? C.primary : C.inkFaint} strokeWidth={focused ? 2.4 : 2} />
+          <Art name={tab.art} size={focused ? 26 : 23} color={focused ? C.primary : C.inkFaint} />
           {badge > 0 ? (
             <View
               style={{
@@ -88,7 +88,7 @@ function TabBar({ state, navigation }: any) {
               softShadow(0.26, 14, 6),
             ]}
           >
-            <Icon name="bolt" size={28} color="#fff" strokeWidth={2} />
+            <Art name="ui-quick" size={30} color="#fff" glyph shadow />
           </LinearGradient>
         </Pressable>
       </View>

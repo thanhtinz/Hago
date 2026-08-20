@@ -1,11 +1,12 @@
 import React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Btn, Card, Chip, Txt } from '../components/ui';
 import { Icon, IconName } from '../components/Icon';
 import { Art, ArtName } from '../components/Art';
 import { DieFace, TokenDot } from '../components/Piece';
 import { GameIcon } from '../components/GameIcon';
-import { C, R, S, SEAT_COLORS } from '../theme';
+import { C, R, S, SEAT_COLORS, softShadow } from '../theme';
 import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
 
 /** 28 ô xếp quanh khung vuông 8x8 (mỗi cạnh 7 ô). */
@@ -61,7 +62,15 @@ export default function MonopolyBoard({ view, mySeat, send, deadline, space }: B
       />
 
       <View style={{ alignItems: 'center' }}>
-        <View style={{ width: SIZE, height: SIZE, backgroundColor: '#FFF6EA', borderRadius: R.lg, borderWidth: 3, borderColor: '#E7C79E' }}>
+        <LinearGradient
+          colors={['#FFF6E6', '#F2DFC0']}
+          start={{ x: 0.15, y: 0 }}
+          end={{ x: 0.85, y: 1 }}
+          style={[
+            { width: SIZE, height: SIZE, borderRadius: R.lg, borderWidth: 3, borderColor: '#C79A5E' },
+            softShadow(0.18, 16, 8),
+          ]}
+        >
           {view.board.map((t: any, i: number) => {
             const p = tilePos(i, n, cell);
             const owner = view.owner[i];
@@ -111,7 +120,7 @@ export default function MonopolyBoard({ view, mySeat, send, deadline, space }: B
               ))}
             </View>
           </View>
-        </View>
+        </LinearGradient>
       </View>
 
       {yourTurn && view.phase === 'decide' && view.pending ? (

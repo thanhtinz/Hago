@@ -166,9 +166,9 @@ export default function MatchScreen() {
           flexGrow: 1,
           padding: PAD,
           paddingBottom: insets.bottom + PAD,
-          // Nội dung bám sát HUD; bàn cờ vuông trên màn hình dọc luôn thừa
-          // chiều cao nên căn giữa sẽ tạo khoảng trống lớn ở trên.
-          justifyContent: 'flex-start',
+          // Căn giữa cả khối: bàn cờ vuông luôn thừa chiều cao trên màn dọc,
+          // chia đều khoảng thừa cho trên và dưới thì cân hơn là dồn một chỗ.
+          justifyContent: 'center',
         }}
         showsVerticalScrollIndicator={false}
       >

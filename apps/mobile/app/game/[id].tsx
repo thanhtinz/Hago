@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Card, Chip, Empty, SectionTitle, Txt } from '../../src/components/ui';
 import { Bubbles, Gloss } from '../../src/components/decor';
 import { GameIcon, GameIconName } from '../../src/components/GameIcon';
+import { ArtToken } from '../../src/components/ArtToken';
+import { ArtName } from '../../src/components/Art';
 import { C, GAME_GRADIENT, R, S } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
 import { emitAck } from '../../src/lib/socket';
@@ -75,7 +77,7 @@ export default function GameDetail() {
             ‹ Quay lại
           </Txt>
         </Pressable>
-        <GameIcon name={game.id as GameIconName} size={72} />
+        <ArtToken name={`game-${game.id}` as ArtName} size={96} art={58} shadow={0.24} />
         <Txt size={30} weight="display" color="#fff">
           {game.name}
         </Txt>

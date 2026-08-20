@@ -4,7 +4,7 @@ import { Btn, Chip, Txt } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { ShipPiece, ShotMark } from '../components/Piece';
 import { C, R, S } from '../theme';
-import { BoardProps, GameLog, PlayerStrip, TurnBanner, TurnTimer } from './shared';
+import { BoardProps, BoardSurface, GameLog, TurnBanner, TurnTimer, VersusBar } from './shared';
 
 export default function BattleshipBoard({ view, mySeat, send, deadline, space }: BoardProps) {
   const size = view.size ?? 10;
@@ -45,10 +45,14 @@ export default function BattleshipBoard({ view, mySeat, send, deadline, space }:
 
   return (
     <View style={{ gap: S.md }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <PlayerStrip players={view.players} activeSeat={view.turnSeat} mySeat={mySeat} />
-        <TurnTimer deadline={deadline} total={25} />
-      </View>
+      <VersusBar
+        players={view.players}
+        activeSeat={view.turnSeat}
+        mySeat={mySeat}
+        deadline={deadline}
+        total={25}
+        score={(seat) => (seat === mySeat ? `${view.me?.alive}/${view.me?.total} tàu` : `${view.foe?.alive}/${view.foe?.total} tàu`)}
+      />
       <TurnBanner yourTurn={yourTurn} text={view.over ? 'Kết thúc' : yourTurn ? 'Chọn ô để khai hoả!' : 'Đối thủ đang ngắm...'} />
 
       <View style={{ alignItems: 'center', gap: 6 }}>
@@ -115,7 +119,7 @@ function Grid({
   const shotMap = new Map(shots.map((s) => [`${s.x},${s.y}`, s]));
   const sc = shipCells(ships);
   return (
-    <View style={{ backgroundColor: '#CDEBFF', padding: 4, borderRadius: R.md, borderWidth: 3, borderColor: '#8FCBF0' }}>
+    <BoardSurface tone="water" radius={R.md} pad={4}>
       {Array.from({ length: size }, (_, y) => (
         <View key={y} style={{ flexDirection: 'row' }}>
           {Array.from({ length: size }, (_, x) => {
@@ -136,9 +140,15 @@ function Grid({
                   borderRadius: 4,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: shot ? (shot.hit ? '#FFB3B3' : '#E6F4FF') : hasShip && !hideShips ? '#8593A8' : '#EAF7FF',
+                  backgroundColor: shot
+                    ? shot.hit
+                      ? 'rgba(255,138,138,0.85)'
+                      : 'rgba(255,255,255,0.45)'
+                    : hasShip && !hideShips
+                      ? 'rgba(90,110,140,0.28)'
+                      : 'rgba(255,255,255,0.30)',
                   borderWidth: 1,
-                  borderColor: '#B6DDF5',
+                  borderColor: 'rgba(120,180,220,0.45)',
                 }}
               >
                 {shot ? (
@@ -156,7 +166,7 @@ function Grid({
           })}
         </View>
       ))}
-    </View>
+    </BoardSurface>
   );
 }
 
