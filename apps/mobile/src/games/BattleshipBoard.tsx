@@ -30,10 +30,14 @@ export default function BattleshipBoard({ view, mySeat, send, deadline, space }:
   const kinds = React.useMemo(() => fleetKinds(fleet), [fleet.join(',')]);
   const yourTurn = view.turnSeat === mySeat && !view.over && view.phase === 'battle';
 
-  // Bàn địch to để ngắm bắn, bàn mình nhỏ hơn nằm dưới.
+  /**
+   * Mỗi lượt chỉ hiện **một** bàn, đúng cái đang cần nhìn: tới lượt mình thì
+   * bàn địch (tàu giấu sạch, chỉ thấy chỗ đã bắn), tới lượt địch thì bàn nhà —
+   * lúc đó mới nhìn được hạm đội của chính mình và đối thủ đang bắn vào đâu.
+   * Nhờ vậy bàn to gần gấp đôi và không lộ tàu lúc đang ngắm bắn.
+   */
   const wide = Math.max(240, space.width - 16);
-  const foeCell = Math.max(16, Math.min(36, Math.floor(Math.min(wide, (space.height - 150) / 1.75) / size)));
-  const myCell = Math.max(11, Math.round(foeCell * 0.6));
+  const cell = Math.max(20, Math.floor(Math.min(wide, space.height - 250) / size));
 
   if (view.phase === 'placement') {
     return (
@@ -53,11 +57,16 @@ export default function BattleshipBoard({ view, mySeat, send, deadline, space }:
           <Btn label="Xếp tàu ngẫu nhiên" icon="dice" size="lg" onPress={() => send('place', {})} />
         )}
         {view.me?.placed ? (
-          <Grid size={size} cell={foeCell} shots={[]} ships={view.me?.ships ?? []} kinds={kinds} showShips />
+          <Grid size={size} cell={cell} shots={[]} ships={view.me?.ships ?? []} kinds={kinds} showShips />
         ) : null}
       </View>
     );
   }
+
+  const attacking = yourTurn || (view.over && view.winnerIds?.includes(view.players?.[mySeat]?.id));
+  const board = attacking
+    ? { title: 'Bản đồ đối thủ', tone: 'red' as const, alive: view.foe?.alive, total: view.foe?.total }
+    : { title: 'Bản đồ của bạn', tone: 'blue' as const, alive: view.me?.alive, total: view.me?.total };
 
   return (
     <View style={{ gap: S.sm, alignItems: 'center' }}>
@@ -69,23 +78,35 @@ export default function BattleshipBoard({ view, mySeat, send, deadline, space }:
         total={25}
         score={(seat) => (seat === mySeat ? `${view.me?.alive}/${view.me?.total} tàu` : `${view.foe?.alive}/${view.foe?.total} tàu`)}
       />
-      <TurnBanner yourTurn={yourTurn} text={view.over ? 'Kết thúc' : yourTurn ? 'Chọn ô để khai hoả!' : 'Đối thủ đang ngắm...'} />
-
-      <BoardHeader title="Bản đồ đối thủ" tone="red" note={`còn ${view.foe?.alive}/${view.foe?.total} tàu`} />
-      <Grid
-        size={size}
-        cell={foeCell}
-        shots={view.me?.shots ?? []}
-        ships={view.foe?.ships ?? []}
-        kinds={kinds}
-        interactive={yourTurn}
-        onPress={(x, y) => send('fire', { x, y })}
+      <TurnBanner
+        yourTurn={yourTurn}
+        text={view.over ? 'Kết thúc' : yourTurn ? 'Chọn ô để khai hoả!' : 'Đối thủ đang ngắm — canh xem họ bắn vào đâu'}
       />
 
-      <BoardHeader title="Bản đồ của bạn" tone="blue" note={`còn ${view.me?.alive}/${view.me?.total} tàu`} />
-      <Grid size={size} cell={myCell} shots={view.foe?.shots ?? []} ships={view.me?.ships ?? []} kinds={kinds} showShips />
+      <BoardHeader title={board.title} tone={board.tone} note={`còn ${board.alive}/${board.total} tàu`} />
 
-      <FleetPanel kinds={kinds} fleet={fleet} ships={view.foe?.ships ?? []} width={Math.min(wide, 360)} />
+      {attacking ? (
+        <Grid
+          size={size}
+          cell={cell}
+          shots={view.me?.shots ?? []}
+          ships={view.foe?.ships ?? []}
+          kinds={kinds}
+          interactive={yourTurn}
+          onPress={(x, y) => send('fire', { x, y })}
+        />
+      ) : (
+        <Grid size={size} cell={cell} shots={view.foe?.shots ?? []} ships={view.me?.ships ?? []} kinds={kinds} showShips />
+      )}
+
+      {/* Bảng hạm đội đi theo bàn đang xem */}
+      <FleetPanel
+        kinds={kinds}
+        fleet={fleet}
+        ships={attacking ? view.foe?.ships ?? [] : view.me?.ships ?? []}
+        mine={!attacking}
+        width={Math.min(wide, 360)}
+      />
       <GameLog log={view.log} />
     </View>
   );

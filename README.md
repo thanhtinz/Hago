@@ -95,7 +95,7 @@ Mobile (RN/Expo) ──REST──> Express API ──> SQLite (WAL)
 | Game | Người chơi | Thể loại | Chế độ | Điểm kỹ thuật |
 |---|---|---|---|---|
 | Cờ Caro | 2 | Board strategy | Normal/Ranked/Custom | Bàn cấu hình 9–19, luật đúng-5-quân |
-| Bắn Tàu | 2 | Turn-based | Normal/Ranked/Custom | Hidden board, trúng được bắn tiếp |
+| Bắn Tàu | 2 | Turn-based | Normal/Ranked/Custom | Mỗi lượt chỉ hiện một bàn, trúng được bắn tiếp |
 | Ô Ăn Quan | 2 | Board dân gian | Normal/Ranked/Custom | Rải, ăn dây, rải lại khi hết dân |
 | Sheep Battle | 2 | Realtime lane battle | Normal/Ranked/Custom | Đấu làn 30 máu, cừu nhỏ trừ nhiều máu, cừu to đẩy khoẻ |
 | Cờ Tỷ Phú | 2–4 | Board/economy | Normal/Custom | Bàn 24 ô, độc quyền x2 tô, tù, phá sản |
@@ -324,6 +324,12 @@ dải chuyển màu tối chứ không phải nền trắng:
   lệch màu) nên chỉ còn đúng hình.
 - Tàu nhìn từ trên được kéo phủ đúng số ô nó chiếm; giữ nguyên tỉ lệ thì tàu
   ngắn hơn ô của nó vì bản vẽ gốc vẽ tàu mập hơn một ô.
+
+Trong trận **chỉ hiện một bàn**, đổi theo lượt: tới lượt mình thì hiện bàn địch
+với tàu giấu sạch, chỉ thấy chỗ đã bắn; tới lượt địch thì hiện bàn nhà, lúc đó
+mới nhìn được hạm đội của chính mình và đối thủ đang dò vào đâu. Bảng hạm đội
+bên dưới cũng đổi theo. Nhờ vậy bàn to gần gấp đôi và không lộ tàu lúc đang
+ngắm bắn.
 
 **Không dùng emoji ở bất kỳ đâu trong giao diện** — emoji mỗi hệ điều hành vẽ một
 kiểu, không đổi được màu theo ngữ cảnh và không canh được nét với chữ.
