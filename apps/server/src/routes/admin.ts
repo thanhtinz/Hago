@@ -22,9 +22,6 @@ adminRouter.get('/dashboard', (_req, res) => {
 
   const dau = count('SELECT COUNT(DISTINCT user_id) AS c FROM analytics_events WHERE created_at > ?', now - DAY);
   const mau = count('SELECT COUNT(DISTINCT user_id) AS c FROM analytics_events WHERE created_at > ?', now - 30 * DAY);
-  const revenue = db
-    .prepare("SELECT COALESCE(SUM(amount),0) AS s FROM transactions WHERE type = 'payment_topup' AND created_at > ?")
-    .get(now - 30 * DAY) as { s: number };
 
   const retention = (days: number) => {
     const cohort = db
@@ -53,7 +50,6 @@ adminRouter.get('/dashboard', (_req, res) => {
       activeRooms: allRooms().length,
       queues: queueSizes(),
     },
-    revenue: { diamondSold30d: revenue.s, payers: count("SELECT COUNT(DISTINCT user_id) AS c FROM transactions WHERE type = 'payment_topup'") },
     moderation: { openReports: count("SELECT COUNT(*) AS c FROM reports WHERE status = 'open'") },
     byGame: GAME_TYPES.map((g) => ({
       gameType: g,
@@ -152,18 +148,15 @@ adminRouter.post('/items', (req, res) => {
   const b = req.body ?? {};
   const id = b.id || `item_${nid().slice(0, 8)}`;
   db.prepare(
-    `INSERT INTO items (id, name, type, rarity, price_coin, price_diamond, payload, description, status)
-     VALUES (?,?,?,?,?,?,?,?,?)
+    `INSERT INTO items (id, name, type, rarity, payload, description, status)
+     VALUES (?,?,?,?,?,?,?)
      ON CONFLICT(id) DO UPDATE SET name=excluded.name, type=excluded.type, rarity=excluded.rarity,
-       price_coin=excluded.price_coin, price_diamond=excluded.price_diamond, payload=excluded.payload,
-       description=excluded.description, status=excluded.status`,
+       payload=excluded.payload, description=excluded.description, status=excluded.status`,
   ).run(
     id,
     b.name,
     b.type,
     b.rarity ?? 'common',
-    b.priceCoin ?? null,
-    b.priceDiamond ?? null,
     JSON.stringify(b.payload ?? {}),
     b.description ?? '',
     b.status ?? 'active',

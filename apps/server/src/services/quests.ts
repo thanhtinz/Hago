@@ -113,6 +113,7 @@ function mapAchievement(r: any): AchievementDef {
     target: r.target,
     rewardCoin: r.reward_coin,
     rewardXp: r.reward_xp,
+    rewardItem: r.reward_item ?? null,
     art: r.art,
   };
 }
@@ -152,6 +153,12 @@ export function progressAchievements(userId: string, metric: string, delta = 1):
       );
       if (a.rewardCoin) mutateCurrency(userId, 'coin', a.rewardCoin, 'achievement', a.id);
       if (a.rewardXp) db.prepare('UPDATE users SET xp = xp + ? WHERE id = ?').run(a.rewardXp, userId);
+      // Bỏ shop rồi thì thành tựu và Battle Pass là hai nguồn lấy cosmetic.
+      if (a.rewardItem) {
+        db.prepare(
+          'INSERT OR IGNORE INTO inventory (user_id, item_id, quantity, equipped, acquired_at) VALUES (?,?,1,0,?)',
+        ).run(userId, a.rewardItem, nowMs());
+      }
       notify(userId, 'reward', 'Thành tựu mới', a.title, { achievementId: a.id });
       unlocked.push(a);
     }

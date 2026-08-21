@@ -281,8 +281,6 @@ CREATE TABLE IF NOT EXISTS items (
   name          TEXT NOT NULL,
   type          TEXT NOT NULL,
   rarity        TEXT NOT NULL,
-  price_coin    INTEGER,
-  price_diamond INTEGER,
   payload       TEXT NOT NULL DEFAULT '{}',
   description   TEXT NOT NULL DEFAULT '',
   status        TEXT NOT NULL DEFAULT 'active'
@@ -343,6 +341,9 @@ CREATE TABLE IF NOT EXISTS achievements (
   target      INTEGER NOT NULL,
   reward_coin INTEGER NOT NULL DEFAULT 0,
   reward_xp   INTEGER NOT NULL DEFAULT 0,
+  -- Cosmetic tặng kèm khi mở khoá. Bỏ shop rồi thì đây và Battle Pass là hai
+  -- nguồn duy nhất lấy được cosmetic.
+  reward_item TEXT REFERENCES items(id) ON DELETE SET NULL,
   art         TEXT NOT NULL DEFAULT 'trophy'
 );
 
@@ -420,6 +421,7 @@ CREATE TABLE IF NOT EXISTS daily_counters (
 /** Migration nhẹ cho DB tạo từ các bản trước. */
 for (const [table, column, type] of [
   ['achievements', 'art', "TEXT NOT NULL DEFAULT 'trophy'"],
+  ['achievements', 'reward_item', 'TEXT'],
   ['game_stats', 'best_score', 'INTEGER NOT NULL DEFAULT 0'],
 ] as const) {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];

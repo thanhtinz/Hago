@@ -391,20 +391,22 @@ export type ItemType =
 
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 
-export interface ShopItem {
+/**
+ * Cosmetic. Không mua bán — chỉ kiếm được qua Battle Pass, thành tựu và phần
+ * thưởng sự kiện, nên không có giá.
+ */
+export interface CosmeticItem {
   id: string;
   name: string;
   type: ItemType;
   rarity: Rarity;
-  priceCoin: number | null;
-  priceDiamond: number | null;
   payload: Record<string, string>;
   status: 'active' | 'hidden';
   description: string;
 }
 
 export interface InventoryEntry {
-  item: ShopItem;
+  item: CosmeticItem;
   quantity: number;
   equipped: boolean;
   acquiredAt: number;
@@ -461,6 +463,8 @@ export interface AchievementDef {
   target: number;
   rewardCoin: number;
   rewardXp: number;
+  /** Cosmetic tặng kèm khi mở khoá, nếu có. */
+  rewardItem: string | null;
   /** Tên asset chibi của thành tựu. */
   art: string;
 }

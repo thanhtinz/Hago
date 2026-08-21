@@ -181,7 +181,7 @@ export default function HomeScreen() {
         <View style={{ flexDirection: 'row', gap: S.sm, marginTop: S.md }}>
           <Wallet icon="coin" value={(profile?.coin ?? 0).toLocaleString('vi-VN')} />
           <Wallet icon="gem" value={String(profile?.diamond ?? 0)} />
-          <Pressable onPress={() => router.push('/shop')} style={{ flex: 1 }}>
+          <Pressable onPress={() => router.push('/inventory')} style={{ flex: 1 }}>
             <View
               style={{
                 flexDirection: 'row',
@@ -193,9 +193,9 @@ export default function HomeScreen() {
                 borderRadius: R.pill,
               }}
             >
-              <Icon name="shop" size={15} color={C.primaryDark} strokeWidth={2.2} />
+              <Icon name="gift" size={15} color={C.primaryDark} strokeWidth={2.2} />
               <Txt size={12} weight="bold" color={C.primaryDark}>
-                Cửa hàng
+                Túi đồ
               </Txt>
             </View>
           </Pressable>

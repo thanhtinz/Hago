@@ -8,31 +8,31 @@ const DAY = 86_400_000;
 /** Cosmetic dùng CSS gradient/emoji nên không phụ thuộc asset nhị phân nào. */
 const ITEMS = [
   // Frames
-  { id: 'frame_sakura', name: 'Khung Hoa Anh Đào', type: 'frame', rarity: 'rare', priceCoin: 1200, priceDiamond: null, payload: { from: '#FFB7C5', to: '#FF6F91', glow: '#FFD9E3' }, description: 'Viền hồng chibi rực rỡ' },
-  { id: 'frame_mint', name: 'Khung Bạc Hà', type: 'frame', rarity: 'common', priceCoin: 600, priceDiamond: null, payload: { from: '#9BF6C5', to: '#3AC48A', glow: '#D6FFEB' }, description: 'Xanh mát dịu mắt' },
-  { id: 'frame_royal', name: 'Khung Hoàng Gia', type: 'frame', rarity: 'epic', priceCoin: null, priceDiamond: 120, payload: { from: '#C86DFF', to: '#6C5CE7', glow: '#EBD9FF' }, description: 'Dành cho cao thủ' },
-  { id: 'frame_dragon', name: 'Khung Rồng Vàng', type: 'frame', rarity: 'legendary', priceCoin: null, priceDiamond: 380, payload: { from: '#FFD36E', to: '#FF8A3D', glow: '#FFF0C7' }, description: 'Hiếm nhất mùa này' },
+  { id: 'frame_sakura', name: 'Khung Hoa Anh Đào', type: 'frame', rarity: 'rare', payload: { from: '#FFB7C5', to: '#FF6F91', glow: '#FFD9E3' }, description: 'Viền hồng chibi rực rỡ' },
+  { id: 'frame_mint', name: 'Khung Bạc Hà', type: 'frame', rarity: 'common', payload: { from: '#9BF6C5', to: '#3AC48A', glow: '#D6FFEB' }, description: 'Xanh mát dịu mắt' },
+  { id: 'frame_royal', name: 'Khung Hoàng Gia', type: 'frame', rarity: 'epic', payload: { from: '#C86DFF', to: '#6C5CE7', glow: '#EBD9FF' }, description: 'Dành cho cao thủ' },
+  { id: 'frame_dragon', name: 'Khung Rồng Vàng', type: 'frame', rarity: 'legendary', payload: { from: '#FFD36E', to: '#FF8A3D', glow: '#FFF0C7' }, description: 'Hiếm nhất mùa này' },
   // Titles
-  { id: 'title_newbie', name: 'Tân Binh Vui Vẻ', type: 'title', rarity: 'common', priceCoin: 300, priceDiamond: null, payload: { text: 'Tân Binh Vui Vẻ', color: '#39C77F' }, description: 'Danh hiệu khởi đầu' },
-  { id: 'title_caro_king', name: 'Vua Caro', type: 'title', rarity: 'epic', priceCoin: 3000, priceDiamond: null, payload: { text: 'Vua Caro', color: '#7C6BFF' }, description: 'Bậc thầy 5 quân' },
-  { id: 'title_wolf', name: 'Sói Đầu Đàn', type: 'title', rarity: 'rare', priceCoin: null, priceDiamond: 90, payload: { text: 'Sói Đầu Đàn', color: '#E9556D' }, description: 'Không ai soi ra bạn' },
+  { id: 'title_newbie', name: 'Tân Binh Vui Vẻ', type: 'title', rarity: 'common', payload: { text: 'Tân Binh Vui Vẻ', color: '#39C77F' }, description: 'Danh hiệu khởi đầu' },
+  { id: 'title_caro_king', name: 'Vua Caro', type: 'title', rarity: 'epic', payload: { text: 'Vua Caro', color: '#7C6BFF' }, description: 'Bậc thầy 5 quân' },
+  { id: 'title_wolf', name: 'Sói Đầu Đàn', type: 'title', rarity: 'rare', payload: { text: 'Sói Đầu Đàn', color: '#E9556D' }, description: 'Không ai soi ra bạn' },
   // Backgrounds
-  { id: 'bg_beach', name: 'Nền Biển Chiều', type: 'background', rarity: 'rare', priceCoin: 1500, priceDiamond: null, payload: { from: '#FFD3A5', to: '#FD6585' }, description: 'Hoàng hôn Phú Quốc' },
-  { id: 'bg_night', name: 'Nền Đêm Sao', type: 'background', rarity: 'epic', priceCoin: null, priceDiamond: 150, payload: { from: '#5B4B8A', to: '#1F1B3A' }, description: 'Trời đêm lấp lánh' },
-  { id: 'bg_bamboo', name: 'Nền Rừng Trúc', type: 'background', rarity: 'common', priceCoin: 700, priceDiamond: null, payload: { from: '#B5EAD7', to: '#4FA37A' }, description: 'Yên bình chibi' },
+  { id: 'bg_beach', name: 'Nền Biển Chiều', type: 'background', rarity: 'rare', payload: { from: '#FFD3A5', to: '#FD6585' }, description: 'Hoàng hôn Phú Quốc' },
+  { id: 'bg_night', name: 'Nền Đêm Sao', type: 'background', rarity: 'epic', payload: { from: '#5B4B8A', to: '#1F1B3A' }, description: 'Trời đêm lấp lánh' },
+  { id: 'bg_bamboo', name: 'Nền Rừng Trúc', type: 'background', rarity: 'common', payload: { from: '#B5EAD7', to: '#4FA37A' }, description: 'Yên bình chibi' },
   // Chat bubbles
-  { id: 'bubble_cloud', name: 'Bong Bóng Mây', type: 'bubble', rarity: 'common', priceCoin: 450, priceDiamond: null, payload: { bg: '#E8F1FF', text: '#2B3A67' }, description: 'Mềm như mây' },
-  { id: 'bubble_candy', name: 'Bong Bóng Kẹo', type: 'bubble', rarity: 'rare', priceCoin: 1100, priceDiamond: null, payload: { bg: '#FFE1F0', text: '#B33771' }, description: 'Ngọt ngào' },
+  { id: 'bubble_cloud', name: 'Bong Bóng Mây', type: 'bubble', rarity: 'common', payload: { bg: '#E8F1FF', text: '#2B3A67' }, description: 'Mềm như mây' },
+  { id: 'bubble_candy', name: 'Bong Bóng Kẹo', type: 'bubble', rarity: 'rare', payload: { bg: '#FFE1F0', text: '#B33771' }, description: 'Ngọt ngào' },
   // Emotes
-  { id: 'emote_pack_cute', name: 'Gói Emote Chibi', type: 'emote', rarity: 'rare', priceCoin: 900, priceDiamond: null, payload: { stickers: 'wave,smile,party,handshake,fire,trophy' }, description: '6 sticker biểu cảm' },
-  { id: 'emote_pack_troll', name: 'Gói Emote Cà Khịa', type: 'emote', rarity: 'epic', priceCoin: null, priceDiamond: 80, payload: { stickers: 'smile,skull,sheep,moon,star,crystal' }, description: 'Cà khịa nhẹ nhàng' },
+  { id: 'emote_pack_cute', name: 'Gói Emote Chibi', type: 'emote', rarity: 'rare', payload: { stickers: 'wave,smile,party,handshake,fire,trophy' }, description: '6 sticker biểu cảm' },
+  { id: 'emote_pack_troll', name: 'Gói Emote Cà Khịa', type: 'emote', rarity: 'epic', payload: { stickers: 'smile,skull,sheep,moon,star,crystal' }, description: 'Cà khịa nhẹ nhàng' },
   // Victory / entry effects
-  { id: 'fx_confetti', name: 'Hiệu Ứng Pháo Giấy', type: 'victory', rarity: 'rare', priceCoin: 1300, priceDiamond: null, payload: { kind: 'confetti', color: '#FFD36E' }, description: 'Ăn mừng rực rỡ' },
-  { id: 'fx_fireworks', name: 'Hiệu Ứng Pháo Hoa', type: 'victory', rarity: 'legendary', priceCoin: null, priceDiamond: 300, payload: { kind: 'fireworks', color: '#FF6F91' }, description: 'Bùng nổ cả màn hình' },
-  { id: 'fx_entry_star', name: 'Hiệu Ứng Vào Phòng Sao', type: 'entry', rarity: 'rare', priceCoin: 1000, priceDiamond: null, payload: { kind: 'stars', color: '#7C6BFF' }, description: 'Xuất hiện thật ngầu' },
+  { id: 'fx_confetti', name: 'Hiệu Ứng Pháo Giấy', type: 'victory', rarity: 'rare', payload: { kind: 'confetti', color: '#FFD36E' }, description: 'Ăn mừng rực rỡ' },
+  { id: 'fx_fireworks', name: 'Hiệu Ứng Pháo Hoa', type: 'victory', rarity: 'legendary', payload: { kind: 'fireworks', color: '#FF6F91' }, description: 'Bùng nổ cả màn hình' },
+  { id: 'fx_entry_star', name: 'Hiệu Ứng Vào Phòng Sao', type: 'entry', rarity: 'rare', payload: { kind: 'stars', color: '#7C6BFF' }, description: 'Xuất hiện thật ngầu' },
   // Board themes
-  { id: 'board_wood', name: 'Bàn Gỗ Truyền Thống', type: 'boardtheme', rarity: 'common', priceCoin: 800, priceDiamond: null, payload: { from: '#E8C39E', to: '#B9825A', line: '#8C5A32' }, description: 'Cho Caro & Ô ăn quan' },
-  { id: 'board_neon', name: 'Bàn Neon', type: 'boardtheme', rarity: 'epic', priceCoin: null, priceDiamond: 130, payload: { from: '#2B2B5A', to: '#101033', line: '#5AE0FF' }, description: 'Phong cách hiện đại' },
+  { id: 'board_wood', name: 'Bàn Gỗ Truyền Thống', type: 'boardtheme', rarity: 'common', payload: { from: '#E8C39E', to: '#B9825A', line: '#8C5A32' }, description: 'Cho Caro & Ô ăn quan' },
+  { id: 'board_neon', name: 'Bàn Neon', type: 'boardtheme', rarity: 'epic', payload: { from: '#2B2B5A', to: '#101033', line: '#5AE0FF' }, description: 'Phong cách hiện đại' },
 ];
 
 const QUESTS = [
@@ -42,16 +42,16 @@ const QUESTS = [
   { id: 'q_daily_chat', type: 'daily', title: 'Giao lưu', description: 'Chơi cùng bạn bè 1 trận', metric: 'play_with_friend', target: 1, rewardCoin: 90, rewardXp: 70, rewardDiamond: 0, gameType: null },
   { id: 'q_weekly_play20', type: 'weekly', title: 'Cày cuốc tuần này', description: 'Chơi 20 trận trong tuần', metric: 'play_match', target: 20, rewardCoin: 600, rewardXp: 400, rewardDiamond: 5, gameType: null },
   { id: 'q_weekly_win8', type: 'weekly', title: 'Chuỗi thắng', description: 'Thắng 8 trận trong tuần', metric: 'win_match', target: 8, rewardCoin: 800, rewardXp: 500, rewardDiamond: 8, gameType: null },
-  { id: 'q_weekly_shop', type: 'weekly', title: 'Tín đồ thời trang', description: 'Mua 1 món cosmetic', metric: 'buy_item', target: 1, rewardCoin: 200, rewardXp: 120, rewardDiamond: 0, gameType: null },
+  { id: 'q_weekly_chess', type: 'weekly', title: 'Chiếu tướng', description: 'Thắng 3 ván Cờ Vua trong tuần', metric: 'win_match', target: 3, rewardCoin: 400, rewardXp: 300, rewardDiamond: 3, gameType: 'chess' },
 ];
 
 const ACHIEVEMENTS = [
-  { id: 'ach_first_win', title: 'Chiến Thắng Đầu Tiên', description: 'Thắng trận đầu tiên', metric: 'wins', target: 1, rewardCoin: 200, rewardXp: 150, art: 'star' },
-  { id: 'ach_win_10', title: 'Tay Chơi Cứng', description: 'Thắng 10 trận', metric: 'wins', target: 10, rewardCoin: 500, rewardXp: 350, art: 'flame' },
-  { id: 'ach_win_100', title: 'Huyền Thoại', description: 'Thắng 100 trận', metric: 'wins', target: 100, rewardCoin: 3000, rewardXp: 2000, art: 'crown' },
-  { id: 'ach_match_100', title: '100 Trận Đấu', description: 'Chơi 100 trận', metric: 'matches', target: 100, rewardCoin: 1500, rewardXp: 1000, art: 'target' },
-  { id: 'ach_match_1000', title: '1000 Trận Đấu', description: 'Chơi 1000 trận', metric: 'matches', target: 1000, rewardCoin: 12000, rewardXp: 8000, art: 'trophy' },
-  { id: 'ach_friends_5', title: 'Bạn Bè Bốn Phương', description: 'Kết bạn với 5 người', metric: 'friends', target: 5, rewardCoin: 300, rewardXp: 200, art: 'handshake' },
+  { id: 'ach_first_win', title: 'Chiến Thắng Đầu Tiên', description: 'Thắng trận đầu tiên', metric: 'wins', target: 1, rewardCoin: 200, rewardXp: 150, rewardItem: 'title_newbie', art: 'star' },
+  { id: 'ach_win_10', title: 'Tay Chơi Cứng', description: 'Thắng 10 trận', metric: 'wins', target: 10, rewardCoin: 500, rewardXp: 350, rewardItem: 'bubble_cloud', art: 'flame' },
+  { id: 'ach_win_100', title: 'Huyền Thoại', description: 'Thắng 100 trận', metric: 'wins', target: 100, rewardCoin: 3000, rewardXp: 2000, rewardItem: 'fx_fireworks', art: 'crown' },
+  { id: 'ach_match_100', title: '100 Trận Đấu', description: 'Chơi 100 trận', metric: 'matches', target: 100, rewardCoin: 1500, rewardXp: 1000, rewardItem: 'bg_beach', art: 'target' },
+  { id: 'ach_match_1000', title: '1000 Trận Đấu', description: 'Chơi 1000 trận', metric: 'matches', target: 1000, rewardCoin: 12000, rewardXp: 8000, rewardItem: 'frame_royal', art: 'trophy' },
+  { id: 'ach_friends_5', title: 'Bạn Bè Bốn Phương', description: 'Kết bạn với 5 người', metric: 'friends', target: 5, rewardCoin: 300, rewardXp: 200, rewardItem: 'emote_pack_cute', art: 'handshake' },
 ];
 
 const DEMO_USERS = [
@@ -103,13 +103,11 @@ function createUser(opts: {
 
 export function ensureSeed(): void {
   const upsertItem = db.prepare(
-    `INSERT INTO items (id, name, type, rarity, price_coin, price_diamond, payload, description)
-     VALUES (?,?,?,?,?,?,?,?)
+    `INSERT INTO items (id, name, type, rarity, payload, description)
+     VALUES (?,?,?,?,?,?)
      ON CONFLICT(id) DO UPDATE SET name=excluded.name, payload=excluded.payload, description=excluded.description`,
   );
-  ITEMS.forEach((i) =>
-    upsertItem.run(i.id, i.name, i.type, i.rarity, i.priceCoin, i.priceDiamond, JSON.stringify(i.payload), i.description),
-  );
+  ITEMS.forEach((i) => upsertItem.run(i.id, i.name, i.type, i.rarity, JSON.stringify(i.payload), i.description));
 
   const upsertQuest = db.prepare(
     `INSERT INTO quests (id, type, title, description, metric, target, reward_coin, reward_xp, reward_diamond, game_type, active)
@@ -121,11 +119,12 @@ export function ensureSeed(): void {
   );
 
   const upsertAch = db.prepare(
-    `INSERT INTO achievements (id, title, description, metric, target, reward_coin, reward_xp, art)
-     VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title, art=excluded.art`,
+    `INSERT INTO achievements (id, title, description, metric, target, reward_coin, reward_xp, reward_item, art)
+     VALUES (?,?,?,?,?,?,?,?,?)
+     ON CONFLICT(id) DO UPDATE SET title=excluded.title, reward_item=excluded.reward_item, art=excluded.art`,
   );
   ACHIEVEMENTS.forEach((a) =>
-    upsertAch.run(a.id, a.title, a.description, a.metric, a.target, a.rewardCoin, a.rewardXp, a.art),
+    upsertAch.run(a.id, a.title, a.description, a.metric, a.target, a.rewardCoin, a.rewardXp, a.rewardItem, a.art),
   );
 
   const now = nowMs();

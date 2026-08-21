@@ -8,7 +8,7 @@ const RARITIES = ['common', 'rare', 'epic', 'legendary'];
 export default function Economy({ toast }: { toast: (t: string) => void }) {
   const [items, setItems] = useState<any[]>([]);
   const [tx, setTx] = useState<any[]>([]);
-  const [form, setForm] = useState({ name: '', type: 'frame', rarity: 'common', priceCoin: 500, priceDiamond: '', description: '' });
+  const [form, setForm] = useState({ name: '', type: 'frame', rarity: 'common', description: '' });
 
   const load = () => {
     api('/api/admin/items').then((r: any) => setItems(r.items));
@@ -24,8 +24,6 @@ export default function Economy({ toast }: { toast: (t: string) => void }) {
         name: form.name,
         type: form.type,
         rarity: form.rarity,
-        priceCoin: form.priceCoin ? Number(form.priceCoin) : null,
-        priceDiamond: form.priceDiamond ? Number(form.priceDiamond) : null,
         description: form.description,
         payload: { from: '#FFB7C5', to: '#FF6F91' },
       },
@@ -43,8 +41,6 @@ export default function Economy({ toast }: { toast: (t: string) => void }) {
         name: item.name,
         type: item.type,
         rarity: item.rarity,
-        priceCoin: item.price_coin,
-        priceDiamond: item.price_diamond,
         description: item.description,
         payload: JSON.parse(item.payload || '{}'),
         status: item.status === 'active' ? 'hidden' : 'active',
@@ -81,16 +77,6 @@ export default function Economy({ toast }: { toast: (t: string) => void }) {
                 </select>
               </label>
             </div>
-            <div className="row">
-              <label className="field" style={{ flex: 1 }}>
-                Giá Coin
-                <input type="number" value={form.priceCoin} onChange={(e) => setForm({ ...form, priceCoin: e.target.value as any })} />
-              </label>
-              <label className="field" style={{ flex: 1 }}>
-                Giá Diamond
-                <input type="number" value={form.priceDiamond} onChange={(e) => setForm({ ...form, priceDiamond: e.target.value })} placeholder="để trống nếu không bán" />
-              </label>
-            </div>
             <label className="field">
               Mô tả
               <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
@@ -118,7 +104,7 @@ export default function Economy({ toast }: { toast: (t: string) => void }) {
                   <tr key={t.id}>
                     <td>{t.username ?? t.user_id}</td>
                     <td>
-                      <Pill tone={t.type === 'payment_topup' ? 'info' : t.amount > 0 ? 'ok' : 'warn'}>{t.type}</Pill>
+                      <Pill tone={t.amount > 0 ? 'ok' : 'warn'}>{t.type}</Pill>
                     </td>
                     <td style={{ fontWeight: 700, color: t.amount > 0 ? 'var(--mint)' : 'var(--danger)' }}>
                       {t.amount > 0 ? '+' : ''}
@@ -143,7 +129,6 @@ export default function Economy({ toast }: { toast: (t: string) => void }) {
                 <th>Tên</th>
                 <th>Loại</th>
                 <th>Độ hiếm</th>
-                <th>Giá</th>
                 <th>Trạng thái</th>
                 <th></th>
               </tr>
@@ -156,7 +141,6 @@ export default function Economy({ toast }: { toast: (t: string) => void }) {
                   <td>
                     <Pill tone={i.rarity === 'legendary' ? 'warn' : i.rarity === 'epic' ? 'info' : 'muted'}>{i.rarity}</Pill>
                   </td>
-                  <td>{i.price_coin ? `${fmtNum(i.price_coin)} coin` : `${i.price_diamond} diamond`}</td>
                   <td>
                     <Pill tone={i.status === 'active' ? 'ok' : 'muted'}>{i.status}</Pill>
                   </td>

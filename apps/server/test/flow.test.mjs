@@ -184,27 +184,39 @@ test('chat lọc từ tục và chặn spam', async () => {
   assert.equal(limited, true, 'phải chặn spam chat');
 });
 
-test('shop: mua thành công, không mua trùng, chặn khi thiếu tiền', async () => {
+test('không còn cửa hàng và cổng nạp tiền', async () => {
   const token = users.alpha.token;
-  const before = (await get('/api/economy/shop', token)).json;
-  const cheap = before.items.filter((i) => i.priceCoin && !i.owned).sort((a, b) => a.priceCoin - b.priceCoin)[0];
+  // Route không tồn tại thì Express trả trang HTML, nên chỉ xét status.
+  const status = async (method, path, body) =>
+    (
+      await fetch(API + path, {
+        method,
+        headers: { 'content-type': 'application/json', Authorization: `Bearer ${token}` },
+        body: method === 'POST' ? JSON.stringify(body ?? {}) : undefined,
+      })
+    ).status;
 
-  const buy = await post(`/api/economy/shop/${cheap.id}/buy`, { currency: 'coin' }, token);
-  assert.equal(buy.status, 200);
-  assert.equal(buy.json.balance.coin, before.balance.coin - cheap.priceCoin);
+  // Bốn đường mua bán cũ phải biến mất hẳn, không chỉ ẩn ở client.
+  assert.equal(await status('GET', '/api/economy/shop'), 404);
+  assert.equal(await status('GET', '/api/economy/packs'), 404);
+  assert.equal(await status('POST', '/api/economy/shop/frame_mint/buy', { currency: 'coin' }), 404);
+  assert.equal(await status('POST', '/api/economy/payment/checkout', { packId: 'starter' }), 404);
+});
 
-  assert.equal((await post(`/api/economy/shop/${cheap.id}/buy`, { currency: 'coin' }, token)).status, 409);
-
-  const expensive = before.items.filter((i) => i.priceCoin > buy.json.balance.coin)[0];
-  if (expensive) {
-    assert.equal((await post(`/api/economy/shop/${expensive.id}/buy`, { currency: 'coin' }, token)).status, 402);
-  }
-
+test('túi đồ: cosmetic kiếm được thì trang bị được, mỗi loại một món', async () => {
+  const token = users.alpha.token;
+  // alpha đã thắng trận Caro phía trên nên mở khoá thành tựu "Chiến Thắng Đầu
+  // Tiên", thành tựu đó tặng kèm danh hiệu.
   const inv = (await get('/api/economy/inventory', token)).json;
-  assert.ok(inv.inventory.some((e) => e.item.id === cheap.id));
+  const title = inv.inventory.find((e) => e.item.id === 'title_newbie');
+  assert.ok(title, 'thành tựu phải tặng cosmetic vì không còn chỗ nào mua');
+  assert.equal(title.item.priceCoin, undefined, 'cosmetic không còn giá');
 
-  const tx = (await get('/api/economy/transactions', token)).json;
-  assert.ok(tx.transactions.some((t) => t.type === 'shop_purchase'), 'phải ghi transaction');
+  assert.equal((await post(`/api/economy/inventory/${title.item.id}/equip`, { equip: true }, token)).status, 200);
+  const after = (await get('/api/economy/inventory', token)).json;
+  assert.equal(after.inventory.find((e) => e.item.id === 'title_newbie').equipped, true);
+  // Đồ không có trong túi thì không trang bị được.
+  assert.equal((await post('/api/economy/inventory/frame_dragon/equip', { equip: true }, token)).status, 404);
 });
 
 test('quest tiến độ tăng sau khi chơi và claim được', async () => {

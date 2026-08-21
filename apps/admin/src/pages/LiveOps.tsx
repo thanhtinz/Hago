@@ -40,7 +40,6 @@ export default function LiveOps({ toast }: { toast: (t: string) => void }) {
                 <select value={quest.metric} onChange={(e) => setQuest({ ...quest, metric: e.target.value })}>
                   <option value="play_match">Chơi trận</option>
                   <option value="win_match">Thắng trận</option>
-                  <option value="buy_item">Mua vật phẩm</option>
                   <option value="play_with_friend">Chơi cùng bạn</option>
                 </select>
               </label>

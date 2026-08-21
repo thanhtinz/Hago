@@ -30,6 +30,13 @@ export function friendList(userId: string): FriendEdge[] {
   return [...byUser.values()];
 }
 
+/** Hai người đã là bạn (đã chấp nhận) hay chưa. */
+export function areFriends(a: string, b: string): boolean {
+  return !!db
+    .prepare("SELECT 1 AS x FROM friends WHERE user_id = ? AND friend_id = ? AND status = 'accepted'")
+    .get(a, b);
+}
+
 export function isBlocked(a: string, b: string): boolean {
   const r = db
     .prepare('SELECT 1 AS x FROM blocks WHERE (user_id = ? AND blocked_id = ?) OR (user_id = ? AND blocked_id = ?)')

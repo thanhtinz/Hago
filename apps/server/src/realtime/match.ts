@@ -15,6 +15,7 @@ import { nid } from '../util';
 import { mutateCurrency } from '../services/economy';
 import { bumpDaily, dailyValue, track } from '../services/analytics';
 import { progressAchievements, progressQuests } from '../services/quests';
+import { areFriends } from '../services/social';
 import { addGuildPoints } from '../services/guilds';
 import { addSeasonXp, recordRankedMatch } from '../services/season';
 import { notify } from '../services/notifications';
@@ -328,6 +329,11 @@ export function settleMatch(match: MatchRuntime): { matchId: string; rows: Settl
     bumpDaily(r.userId, 'xp', r.xpGain);
     bumpDaily(r.userId, 'matches');
     progressQuests(r.userId, 'play_match', 1, match.gameType);
+    // Nhiệm vụ 'chơi cùng bạn bè' trước giờ không ai làm xong được vì chẳng có
+    // chỗ nào phát ra mốc này — cùng bàn với một người bạn thì tính.
+    if (match.players.some((p) => p.id !== r.userId && areFriends(r.userId, p.id))) {
+      progressQuests(r.userId, 'play_with_friend', 1, match.gameType);
+    }
     progressAchievements(r.userId, 'matches', 1);
     // Đóng góp cho bang: chơi xong được 5 điểm, thắng thêm 10. Tính theo trận
     // chứ không theo XP để bang không lệ thuộc vào việc ai cày game dài.

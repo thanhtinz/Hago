@@ -16,9 +16,9 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/01-login.png) | ![](docs/screenshots/02-home.png) | ![](docs/screenshots/03-games.png) |
 
-| Bạn bè | Chat | Cửa hàng |
+| Bạn bè | Chat | Túi đồ |
 |---|---|---|
-| ![](docs/screenshots/04-social.png) | ![](docs/screenshots/11-chat.png) | ![](docs/screenshots/05-shop.png) |
+| ![](docs/screenshots/04-social.png) | ![](docs/screenshots/11-chat.png) | ![](docs/screenshots/05-inventory.png) |
 
 | Tìm phòng | Tạo phòng | Chơi nhanh |
 |---|---|---|
@@ -32,9 +32,9 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/50-guild-find.png) | ![](docs/screenshots/52-guild-home.png) | ![](docs/screenshots/53-guild-chat.png) |
 
-| Hồ sơ | Nhiệm vụ | Cửa hàng |
+| Hồ sơ | Nhiệm vụ | Túi đồ |
 |---|---|---|
-| ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/07-quests.png) | ![](docs/screenshots/05-shop.png) |
+| ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/07-quests.png) | ![](docs/screenshots/05-inventory.png) |
 
 | Bảng xếp hạng | Thông báo | Cài đặt |
 |---|---|---|
@@ -239,8 +239,12 @@ nhận một lần — chống nhận trùng bằng khoá chính của bảng `s
 bằng kiểm tra ở tầng code, nên bấm hai lần cùng lúc cũng chỉ ăn một. Mùa tự gối
 nhau: hết hạn thì lần gọi tiếp theo đóng mùa cũ và mở mùa mới, không cần cron.
 
-**Economy** — 19 cosmetic (khung, danh hiệu, nền, bong bóng chat, emote, hiệu ứng, theme bàn cờ),
-Coin/Diamond/Season Token, mọi thay đổi số dư ghi transaction bất biến trong SQL transaction.
+**Cosmetic & tiền tệ** — 19 cosmetic (khung, danh hiệu, nền, bong bóng chat, emote,
+hiệu ứng, theme bàn cờ). **Không có cửa hàng và không có nạp tiền**: cosmetic chỉ
+kiếm được qua Battle Pass và thành tựu, nên không có giá. Coin dùng làm phí lập bang
+và lệ phí giải đấu, Diamond dùng mở nhánh cao cấp Battle Pass; cả hai chỉ đến từ
+trận đấu, nhiệm vụ và phần thưởng mùa. Mọi thay đổi số dư vẫn ghi transaction bất
+biến trong SQL transaction.
 
 **Admin** — dashboard KPI, quản lý user, theo dõi phòng/trận live, CRUD vật phẩm và
 nhiệm vụ/sự kiện, xử lý báo cáo, audit log, phễu analytics.
@@ -360,7 +364,7 @@ kèm hàng xa nhạt dần (phối cảnh khí quyển) và thành bàn phía g�
 Quân dùng bộ **rhosgfx** lấy từ kho quân cờ của lichess: khối mập, viền dày, nhìn
 nghiêng nên đứng trên bàn là hợp và nổi được trên cả ô sáng lẫn ô tối — thứ mà
 silhouette một màu dùng lúc đầu không làm được, đứng lên nhìn bẹt. Chọn bộ này còn
-vì giấy phép: app có shop nên mấy bộ CC BY-NC-SA dùng không được, còn cburnett và
+vì giấy phép: dự án phát hành được nên mấy bộ CC BY-NC-SA dùng không được, còn cburnett và
 merida là GPL sẽ kéo theo cả repo; rhosgfx là **CC0** nên không vướng gì. Hình vẽ
 thẳng vào cảnh chung nên co theo tỉ lệ xa gần, kèm bóng đổ dẹt dưới chân, và chiều
 cao tương đối giữa tốt với vua giữ nguyên như bản gốc.
@@ -439,7 +443,7 @@ mở với số người đang có miễn không dưới mức tối thiểu.
 **Không dùng emoji ở bất kỳ đâu trong giao diện** — emoji mỗi hệ điều hành vẽ một
 kiểu, không đổi được màu theo ngữ cảnh và không canh được nét với chữ.
 
-Cosmetic trong shop vẫn vẽ bằng gradient nên thêm item mới chỉ cần một dòng cấu hình màu.
+Cosmetic vẫn vẽ bằng gradient nên thêm item mới chỉ cần một dòng cấu hình màu.
 
 ---
 
@@ -465,7 +469,7 @@ Cosmetic trong shop vẫn vẽ bằng gradient nên thêm item mới chỉ cần
 | Lobby, Room, Invite, room code | ✅ |
 | 7 game launch (Normal/Ranked/Custom) | ✅ |
 | XP, Coin, Rank, Achievement, Quest | ✅ |
-| Shop, Inventory, Payment (mô phỏng) | ✅ |
+| Túi đồ + cosmetic (không mua bán) | ✅ |
 | Notification in-app | ✅ |
 | Admin Panel + Analytics | ✅ |
 | Report/Ban/Mute, profanity filter | ✅ |
@@ -486,7 +490,7 @@ Chi tiết kỹ thuật: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · API: 
 ```bash
 npm test                    # chạy toàn bộ
 npm test -w @hago/shared    # 31 test: 7 engine, redact thông tin ẩn, Elo, XP cap
-npm test -w @hago/server    # 13 test tích hợp: đăng ký → ghép trận → thưởng → shop → admin
+npm test -w @hago/server    # 26 test tích hợp: đăng ký → ghép trận → thưởng → bang hội → giải đấu → admin
 ```
 
 Test tích hợp khởi động server thật trên SQLite tạm và điều khiển hai WebSocket client

@@ -43,17 +43,16 @@ Xác thực: `Authorization: Bearer <token>` (JWT, mặc định hết hạn sau
 | POST | `/channels/direct/:userId` | Mở/lấy kênh chat 1-1 |
 | POST | `/reports` | `{targetId, targetType, reason, evidence?}` |
 
-### Economy — `/api/economy`
+### Túi đồ — `/api/economy`
+
+App **không có cửa hàng và không có nạp tiền**. Cosmetic chỉ kiếm được qua
+Battle Pass và thành tựu, nên không có giá và không có đường mua.
 
 | Method | Path | Mô tả |
 |---|---|---|
-| GET | `/shop?type=` | Danh sách vật phẩm + cờ `owned` |
 | GET | `/inventory` | Túi đồ |
-| POST | `/shop/:itemId/buy` | `{currency: 'coin'\|'diamond'}` |
-| POST | `/inventory/:itemId/equip` | `{equip: boolean}` |
-| GET | `/transactions` | Lịch sử giao dịch của mình |
-| GET | `/packs` | Gói nạp Diamond |
-| POST | `/payment/checkout` | `{packId}` — mô phỏng nạp (production cần verify receipt) |
+| POST | `/inventory/:itemId/equip` | `{equip: boolean}` — mỗi loại chỉ một món |
+| GET | `/transactions` | Lịch sử giao dịch tiền tệ của mình |
 
 ### Progression — `/api`
 
