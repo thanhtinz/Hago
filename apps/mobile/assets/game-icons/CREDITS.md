@@ -14,13 +14,6 @@ chỉ bỏ nền đen và tô màu theo ngữ cảnh.
 | `game-flappy` | kiwi-bird | delapouite |
 | `game-werewolf` | wolf-head | lorc |
 | `sheep` | sheep | delapouite |
-| `knight` | chess-knight | skoll |
-| `chess-p` | chess-pawn | skoll |
-| `chess-n` | chess-knight | skoll |
-| `chess-b` | chess-bishop | skoll |
-| `chess-r` | chess-rook | skoll |
-| `chess-q` | chess-queen | skoll |
-| `chess-k` | chess-king | skoll |
 | `bird` | kiwi-bird | delapouite |
 | `mark-o` | blank | badges |
 | `mark-x` | multiply | badges |

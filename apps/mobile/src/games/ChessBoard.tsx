@@ -1,7 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
-import Svg, { Defs, Ellipse, G, LinearGradient, Polygon, Stop, Text as SvgText } from 'react-native-svg';
-import { Art, ArtName, artNodes, artSpan } from '../components/Art';
+import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Polygon, Polyline, Rect, Stop, Text as SvgText } from 'react-native-svg';
+import { CHESS_PIECES, CHESS_PIECE_BASE, ChessPieceKey, ChessPieceNode } from '../art/chessPieces';
 import { C, R, S, softShadow } from '../theme';
 import { BoardProps, TurnBanner, VersusBar } from './shared';
 
@@ -14,9 +14,9 @@ import { BoardProps, TurnBanner, VersusBar } from './shared';
  * <Polygon> nhận bốn đỉnh bất kỳ, lại bắt được sự kiện chạm đúng theo hình
  * thang đó nên vùng chạm khớp hệt cái mắt nhìn thấy.
  *
- * Quân dùng lại đúng bộ chess-* của game-icons.net (silhouette nhìn nghiêng —
- * vốn đã hợp với góc nhìn đứng), nhúng thẳng vào cảnh qua `artNodes` để ăn
- * theo tỉ lệ xa gần thay vì vẽ ra một <Svg> riêng.
+ * Quân dùng bộ **rhosgfx** của lichess (CC0): khối mập, viền dày, nhìn nghiêng
+ * nên đứng trên bàn là hợp, và nổi được trên cả ô sáng lẫn ô tối. Vẽ thẳng vào
+ * cảnh chung để ăn theo tỉ lệ xa gần thay vì mở một <Svg> riêng cho mỗi quân.
  */
 
 const LIGHT = '#F0D9B5';
@@ -28,13 +28,38 @@ const FADE = 0.22;
 const Z_NEAR = 1;
 const Z_FAR = 1.62;
 
-const WHITE_FILL = '#FFF6E4';
-const WHITE_LINE = '#6B4A2A';
-const BLACK_FILL = '#2E2536';
-const BLACK_LINE = '#0E0A14';
+/** Chữ hoa là quân trắng, chữ thường là quân đen; khớp cách engine ghi bàn cờ. */
+const keyOf = (piece: string): ChessPieceKey =>
+  `${piece === piece.toUpperCase() ? 'w' : 'b'}${piece.toUpperCase()}` as ChessPieceKey;
 
-/** Chữ hoa là quân trắng, chữ thường là quân đen. */
-const artOf = (piece: string): ArtName => `chess-${piece.toLowerCase()}` as ArtName;
+/** Bản vẽ của bộ quân dùng nhiều loại hình, không riêng <path>. */
+const SVG_TAGS: Record<string, any> = {
+  path: Path,
+  circle: Circle,
+  ellipse: Ellipse,
+  rect: Rect,
+  polygon: Polygon,
+  polyline: Polyline,
+};
+
+const shapeNodes = (nodes: readonly ChessPieceNode[], keyPrefix: string) =>
+  nodes.map((n, i) => {
+    const Tag = SVG_TAGS[n.tag];
+    return Tag ? <Tag key={`${keyPrefix}${i}`} {...n.props} /> : null;
+  });
+
+/** Vẽ một quân vào cảnh: chân đặt đúng (baseX, baseY), khung cao `h`. */
+function Piece({ piece, baseX, baseY, h }: { piece: string; baseX: number; baseY: number; h: number }) {
+  const shape = CHESS_PIECES[keyOf(piece)];
+  if (!shape) return null;
+  const span = Number(shape.viewBox.split(' ')[3]) || 72;
+  const k = h / span;
+  return (
+    <G translateX={baseX - (span * k) / 2} translateY={baseY - CHESS_PIECE_BASE * h} scale={k}>
+      {shapeNodes(shape.nodes, 'p')}
+    </G>
+  );
+}
 
 /** Trộn màu về phía màu nền để làm nhạt dần theo chiều sâu. */
 function fade(hex: string, amount: number): string {
@@ -82,11 +107,12 @@ export default function ChessBoard({ view, mySeat, send, deadline, space }: Boar
   const pt = (u: number, v: number) => `${pxAt(u, v).toFixed(1)},${rowY(v).toFixed(1)}`;
 
   /**
-   * Chiều cao quân ở hàng gần nhất; hàng xa co lại theo tỉ lệ phối cảnh.
-   * Silhouette của game-icons gần vuông nên con số này cũng là bề ngang — để
-   * quá 1,2 lần bề rộng ô là các quân cạnh nhau chồng lên nhau che mất bàn.
+   * Cạnh khung quân ở hàng gần nhất; hàng xa co lại theo tỉ lệ phối cảnh.
+   * Khung vuông và hình chỉ chiếm khoảng 2/3 bề ngang khung, nên 1,45 lần bề
+   * rộng ô cho ra con vua rộng gần bằng ô — vừa đủ, không lấn sang ô bên.
+   * Chiều cao thật của từng quân do bản vẽ gốc quyết định: tốt thấp, vua cao.
    */
-  const PIECE_H = (NEAR_W / 8) * 1.12;
+  const PIECE_H = (NEAR_W / 8) * 1.45;
 
   /**
    * Nghịch đảo phép chiếu: từ điểm chạm trên màn suy ngược ra ô cờ.
@@ -306,9 +332,6 @@ export default function ChessBoard({ view, mySeat, send, deadline, space }: Boar
             const baseX = pxAt((col + 0.5) / 8, v);
             const baseY = rowY(v);
             const h = PIECE_H * k;
-            const span = artSpan(artOf(piece));
-            const scale = h / span;
-            const white = piece === piece.toUpperCase();
             const cell = rowW(v) / 8;
             return (
               <G key={`pc${s}`}>
@@ -320,13 +343,7 @@ export default function ChessBoard({ view, mySeat, send, deadline, space }: Boar
                   ry={cell * 0.14}
                   fill="rgba(40,24,10,0.32)"
                 />
-                {/* Vẽ hai lần: bản to hơn làm nét viền, bản trong làm ruột */}
-                <G translateX={baseX - (span * scale * 1.08) / 2} translateY={baseY - span * scale * 1.08} scale={scale * 1.08}>
-                  {artNodes(artOf(piece), white ? WHITE_LINE : BLACK_LINE, white ? WHITE_LINE : BLACK_LINE, `o${s}`)}
-                </G>
-                <G translateX={baseX - (span * scale) / 2} translateY={baseY - span * scale} scale={scale}>
-                  {artNodes(artOf(piece), white ? WHITE_FILL : BLACK_FILL, white ? WHITE_FILL : BLACK_FILL, `b${s}`)}
-                </G>
+                <Piece piece={piece} baseX={baseX} baseY={baseY} h={h} />
               </G>
             );
           })}
@@ -344,14 +361,11 @@ function TakenRow({ pieces, width }: { pieces: string[]; width: number }) {
   const order = 'qrbnp';
   const sorted = [...pieces].sort((a, b) => order.indexOf(a.toLowerCase()) - order.indexOf(b.toLowerCase()));
   return (
-    <View style={{ width, minHeight: 22, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+    <View style={{ width, minHeight: 24, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
       {sorted.map((p, i) => (
-        <Art
-          key={`${p}${i}`}
-          name={artOf(p)}
-          size={18}
-          color={p === p.toUpperCase() ? '#C9BCA6' : '#8A8296'}
-        />
+        <Svg key={`${p}${i}`} width={22} height={22} viewBox={CHESS_PIECES[keyOf(p)].viewBox} opacity={0.75}>
+          {shapeNodes(CHESS_PIECES[keyOf(p)].nodes, `t${i}`)}
+        </Svg>
       ))}
     </View>
   );

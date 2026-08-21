@@ -38,15 +38,8 @@ export const ART = {
 
   // quân cờ trong trận
   sheep: 'delapouite/sheep',
-  knight: 'skoll/chess-knight',
-
-  // quân cờ vua: 6 loại, tô trắng hoặc đen theo phe
-  'chess-p': 'skoll/chess-pawn',
-  'chess-n': 'skoll/chess-knight',
-  'chess-b': 'skoll/chess-bishop',
-  'chess-r': 'skoll/chess-rook',
-  'chess-q': 'skoll/chess-queen',
-  'chess-k': 'skoll/chess-king',
+  // Quân cờ vua không lấy ở đây: bàn cờ vẽ 2.5D cần hình có khối và viền dày,
+  // silhouette một màu đứng lên nhìn bẹt. Xem scripts/fetch-chess-pieces.mjs.
 
   // Flappy Bird: chim thân tròn nhìn nghiêng, dáng gần nhất với con chim gốc
   // trong kho game-icons (mỏ chìa trước, thân mập, mắt to).

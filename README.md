@@ -265,7 +265,8 @@ bằng component riêng:
 
 | Loại | Nguồn | Giấy phép |
 |---|---|---|
-| Art trong trận: mark 7 game, quân cờ vua, chim, xúc xắc, vai Ma Sói, sticker | [game-icons.net](https://github.com/game-icons/icons) — 70 asset trong `apps/mobile/assets/game-icons/` | CC BY 3.0 |
+| Art trong trận: mark 7 game, chim, xúc xắc, vai Ma Sói, sticker | [game-icons.net](https://github.com/game-icons/icons) — 62 asset trong `apps/mobile/assets/game-icons/` | CC BY 3.0 |
+| Quân Cờ Vua: bộ **rhosgfx**, 12 quân | [RhosGFX](https://rhosgfx.itch.io/) qua kho [lichess](https://github.com/lichess-org/lila/tree/master/public/piece) — `apps/mobile/assets/chess/` | CC0 1.0 |
 | Art Sheep Battle: 5 giống cừu × 2 phe × 2 animation, icon cấp, hiệu ứng | [TomoSheepFight](https://github.com/dotrungkien/TomoSheepFight) của Do Trung Kien — `apps/mobile/assets/sheep-fight/` | MIT |
 | Art Ô Ăn Quan: bàn gỗ, hai ô Quan, quan chibi, nắp quan, 6 màu hạt, hoa lá | Bản vẽ riêng của dự án — `apps/mobile/assets/oanquan/` | Nội bộ |
 | Art Bắn Tàu: mặt biển, 5 loại tàu (nhìn trên + nhìn ngang), cột nước, tàu cháy, dấu chìm, vòng ngắm | Bản vẽ riêng của dự án — `apps/mobile/assets/battleship/` | Nội bộ |
@@ -284,7 +285,9 @@ Ghi công từng asset trong `apps/mobile/assets/game-icons/CREDITS.md`.
 Tải và cập nhật bộ asset:
 
 ```bash
-node apps/mobile/scripts/fetch-game-art.mjs
+node apps/mobile/scripts/fetch-game-art.mjs      # icon chung của 7 game
+node apps/mobile/scripts/fetch-chess-pieces.mjs  # bộ quân Cờ Vua
+python3 apps/mobile/scripts/make-flappy-art.py   # sprite chim Flappy
 ```
 
 Script tải SVG gốc về `apps/mobile/assets/game-icons/` (giữ nguyên file để tuân thủ
@@ -297,9 +300,13 @@ hình chữ nhật, mà `<View>` chỉ vẽ được hình chữ nhật — nên
 với 64 `<Polygon>`. Phép chiếu là phối cảnh một điểm tụ thật: bề ngang và khoảng
 cách hàng đều tỉ lệ `1/z`, nhờ vậy các hàng dồn lại về phía xa đúng như mắt nhìn,
 kèm hàng xa nhạt dần (phối cảnh khí quyển) và thành bàn phía gần cho thấy bề dày.
-Quân dùng lại đúng bộ chess-* của game-icons — silhouette nhìn nghiêng vốn đã hợp
-với góc đứng — nhúng thẳng vào cảnh nên co theo tỉ lệ xa gần, có bóng đổ dẹt dưới
-chân.
+Quân dùng bộ **rhosgfx** lấy từ kho quân cờ của lichess: khối mập, viền dày, nhìn
+nghiêng nên đứng trên bàn là hợp và nổi được trên cả ô sáng lẫn ô tối — thứ mà
+silhouette một màu dùng lúc đầu không làm được, đứng lên nhìn bẹt. Chọn bộ này còn
+vì giấy phép: app có shop nên mấy bộ CC BY-NC-SA dùng không được, còn cburnett và
+merida là GPL sẽ kéo theo cả repo; rhosgfx là **CC0** nên không vướng gì. Hình vẽ
+thẳng vào cảnh chung nên co theo tỉ lệ xa gần, kèm bóng đổ dẹt dưới chân, và chiều
+cao tương đối giữa tốt với vua giữ nguyên như bản gốc.
 
 Chạm thì **nghịch đảo phép chiếu** ra ô cờ thay vì gắn `onPress` lên từng polygon:
 `react-native-svg` không chuyển `onPress` thành sự kiện chuột trên web, mà một hàm
