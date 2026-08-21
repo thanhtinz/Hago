@@ -130,6 +130,17 @@ export function roomChannel(roomId: string, memberIds: string[]): string {
   return id;
 }
 
+/**
+ * Chỉ thành viên của kênh mới đọc và gửi được. Kênh DM sinh id từ hai user nên
+ * tự an toàn, còn kênh phòng và kênh bang mang id đoán được nên phải chặn ở đây.
+ */
+export function requireChannelMember(channelId: string, userId: string): void {
+  const ok = db
+    .prepare('SELECT 1 AS x FROM channel_members WHERE channel_id = ? AND user_id = ?')
+    .get(channelId, userId);
+  if (!ok) throw new Error('NOT_A_MEMBER');
+}
+
 export function postMessage(channelId: string, senderId: string, rawBody: string, kind = 'text'): ChatMessage {
   const user = findUser(senderId);
   if (!user) throw new Error('USER_NOT_FOUND');

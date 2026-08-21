@@ -83,6 +83,22 @@ export const ERROR_TEXT: Record<string, string> = {
   MUTED: 'Bạn đang bị hạn chế chat',
   BLOCKED: 'Không thể tương tác với người này',
   NETWORK: 'Mất kết nối tới máy chủ',
+
+  // Bang hội
+  ALREADY_IN_GUILD: 'Bạn đang ở một bang rồi',
+  NOT_IN_GUILD: 'Bạn chưa ở bang nào',
+  GUILD_NOT_FOUND: 'Không tìm thấy bang',
+  GUILD_NAME_TAKEN: 'Tên hoặc thẻ bang đã có người dùng',
+  BAD_GUILD_NAME: 'Tên bang cần 3-24 ký tự',
+  BAD_GUILD_TAG: 'Thẻ bang cần 2-5 chữ in hoa hoặc số',
+  GUILD_FULL: 'Bang đã đủ người',
+  GUILD_CLOSED: 'Bang này chỉ nhận người được mời',
+  LEVEL_TOO_LOW: 'Cấp của bạn chưa đủ để vào bang này',
+  OWNER_MUST_TRANSFER: 'Nhường ghế chủ bang trước đã',
+  CANNOT_KICK_OWNER: 'Không thể đuổi chủ bang',
+  NOT_A_MEMBER: 'Người này không ở trong bang',
+  NO_REQUEST: 'Không còn đơn nào của người này',
+  NOT_ALLOWED: 'Bạn không có quyền làm việc này',
 };
 
 export function friendlyError(code: string): string {

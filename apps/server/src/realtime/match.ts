@@ -15,6 +15,7 @@ import { nid } from '../util';
 import { mutateCurrency } from '../services/economy';
 import { bumpDaily, dailyValue, track } from '../services/analytics';
 import { progressAchievements, progressQuests } from '../services/quests';
+import { addGuildPoints } from '../services/guilds';
 import { notify } from '../services/notifications';
 
 export interface MatchRuntime {
@@ -327,6 +328,9 @@ export function settleMatch(match: MatchRuntime): { matchId: string; rows: Settl
     bumpDaily(r.userId, 'matches');
     progressQuests(r.userId, 'play_match', 1, match.gameType);
     progressAchievements(r.userId, 'matches', 1);
+    // Đóng góp cho bang: chơi xong được 5 điểm, thắng thêm 10. Tính theo trận
+    // chứ không theo XP để bang không lệ thuộc vào việc ai cày game dài.
+    addGuildPoints(r.userId, r.result === 'win' ? 15 : 5);
     if (r.result === 'win') {
       bumpDaily(r.userId, 'wins');
       progressQuests(r.userId, 'win_match', 1, match.gameType);

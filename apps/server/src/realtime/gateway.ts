@@ -6,7 +6,15 @@ import { verifyToken } from '../auth';
 import { db, nowMs } from '../db';
 import { RateLimiter } from '../util';
 import { findUser, toPublicUser, touch } from '../services/users';
-import { channelHistory, directChannel, isBlocked, markChannelRead, postMessage, roomChannel } from '../services/social';
+import {
+  channelHistory,
+  directChannel,
+  isBlocked,
+  markChannelRead,
+  postMessage,
+  requireChannelMember,
+  roomChannel,
+} from '../services/social';
 import { bindNotificationEmitter, notify } from '../services/notifications';
 import { track } from '../services/analytics';
 import * as Rooms from './rooms';
@@ -304,6 +312,10 @@ export function initGateway(server: HttpServer): Server {
         if (p.toUserId) {
           if (isBlocked(userId, String(p.toUserId))) throw new Error('BLOCKED');
           channelId = directChannel(userId, String(p.toUserId));
+        } else if (channelId) {
+          // Kênh phòng và kênh bang mang id đoán được (`room:<id>`, `guild:<id>`)
+          // nên phải kiểm tư cách thành viên, không thì ai cũng nhắn vào được.
+          requireChannelMember(channelId, userId);
         }
         if (!channelId) throw new Error('NO_CHANNEL');
         const msg = postMessage(channelId, userId, String(p.body ?? ''), p.kind ?? 'text');
@@ -320,10 +332,15 @@ export function initGateway(server: HttpServer): Server {
     });
 
     socket.on('chat.history', (p: any, ack?: (r: any) => void) => {
-      const channelId = p.toUserId ? directChannel(userId, String(p.toUserId)) : String(p.channelId ?? '');
-      if (!channelId) return ack?.({ ok: false, error: 'NO_CHANNEL' });
-      markChannelRead(channelId, userId);
-      ack?.({ ok: true, channelId, messages: channelHistory(channelId, Number(p.limit ?? 50)) });
+      try {
+        const channelId = p.toUserId ? directChannel(userId, String(p.toUserId)) : String(p.channelId ?? '');
+        if (!channelId) return ack?.({ ok: false, error: 'NO_CHANNEL' });
+        if (!p.toUserId) requireChannelMember(channelId, userId);
+        markChannelRead(channelId, userId);
+        ack?.({ ok: true, channelId, messages: channelHistory(channelId, Number(p.limit ?? 50)) });
+      } catch (e: any) {
+        ack?.({ ok: false, error: e.message });
+      }
     });
 
     socket.on('disconnect', () => {

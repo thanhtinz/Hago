@@ -191,6 +191,45 @@ export function ensureSeed(): void {
     );
     db.prepare("UPDATE profiles SET frame_id = 'frame_sakura' WHERE user_id = ?").run(demoId);
 
+    // Vài bang sẵn có để màn Bang hội không trống trơn lúc mới cài.
+    const GUILDS = [
+      { name: 'Hội Cừu Vui Vẻ', tag: 'CUU', emblem: 'crown', color: '#7C6BFF', policy: 'open', xp: 2400 },
+      { name: 'Liên Minh Chibi', tag: 'CHIBI', emblem: 'star', color: '#FF6B8A', policy: 'request', xp: 1150 },
+      { name: 'Bến Cảng Bắn Tàu', tag: 'TAU', emblem: 'fire', color: '#2FA9F5', policy: 'open', xp: 480 },
+    ];
+    GUILDS.forEach((g, i) => {
+      const gid = nid();
+      // Mỗi bang một chủ khác nhau, lấy lần lượt từ danh sách người chơi demo.
+      const owner = others[i % others.length];
+      db.prepare(
+        `INSERT INTO guilds (id, name, tag, description, emblem, color, owner_id, join_policy, min_level, xp, created_at)
+         VALUES (?,?,?,?,?,?,?,?,1,?,?)`,
+      ).run(
+        gid,
+        g.name,
+        g.tag,
+        'Bang vui vẻ, chơi là chính. Vào chào nhau một câu nhé!',
+        g.emblem,
+        g.color,
+        owner.id,
+        g.policy,
+        g.xp,
+        nowMs(),
+      );
+      db.prepare("INSERT INTO channels (id, kind, ref_id, created_at) VALUES (?,'guild',?,?)").run(
+        `guild:${gid}`,
+        gid,
+        nowMs(),
+      );
+      // Chủ bang cộng thêm vài người nữa cho danh sách thành viên có cái mà xem.
+      others.slice(i, i + 3).forEach((m, k) => {
+        db.prepare(
+          'INSERT OR IGNORE INTO guild_members (guild_id, user_id, role, points, joined_at) VALUES (?,?,?,?,?)',
+        ).run(gid, m.id, k === 0 ? 'owner' : k === 1 ? 'officer' : 'member', Math.round(g.xp / (k + 2)), nowMs());
+        db.prepare('INSERT OR IGNORE INTO channel_members (channel_id, user_id) VALUES (?,?)').run(`guild:${gid}`, m.id);
+      });
+    });
+
     console.log(`Seeded users: admin/admin123 (id=${adminId}), demo/demo123 (id=${demoId}), +${others.length} demo players`);
   }
 }

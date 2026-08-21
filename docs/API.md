@@ -133,6 +133,25 @@ tài khoản bị khoá.
 | flappy | `flap` | `{}` — vỗ cánh, chỉ nhận sau khi hết đếm ngược (game một người) |
 | werewolf | `night_action` / `vote` / `ready_vote` | `{target}` / `{target}` / `{}` |
 
+### Bang hội
+
+| Method | Endpoint | Mô tả |
+|---|---|---|
+| GET | `/api/guilds?q=` | Tìm bang theo tên hoặc thẻ |
+| GET | `/api/guilds/leaderboard` | BXH bang theo điểm đóng góp |
+| GET | `/api/guilds/me` | Bang của mình, kèm thành viên và đơn chờ |
+| GET | `/api/guilds/:id` | Thông tin một bang |
+| POST | `/api/guilds` | Lập bang — `{name, tag, emblem?, color?, joinPolicy?, minLevel?}`, trừ 500 coin |
+| POST | `/api/guilds/:id/join` | Vào bang, hoặc gửi đơn nếu bang duyệt đơn |
+| POST | `/api/guilds/leave` | Rời bang |
+| PATCH | `/api/guilds/:id` | Sửa mô tả, huy hiệu, chính sách nhận người |
+| POST | `/api/guilds/:id/requests/:userId` | Duyệt đơn — `{accept}` |
+| POST | `/api/guilds/:id/kick/:userId` | Đuổi thành viên |
+| POST | `/api/guilds/:id/role/:userId` | Đổi vai — `{role}`; `owner` là nhường ghế chủ |
+
+Chat bang dùng chung `chat.send` / `chat.history` với `channelId = "guild:<id>"`.
+Cả hai chỉ nhận `channelId` mà người gọi là thành viên của kênh.
+
 ### Mã lỗi thường gặp
 
 `UNAUTHORIZED` · `NOT_A_PLAYER` · `NOT_YOUR_TURN` · `CELL_TAKEN` · `ROOM_FULL` ·

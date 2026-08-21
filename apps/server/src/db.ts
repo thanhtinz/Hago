@@ -58,6 +58,43 @@ CREATE TABLE IF NOT EXISTS game_stats (
   PRIMARY KEY (user_id, game_type)
 );
 
+CREATE TABLE IF NOT EXISTS guilds (
+  id          TEXT PRIMARY KEY,
+  name        TEXT NOT NULL UNIQUE,
+  tag         TEXT NOT NULL UNIQUE,
+  description TEXT NOT NULL DEFAULT '',
+  -- Tên asset huy hiệu và màu, không dùng emoji.
+  emblem      TEXT NOT NULL DEFAULT 'crown',
+  color       TEXT NOT NULL DEFAULT '#7C6BFF',
+  owner_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  -- 'open' vào thẳng, 'request' phải duyệt, 'closed' chỉ mời.
+  join_policy TEXT NOT NULL DEFAULT 'open',
+  min_level   INTEGER NOT NULL DEFAULT 1,
+  xp          INTEGER NOT NULL DEFAULT 0,
+  created_at  INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS guild_members (
+  guild_id  TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+  user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  -- 'owner' | 'officer' | 'member'
+  role      TEXT NOT NULL DEFAULT 'member',
+  -- Điểm đóng góp cộng dồn, dùng xếp hạng thành viên trong bang.
+  points    INTEGER NOT NULL DEFAULT 0,
+  joined_at INTEGER NOT NULL,
+  PRIMARY KEY (guild_id, user_id)
+);
+
+-- Một người chỉ ở một bang, nên khoá luôn ở tầng DB thay vì tin vào code.
+CREATE UNIQUE INDEX IF NOT EXISTS guild_members_one_per_user ON guild_members(user_id);
+
+CREATE TABLE IF NOT EXISTS guild_requests (
+  guild_id   TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (guild_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS sessions (
   id         TEXT PRIMARY KEY,
   user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

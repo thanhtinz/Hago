@@ -229,6 +229,64 @@ export function levelFromXp(xp: number): { level: number; into: number; need: nu
 }
 
 /* ------------------------------------------------------------------ */
+/* Bang hội                                                             */
+/* ------------------------------------------------------------------ */
+
+export type GuildRole = 'owner' | 'officer' | 'member';
+export type GuildJoinPolicy = 'open' | 'request' | 'closed';
+
+/** Số thành viên tối đa theo cấp bang — lên cấp thì mở thêm chỗ. */
+export const GUILD_SLOTS_BASE = 20;
+export const GUILD_SLOTS_PER_LEVEL = 5;
+export const GUILD_MAX_LEVEL = 20;
+
+/**
+ * Bang lên cấp theo tổng điểm đóng góp của thành viên. Mốc tăng dần chứ không
+ * tuyến tính, để bang đông không lên cấp quá nhanh so với bang nhỏ chăm chỉ.
+ */
+export function guildXpForLevel(level: number): number {
+  if (level <= 1) return 0;
+  let total = 0;
+  for (let i = 2; i <= level; i++) total += 400 + (i - 2) * 260;
+  return total;
+}
+
+export function guildLevelFromXp(xp: number): { level: number; into: number; need: number } {
+  let level = 1;
+  while (level < GUILD_MAX_LEVEL && xp >= guildXpForLevel(level + 1)) level++;
+  const base = guildXpForLevel(level);
+  const next = level >= GUILD_MAX_LEVEL ? base : guildXpForLevel(level + 1);
+  return { level, into: xp - base, need: Math.max(1, next - base) };
+}
+
+export const guildSlots = (level: number) => GUILD_SLOTS_BASE + (level - 1) * GUILD_SLOTS_PER_LEVEL;
+
+export interface GuildSummary {
+  id: string;
+  name: string;
+  tag: string;
+  description: string;
+  emblem: string;
+  color: string;
+  joinPolicy: GuildJoinPolicy;
+  minLevel: number;
+  xp: number;
+  level: number;
+  /** Điểm đã vào cấp hiện tại và điểm cần để lên cấp — cho thanh tiến độ. */
+  into: number;
+  need: number;
+  members: number;
+  slots: number;
+}
+
+export interface GuildMemberRow {
+  user: PublicUser;
+  role: GuildRole;
+  points: number;
+  joinedAt: number;
+}
+
+/* ------------------------------------------------------------------ */
 /* Social                                                               */
 /* ------------------------------------------------------------------ */
 
@@ -421,6 +479,7 @@ export type NotificationType =
   | 'match_found'
   | 'match_result'
   | 'quest_complete'
+  | 'guild'
   | 'reward'
   | 'event'
   | 'system';

@@ -259,3 +259,81 @@ test('avatar endpoint trả SVG hợp lệ', async () => {
   assert.match(res.headers.get('content-type'), /svg/);
   assert.match(await res.text(), /^<svg/);
 });
+
+
+test('bang hội: lập bang trừ coin, tên trùng thì hoàn lại tiền', async () => {
+  const a = users.alpha;
+  const before = (await get('/api/users/me', a.token)).json.profile.coin;
+  const made = await post('/api/guilds', { name: 'Bang Thử Nghiệm', tag: 'BTN' }, a.token);
+  assert.equal(made.status, 200);
+  assert.equal(made.json.guild.tag, 'BTN');
+  assert.equal(made.json.balance.coin, before - 500, 'phải trừ đúng phí lập bang');
+
+  // Người khác lấy trùng tên: phải báo lỗi và không mất tiền.
+  const b = users.beta;
+  const coinB = (await get('/api/users/me', b.token)).json.profile.coin;
+  const dup = await post('/api/guilds', { name: 'Bang Thử Nghiệm', tag: 'XYZ' }, b.token);
+  assert.equal(dup.status, 400);
+  assert.equal(dup.json.error, 'GUILD_NAME_TAKEN');
+  assert.equal((await get('/api/users/me', b.token)).json.profile.coin, coinB, 'lập hụt thì phải hoàn tiền');
+});
+
+test('bang hội: vào bang, phân quyền, và một người chỉ ở một bang', async () => {
+  const a = users.alpha;
+  const b = users.beta;
+  const gid = (await get('/api/guilds/me', a.token)).json.guild.id;
+
+  assert.equal((await post(`/api/guilds/${gid}/join`, {}, b.token)).status, 200);
+  const mine = (await get('/api/guilds/me', b.token)).json;
+  assert.equal(mine.guild.id, gid);
+  assert.equal(mine.role, 'member');
+  assert.equal(mine.guild.members, 2);
+
+  // Đang ở bang rồi thì không lập bang khác được.
+  const again = await post('/api/guilds', { name: 'Bang Khac', tag: 'BK' }, b.token);
+  assert.equal(again.json.error, 'ALREADY_IN_GUILD');
+
+  // Thành viên thường không được đuổi ai.
+  assert.equal((await post(`/api/guilds/${gid}/kick/${a.profile.id}`, {}, b.token)).json.error, 'NOT_ALLOWED');
+
+  // Chủ bang phong sĩ quan.
+  assert.equal((await post(`/api/guilds/${gid}/role/${b.profile.id}`, { role: 'officer' }, a.token)).status, 200);
+  assert.equal((await get('/api/guilds/me', b.token)).json.role, 'officer');
+});
+
+test('bang hội: chủ bang còn người thì không rời được', async () => {
+  const a = users.alpha;
+  const b = users.beta;
+  assert.equal((await post('/api/guilds/leave', {}, a.token)).json.error, 'OWNER_MUST_TRANSFER');
+  assert.equal((await post('/api/guilds/leave', {}, b.token)).status, 200);
+  assert.equal((await post('/api/guilds/leave', {}, a.token)).status, 200, 'còn một mình thì rời được');
+  assert.equal((await get('/api/guilds/me', a.token)).json.guild, null);
+});
+
+test('kênh chat của bang chỉ thành viên mới đọc và gửi được', async () => {
+  // Tài khoản riêng: alpha đã đụng trần rate limit ở test chống spam phía trên.
+  const a = (await post('/api/auth/register', { username: 'guildowner', password: 'secret123' })).json;
+  const b = (await post('/api/auth/register', { username: 'guildsnoop', password: 'secret123' })).json;
+  const gid = (await post('/api/guilds', { name: 'Bang Kin', tag: 'KIN' }, a.token)).json.guild.id;
+
+  const sa = io(API, { auth: { token: a.token }, transports: ['websocket'] });
+  const sb = io(API, { auth: { token: b.token }, transports: ['websocket'] });
+  sockets.push(sa, sb);
+  await Promise.all([waitFor(sa, 'connect'), waitFor(sb, 'connect')]);
+
+  const ownerSend = await ack(sa, 'chat.send', { channelId: `guild:${gid}`, body: 'chao ca bang' });
+  assert.equal(ownerSend.ok, true, `chủ bang phải gửi được: ${JSON.stringify(ownerSend)}`);
+
+  // guildsnoop không ở trong bang: id kênh đoán được nhưng phải bị chặn.
+  const intruderSend = await ack(sb, 'chat.send', { channelId: `guild:${gid}`, body: 'lot vao' });
+  assert.equal(intruderSend.ok, false);
+  assert.equal(intruderSend.error, 'NOT_A_MEMBER');
+  const intruderRead = await ack(sb, 'chat.history', { channelId: `guild:${gid}` });
+  assert.equal(intruderRead.ok, false);
+
+  // Vào bang rồi thì đọc được lịch sử.
+  await post(`/api/guilds/${gid}/join`, {}, b.token);
+  const asMember = await ack(sb, 'chat.history', { channelId: `guild:${gid}` });
+  assert.equal(asMember.ok, true);
+  assert.equal(asMember.messages.length, 1);
+});

@@ -24,6 +24,10 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/41-room-find.png) | ![](docs/screenshots/40-room-create.png) | ![](docs/screenshots/12-quickplay.png) |
 
+| Bang hội (tìm bang) | Trang bang | Chat bang |
+|---|---|---|
+| ![](docs/screenshots/50-guild-find.png) | ![](docs/screenshots/52-guild-home.png) | ![](docs/screenshots/53-guild-chat.png) |
+
 | Hồ sơ | Nhiệm vụ | Bảng xếp hạng |
 |---|---|---|
 | ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/07-quests.png) | ![](docs/screenshots/08-leaderboard.png) |
@@ -181,6 +185,13 @@ Game một người (Flappy Bird) đi đường riêng: không có đối thủ 
 thắng/thua và không đổi rating, thưởng tính theo điểm (6 XP + 4 coin mỗi ống, có
 trần). Bảng xếp hạng của game đó sắp theo `game_stats.best_score` thay vì Elo —
 `isSolo(game)` trong `packages/shared/src/types.ts` là chỗ duy nhất quyết định.
+
+**Bang hội** — một người chỉ ở một bang (khoá bằng UNIQUE INDEX ở tầng DB chứ
+không chỉ kiểm tra trong code, để hai request cùng lúc không lọt cả hai). Lập bang
+mất 500 coin; ba mức nhận người: vào tự do / duyệt đơn / chỉ mời. Ba vai chủ bang –
+sĩ quan – thành viên, chủ bang còn người thì phải nhường ghế mới rời được. Bang lên
+cấp theo điểm đóng góp (mỗi trận 5 điểm, thắng 15), mỗi cấp mở thêm 5 chỗ. Kênh chat
+riêng dùng lại hệ thống channel sẵn có nên không phải dựng thêm đường truyền.
 
 **Economy** — 19 cosmetic (khung, danh hiệu, nền, bong bóng chat, emote, hiệu ứng, theme bàn cờ),
 Coin/Diamond/Season Token, mọi thay đổi số dư ghi transaction bất biến trong SQL transaction.
@@ -413,7 +424,8 @@ Cosmetic trong shop vẫn vẽ bằng gradient nên thêm item mới chỉ cần
 | Admin Panel + Analytics | ✅ |
 | Report/Ban/Mute, profanity filter | ✅ |
 | Reconnect + grace period | ✅ |
-| Tournament bracket, Battle Pass, Guild | 🔜 Phase 2 |
+| Guild (bang hội) + chat bang | ✅ |
+| Tournament bracket, Battle Pass | 🔜 Phase 2 |
 | Push notification (FCM/APNs) | 🔜 Phase 2 |
 | Skill-based MM nâng cao, seasonal rank | 🔜 Phase 2 |
 
