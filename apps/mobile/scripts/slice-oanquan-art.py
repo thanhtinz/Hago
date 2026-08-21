@@ -52,24 +52,42 @@ def alpha_mask(rgb):
 
 
 def cutout(im, mask, box):
-    """Cắt một mảnh kèm kênh alpha, viền được làm mềm một chút cho đỡ răng cưa."""
+    """Cắt một mảnh kèm kênh alpha mềm, bám đúng nét chống răng cưa của bản vẽ.
+
+    Cắt bằng mặt nạ nhị phân rồi làm mờ thì mép vừa răng cưa vừa bị gặm nham
+    nhở. Ở đây alpha lấy theo *độ đậm* của pixel: nền gần trắng nên kênh tối
+    nhất rất cao, càng vào nét thì càng thấp. Ruột hình luôn đặc nhờ mặt nạ đã
+    tô loang, chỉ dải sát mép mới dùng thang chuyển — nhờ vậy mép mượt như bản
+    vẽ gốc mà không dính vệt sáng của nền.
+    """
     x0, y0, x1, y1 = box
     piece = im.crop(box).convert("RGBA")
-    tight = ndimage.binary_erosion(mask[y0:y1, x0:x1], np.ones((3, 3)), iterations=EDGE_ERODE)
-    a = Image.fromarray((tight * 255).astype("uint8"), "L")
-    piece.putalpha(a.filter(ImageFilter.GaussianBlur(0.6)))
+    sub = np.array(im.crop(box)).astype(float)
+    darkness = np.clip((BG_LEVEL - sub.min(2)) / (BG_LEVEL - INK_LEVEL), 0, 1)
+
+    m = mask[y0:y1, x0:x1]
+    core = ndimage.binary_erosion(m, np.ones((3, 3)), iterations=EDGE_BAND)
+    reach = ndimage.binary_dilation(m, np.ones((3, 3)), iterations=EDGE_BAND)
+
+    a = np.where(core, 1.0, darkness)
+    a = np.where(reach, a, 0.0)
+    piece.putalpha(Image.fromarray((a * 255).astype("uint8"), "L"))
     return piece
 
 
-FEATHER = 14
-# Bản vẽ gốc có viền chống răng cưa gần trắng; giữ lại thì mảnh nào cũng có một
-# vệt trắng mảnh chạy quanh, đặt lên nền màu là lộ ngay. Ăn vào trong ngần này
-# pixel để cắt đúng chỗ nét vẽ, không dính vệt sáng của nền.
-EDGE_ERODE = 2
+FEATHER = 26
+# Thang chuyển alpha ở mép: pixel có kênh tối nhất >= BG_LEVEL coi như nền,
+# <= INK_LEVEL coi như nét đặc, ở giữa thì mờ dần.
+BG_LEVEL = 250.0
+INK_LEVEL = 205.0
+# Chỉ dải rộng ngần này pixel quanh mép mới dùng thang chuyển; trong lõi luôn
+# đặc (hạt trắng khỏi bị thủng ruột), ngoài dải thì trong suốt hẳn (ô caro của
+# nền không lọt vào).
+EDGE_BAND = 2
 
 
 def blend_paste(canvas, tile, x):
-    """Dán một cột vào bàn, mép trái chuyển dần để không lộ vệt nối vân gỗ."""
+    """Dán nửa phải của bàn vào, mép trái chuyển dần để mối nối không lộ vân gỗ."""
     w, h = tile.size
     base = np.array(canvas.crop((x, 0, x + w, h)), dtype=float)
     new = np.array(tile, dtype=float)
@@ -184,19 +202,19 @@ def main():
     tile_x1 = tile_x0 + pitch
     right_x0 = tile_x0 + pitch * len(cols)
 
-    lanes = 5
-    new_w = tile_x0 + pitch * lanes + (bw - right_x0)
+    # Bỏ hẳn cột ô cuối rồi khép hai nửa lại: chỉ còn **một** mối nối thay vì
+    # lát đi lát lại một cột năm lần — lát kiểu đó thì cứ mỗi cột lại lộ một vệt
+    # vân gỗ đứt quãng trên thanh gỗ trên và dưới.
+    lanes = len(cols) - 1
+    cut = tile_x0 + pitch * lanes
+    new_w = bw - pitch
     canvas = Image.new("RGBA", (new_w, bh), (0, 0, 0, 0))
-    canvas.paste(bimg.crop((0, 0, tile_x0, bh)), (0, 0))
-    tile = bimg.crop((tile_x0, 0, tile_x1, bh))
-    for i in range(lanes):
-        blend_paste(canvas, tile, tile_x0 + i * pitch)
-    blend_paste(canvas, bimg.crop((right_x0, 0, bw, bh)), tile_x0 + pitch * lanes)
+    canvas.paste(bimg.crop((0, 0, cut, bh)), (0, 0))
+    blend_paste(canvas, bimg.crop((cut + pitch, 0, bw, bh)), cut)
+    canvas.save(os.path.join(OUT_IMG, "board.png"))
 
     left_oval, right_oval = sorted(ovals)
-    shift = new_w - bw
-    right_oval = (right_oval[0] + shift, right_oval[1], right_oval[2], right_oval[3])
-    canvas.save(os.path.join(OUT_IMG, "board.png"))
+    right_oval = (right_oval[0] - pitch, right_oval[1], right_oval[2], right_oval[3])
 
     ys = sorted({round(p[1] / 5) * 5 for p in round_pits})
     top_y = min(ys)
@@ -205,6 +223,7 @@ def main():
     row_top = (top_y + pit_h / 2) / bh
     row_bottom = (bottom_y + pit_h / 2) / bh
     pit_xs = [(tile_x0 + i * pitch + pitch / 2) / new_w for i in range(lanes)]
+
 
     quan_left = {
         "cx": (left_oval[0] + left_oval[2] / 2) / new_w,

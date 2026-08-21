@@ -5,7 +5,6 @@ import { C, S, SEAT_COLORS } from '../theme';
 import { BoardProps, TurnBanner, VersusBar } from './shared';
 import {
   OAN_QUAN_BOARD,
-  OAN_QUAN_DECOR,
   OAN_QUAN_LAYOUT as L,
   OAN_QUAN_RATIO,
   QUAN_ART,
@@ -218,19 +217,6 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
             chữ nhật sẽ lòi ra thành một mảng vuông quanh bàn. */}
         <View style={{ width: boardW, height: boardH }}>
           <Image source={OAN_QUAN_BOARD} resizeMode="contain" style={{ width: boardW, height: boardH }} />
-
-          {/* Hoa văn giữa vạch chia — bản vẽ gốc để nó ở khe giữa hai hàng */}
-          <Image
-            source={OAN_QUAN_DECOR.flower}
-            resizeMode="contain"
-            style={{
-              position: 'absolute',
-              width: boardW * 0.045,
-              height: boardW * 0.045,
-              left: boardW / 2 - boardW * 0.0225,
-              top: ((L.rowTop + L.rowBottom) / 2) * boardH - boardW * 0.0225,
-            }}
-          />
 
           {topRow.map((i, col) => (
             <DanCell key={i} index={i} col={col} top />
