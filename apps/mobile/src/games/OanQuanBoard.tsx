@@ -144,14 +144,14 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
           />
         ) : null}
         {/* Hạt nhích lên một chút để không đè lên số dân ở đáy ô */}
-        <View pointerEvents="none" style={{ position: 'absolute', top: pitH * 0.44 }}>
+        <View pointerEvents="none" style={{ position: 'absolute', top: pitH * 0.5 }}>
           <SeedPile count={count} radius={pitW * 0.27} seed={Math.max(10, pitW * 0.28)} salt={index} />
         </View>
         <Txt
           size={Math.max(10, Math.round(pitW * 0.26))}
           weight="display"
           color="#4A3113"
-          style={[{ position: 'absolute', bottom: pitH * 0.1 }, CARVED]}
+          style={[{ position: 'absolute', bottom: pitH * 0.06 }, CARVED]}
         >
           {count}
         </Txt>

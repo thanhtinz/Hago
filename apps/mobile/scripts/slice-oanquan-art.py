@@ -55,27 +55,17 @@ def cutout(im, mask, box):
     """Cắt một mảnh kèm kênh alpha, viền được làm mềm một chút cho đỡ răng cưa."""
     x0, y0, x1, y1 = box
     piece = im.crop(box).convert("RGBA")
-    a = Image.fromarray((mask[y0:y1, x0:x1] * 255).astype("uint8"), "L")
+    tight = ndimage.binary_erosion(mask[y0:y1, x0:x1], np.ones((3, 3)), iterations=EDGE_ERODE)
+    a = Image.fromarray((tight * 255).astype("uint8"), "L")
     piece.putalpha(a.filter(ImageFilter.GaussianBlur(0.6)))
     return piece
 
 
 FEATHER = 14
-# Mặt sân rộng hơn hai ô Quan chừng này pixel; cắt tới đó là hết khung gỗ ngoài.
-FRAME_MARGIN = 8
-# Bo nhẹ bốn góc cho khỏi trông như bị chặt phăng.
-CORNER_RADIUS = 34
-
-
-def rounded_alpha(img, radius):
-    """Alpha hiện có, nhân thêm mặt nạ bo góc."""
-    from PIL import ImageDraw
-
-    mask = Image.new("L", img.size, 0)
-    ImageDraw.Draw(mask).rounded_rectangle([0, 0, img.size[0] - 1, img.size[1] - 1], radius, fill=255)
-    return Image.fromarray(
-        (np.array(img.split()[3], dtype=float) * (np.array(mask, dtype=float) / 255)).astype("uint8"), "L"
-    )
+# Bản vẽ gốc có viền chống răng cưa gần trắng; giữ lại thì mảnh nào cũng có một
+# vệt trắng mảnh chạy quanh, đặt lên nền màu là lộ ngay. Ăn vào trong ngần này
+# pixel để cắt đúng chỗ nét vẽ, không dính vệt sáng của nền.
+EDGE_ERODE = 2
 
 
 def blend_paste(canvas, tile, x):
@@ -205,24 +195,8 @@ def main():
 
     left_oval, right_oval = sorted(ovals)
     shift = new_w - bw
-
-    # Cắt bỏ khung gỗ sáng bao quanh (kèm mấy chùm lá ở góc) để chỉ còn mặt sân.
-    # Mốc là hai ô Quan: mặt sân chỉ rộng hơn chúng đúng một khoảng nhỏ.
-    m = FRAME_MARGIN
-    cx0 = max(0, left_oval[0] - m)
-    cx1 = min(new_w, right_oval[0] + shift + right_oval[2] + m)
-    cy0 = max(0, min(left_oval[1], right_oval[1]) - m)
-    cy1 = min(bh, max(left_oval[1] + left_oval[3], right_oval[1] + right_oval[3]) + m)
-    canvas = canvas.crop((cx0, cy0, cx1, cy1))
-    new_w, bh = canvas.size
-    canvas.putalpha(rounded_alpha(canvas, CORNER_RADIUS))
+    right_oval = (right_oval[0] + shift, right_oval[1], right_oval[2], right_oval[3])
     canvas.save(os.path.join(OUT_IMG, "board.png"))
-
-    # Mọi toạ độ bên dưới tính trên bàn đã cắt.
-    tile_x0 -= cx0
-    left_oval = (left_oval[0] - cx0, left_oval[1] - cy0, left_oval[2], left_oval[3])
-    right_oval = (right_oval[0] + shift - cx0, right_oval[1] - cy0, right_oval[2], right_oval[3])
-    round_pits = [(x - cx0, y - cy0, w, h) for (x, y, w, h) in round_pits]
 
     ys = sorted({round(p[1] / 5) * 5 for p in round_pits})
     top_y = min(ys)
