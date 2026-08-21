@@ -6,6 +6,7 @@ import {
   Rng,
   computeRewards,
   getEngine,
+  isSolo,
   levelFromXp,
 } from '@hago/shared';
 import { CONFIG } from '../config';
@@ -250,6 +251,9 @@ export function settleMatch(match: MatchRuntime): { matchId: string; rows: Settl
   });
 
   const out: SettleRow[] = [];
+  // Game một người không có đối thủ để so, nên không cộng thắng/thua và không
+  // đổi rating — chỉ ghi nhận điểm cao nhất cho bảng xếp hạng.
+  const solo = isSolo(match.gameType);
   const apply = db.transaction(() => {
     for (const reward of rewards) {
       const row = rows.find((r) => r.userId === reward.userId)!;
@@ -270,26 +274,29 @@ export function settleMatch(match: MatchRuntime): { matchId: string; rows: Settl
         newXp,
         newRating,
         levelAfter,
-        reward.result === 'win' ? 1 : 0,
-        reward.result === 'lose' ? 1 : 0,
-        reward.result === 'draw' ? 1 : 0,
+        !solo && reward.result === 'win' ? 1 : 0,
+        !solo && reward.result === 'lose' ? 1 : 0,
+        !solo && reward.result === 'draw' ? 1 : 0,
         reward.userId,
       );
       if (reward.coinGain > 0) mutateCurrency(reward.userId, 'coin', reward.coinGain, 'match_reward', match.id);
 
       db.prepare(
-        `INSERT INTO game_stats (user_id, game_type, matches, wins, losses, rating) VALUES (?,?,1,?,?,?)
+        `INSERT INTO game_stats (user_id, game_type, matches, wins, losses, rating, best_score)
+         VALUES (?,?,1,?,?,?,?)
          ON CONFLICT(user_id, game_type) DO UPDATE SET
            matches = matches + 1,
            wins = wins + excluded.wins,
            losses = losses + excluded.losses,
-           rating = max(0, rating + ?)`,
+           rating = max(0, rating + ?),
+           best_score = max(best_score, excluded.best_score)`,
       ).run(
         reward.userId,
         match.gameType,
-        reward.result === 'win' ? 1 : 0,
-        reward.result === 'lose' ? 1 : 0,
+        !solo && reward.result === 'win' ? 1 : 0,
+        !solo && reward.result === 'lose' ? 1 : 0,
         1000 + reward.ratingDelta,
+        row.score,
         reward.ratingDelta,
       );
 

@@ -20,6 +20,8 @@ export default function LeaderboardScreen() {
   const [games, setGames] = useState<any[]>([]);
   const [gameType, setGameType] = useState('');
   const [entries, setEntries] = useState<any[]>([]);
+  // Game một người xếp theo điểm cao nhất chứ không theo rank, nên nhãn phải khác.
+  const [solo, setSolo] = useState(false);
 
   useEffect(() => {
     api<any>('/api/games').then((r) => setGames(r.games));
@@ -28,6 +30,7 @@ export default function LeaderboardScreen() {
   const load = useCallback(async () => {
     const r = await api<any>(`/api/users/leaderboard${gameType ? `?gameType=${gameType}` : ''}`);
     setEntries(r.entries);
+    setSolo(!!r.solo);
   }, [gameType]);
 
   useEffect(() => {
@@ -39,7 +42,11 @@ export default function LeaderboardScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <ScreenHeader title="Bảng xếp hạng" icon="trophy" subtitle="Top người chơi theo điểm rank" />
+      <ScreenHeader
+        title="Bảng xếp hạng"
+        icon="trophy"
+        subtitle={solo ? 'Top điểm cao nhất một ván' : 'Top người chơi theo điểm rank'}
+      />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, height: 54 }} contentContainerStyle={{ paddingHorizontal: S.md, gap: 8, alignItems: 'center' }}>
         {[{ id: '', name: 'Tổng' }, ...games].map((g: any) => (
@@ -87,10 +94,10 @@ export default function LeaderboardScreen() {
                   </Txt>
                   <View style={{ backgroundColor: i === 0 ? C.sun : i === 1 ? '#D6DDE6' : '#E8C39E', width: '100%', height: heights[i], borderTopLeftRadius: R.md, borderTopRightRadius: R.md, alignItems: 'center', paddingTop: 8 }}>
                     <Txt size={16} weight="display" color="#5A4200">
-                      {e.user.rating}
+                      {solo ? e.bestScore : e.user.rating}
                     </Txt>
                     <Txt size={10} weight="bold" color="rgba(0,0,0,0.45)">
-                      {e.wins} thắng
+                      {solo ? `${e.matches} ván` : `${e.wins} thắng`}
                     </Txt>
                   </View>
                 </Pressable>
@@ -121,10 +128,14 @@ export default function LeaderboardScreen() {
                   {e.user.displayName}
                 </Txt>
                 <Txt size={11} color={C.inkFaint}>
-                  Lv.{e.user.level} · {e.wins}/{e.matches} thắng
+                  {solo ? `Lv.${e.user.level} · ${e.matches} ván đã chơi` : `Lv.${e.user.level} · ${e.wins}/${e.matches} thắng`}
                 </Txt>
               </View>
-              <Chip label={String(e.user.rating)} art={rankArt(e.user.rank)} color={C.secondaryDark} soft={C.secondarySoft} size={11} />
+              {solo ? (
+                <Chip label={`${e.bestScore} điểm`} art="star" color={C.secondaryDark} soft={C.secondarySoft} size={11} />
+              ) : (
+                <Chip label={String(e.user.rating)} art={rankArt(e.user.rank)} color={C.secondaryDark} soft={C.secondarySoft} size={11} />
+              )}
             </Card>
           </Pressable>
         ))}

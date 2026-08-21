@@ -11,7 +11,7 @@ chỉ bỏ nền đen và tô màu theo ngữ cảnh.
 | `game-oanquan` | abacus | delapouite |
 | `game-sheep` | sheep | delapouite |
 | `game-chess` | chess-king | skoll |
-| `game-flappy` | duck | delapouite |
+| `game-flappy` | kiwi-bird | delapouite |
 | `game-werewolf` | wolf-head | lorc |
 | `sheep` | sheep | delapouite |
 | `knight` | chess-knight | skoll |
@@ -21,8 +21,7 @@ chỉ bỏ nền đen và tô màu theo ngữ cảnh.
 | `chess-r` | chess-rook | skoll |
 | `chess-q` | chess-queen | skoll |
 | `chess-k` | chess-king | skoll |
-| `bird` | duck | delapouite |
-| `pipe` | pipes | delapouite |
+| `bird` | kiwi-bird | delapouite |
 | `mark-o` | blank | badges |
 | `mark-x` | multiply | badges |
 | `stone` | stone-sphere | lorc |

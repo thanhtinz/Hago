@@ -33,7 +33,7 @@ export const ART = {
   'game-oanquan': 'delapouite/abacus',
   'game-sheep': 'delapouite/sheep',
   'game-chess': 'skoll/chess-king',
-  'game-flappy': 'delapouite/duck',
+  'game-flappy': 'delapouite/kiwi-bird',
   'game-werewolf': 'lorc/wolf-head',
 
   // quân cờ trong trận
@@ -48,9 +48,9 @@ export const ART = {
   'chess-q': 'skoll/chess-queen',
   'chess-k': 'skoll/chess-king',
 
-  // Flappy: chim và ống
-  bird: 'delapouite/duck',
-  pipe: 'delapouite/pipes',
+  // Flappy Bird: chim thân tròn nhìn nghiêng, dáng gần nhất với con chim gốc
+  // trong kho game-icons (mỏ chìa trước, thân mập, mắt to).
+  bird: 'delapouite/kiwi-bird',
   'mark-o': 'badges/blank',
   'mark-x': 'badges/multiply',
   stone: 'lorc/stone-sphere',

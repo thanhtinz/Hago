@@ -2,11 +2,11 @@ import { ApplyResult, BaseState, EnginePlayer, EngineResultRow, GameEngine, err,
 import { Rng } from '../rng';
 
 /**
- * Flappy — đua sống sót hai người trên **cùng một đường ống**.
+ * Flappy Bird — chơi một mình, luồn qua càng nhiều ống càng tốt.
  *
- * Cả hai chim bay cùng tốc độ ngang nên toạ độ x là chung, chỉ độ cao mỗi bên
- * mỗi khác: ai luồn qua được nhiều ống hơn thì thắng, bằng nhau thì so ai bay
- * xa hơn trước khi rơi. Ống sinh từ seed của ván nên hai máy thấy y hệt nhau.
+ * Không có đối thủ: điểm của ván là số ống đã qua, đem so trên bảng xếp hạng
+ * điểm cao nhất chứ không tính thắng thua hay rating. Ống sinh từ seed của ván
+ * nên cùng một seed là cùng một đường ống, tiện cho việc kiểm thử và phát lại.
  *
  * Thế giới đo bằng đơn vị ảo (rộng `WORLD_W`, cao `WORLD_H`); client co lại cho
  * vừa màn hình. Server tick 200ms một lần — quá thô để tính va chạm — nên mỗi
@@ -14,7 +14,7 @@ import { Rng } from '../rng';
  * chim không "xuyên" qua mép ống.
  */
 export interface FlappyConfig {
-  /** Số ống phải qua để thắng ngay; 0 là chơi tới khi cả hai rơi. */
+  /** Số ống phải qua để thắng ngay; 0 là bay tới khi rơi. */
   targetScore?: number;
   pipeGap?: number;
 }
@@ -25,7 +25,7 @@ export interface FlappyBird {
   vy: number;
   alive: boolean;
   score: number;
-  /** Quãng đường đã bay, dùng để phân thắng bại khi hoà điểm. */
+  /** Quãng đường đã bay, dùng để hiển thị và so kỷ lục phụ. */
   dist: number;
   /** Nhịp vỗ cánh gần nhất, để client nghiêng cánh cho khớp. */
   flapAt: number;
@@ -44,7 +44,7 @@ export interface FlappyState extends BaseState {
   /** Mốc thời gian bắt đầu bay; trước mốc này là đếm ngược vào trận. */
   startAt: number;
   lastTick: number;
-  /** Vị trí ngang chung của cả hai chim. */
+  /** Vị trí ngang của chim. */
   x: number;
   targetScore: number;
   gap: number;
@@ -64,7 +64,7 @@ const PIPE_W = 62;
 const PIPE_SPACING = 210;
 /** Bước tính va chạm bên trong một lần tick. */
 const STEP_MS = 20;
-/** Đếm ngược trước khi thả chim, để hai bên kịp vào trận. */
+/** Đếm ngược trước khi thả chim, để người chơi kịp cầm máy. */
 const COUNTDOWN_MS = 3000;
 /** Sinh sẵn ngần này ống, đủ cho một ván rất dài. */
 const PIPE_COUNT = 400;
@@ -117,24 +117,20 @@ function passed(state: FlappyState, x: number): number {
 }
 
 function finish(state: FlappyState, ending: string): FlappyState {
-  const best = Math.max(...state.birds.map((b) => b.score));
-  const top = state.birds.filter((b) => b.score === best);
-  // Cùng điểm thì ai bay xa hơn thắng; xa bằng nhau nữa mới là hoà.
-  const far = Math.max(...top.map((b) => b.dist));
-  const winners = top.filter((b) => b.dist === far);
   return {
     ...state,
     over: true,
     ending,
-    winnerIds: winners.length === state.birds.length ? [] : winners.map((b) => state.players[b.seat].id),
+    // Chơi một mình thì không có kẻ thắng người thua, chỉ có điểm.
+    winnerIds: [],
     log: [...state.log, ending].slice(-20),
   };
 }
 
 export const FlappyEngine: GameEngine<FlappyState, FlappyConfig> = {
   id: 'flappy',
-  minPlayers: 2,
-  maxPlayers: 2,
+  minPlayers: 1,
+  maxPlayers: 1,
   turnSeconds: 0,
   realtime: true,
 
@@ -163,7 +159,7 @@ export const FlappyEngine: GameEngine<FlappyState, FlappyConfig> = {
       turnStartedAt: now,
       winnerIds: [],
       over: false,
-      log: ['Chạm màn hình để vỗ cánh — luồn qua được nhiều ống hơn là thắng'],
+      log: ['Chạm màn hình để vỗ cánh — qua được càng nhiều ống, điểm càng cao'],
       turnSeconds: 0,
     };
   },
@@ -212,7 +208,7 @@ export const FlappyEngine: GameEngine<FlappyState, FlappyConfig> = {
         if (hits({ ...state, gap: state.gap }, x, bird.y)) {
           bird.alive = false;
           bird.y = Math.max(BIRD_R, Math.min(WORLD_H - BIRD_R, bird.y));
-          log.push(`${state.players[bird.seat].name} rơi ở ống thứ ${bird.score + 1}`);
+          log.push(`Rơi ở ống thứ ${bird.score + 1} — được ${bird.score} điểm`);
           events.push({ type: 'fell', payload: { seat: bird.seat, score: bird.score } });
           continue;
         }
@@ -231,11 +227,11 @@ export const FlappyEngine: GameEngine<FlappyState, FlappyConfig> = {
 
     if (next.targetScore > 0) {
       const champ = birds.find((b) => b.alive && b.score >= next.targetScore);
-      if (champ) {
-        return ok(finish(next, `${state.players[champ.seat].name} qua đủ ${next.targetScore} ống`), events);
-      }
+      if (champ) return ok(finish(next, `Qua đủ ${next.targetScore} ống`), events);
     }
-    if (birds.every((b) => !b.alive)) return ok(finish(next, 'Cả hai đã rơi'), events);
+    if (birds.every((b) => !b.alive)) {
+      return ok(finish(next, `Kết thúc với ${birds[0].score} điểm`), events);
+    }
 
     return ok(next, events);
   },
@@ -265,6 +261,7 @@ export const FlappyEngine: GameEngine<FlappyState, FlappyConfig> = {
       lastTick: state.lastTick,
       targetScore: state.targetScore,
       mySeat: seat,
+      solo: true,
       ending: state.ending,
       players: state.players,
       over: state.over,
@@ -276,19 +273,13 @@ export const FlappyEngine: GameEngine<FlappyState, FlappyConfig> = {
   finished: (s) => s.over,
 
   results(state): EngineResultRow[] {
-    const best = Math.max(...state.birds.map((b) => b.score));
-    const far = Math.max(...state.birds.filter((b) => b.score === best).map((b) => b.dist));
-    const winners = state.birds.filter((b) => b.score === best && b.dist === far);
-    const tie = winners.length === state.birds.length;
-    return state.players.map((p, seat) => {
-      const win = winners.some((b) => b.seat === seat);
-      return {
-        userId: p.id,
-        result: (tie ? 'draw' : win ? 'win' : 'lose') as 'win' | 'lose' | 'draw',
-        score: state.birds[seat].score,
-        place: win ? 1 : 2,
-      };
-    });
+    // Một mình một ván: luôn về nhất, chỉ có điểm là khác nhau giữa các ván.
+    return state.players.map((p, seat) => ({
+      userId: p.id,
+      result: 'win' as const,
+      score: state.birds[seat].score,
+      place: 1,
+    }));
   },
 
   deadline: () => null,

@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS game_stats (
   wins      INTEGER NOT NULL DEFAULT 0,
   losses    INTEGER NOT NULL DEFAULT 0,
   rating    INTEGER NOT NULL DEFAULT 1000,
+  -- Game một người (Flappy Bird) xếp hạng theo điểm cao nhất chứ không theo Elo.
+  best_score INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (user_id, game_type)
 );
 
@@ -289,8 +291,11 @@ CREATE TABLE IF NOT EXISTS daily_counters (
 );
 `);
 
-/** Migration nhẹ cho DB tạo từ bản trước khi chuyển emoji sang asset. */
-for (const [table, column, type] of [['achievements', 'art', "TEXT NOT NULL DEFAULT 'trophy'"]] as const) {
+/** Migration nhẹ cho DB tạo từ các bản trước. */
+for (const [table, column, type] of [
+  ['achievements', 'art', "TEXT NOT NULL DEFAULT 'trophy'"],
+  ['game_stats', 'best_score', 'INTEGER NOT NULL DEFAULT 0'],
+] as const) {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
   if (!cols.some((c) => c.name === column)) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);

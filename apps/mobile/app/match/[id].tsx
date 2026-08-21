@@ -24,7 +24,7 @@ const GAME_NAMES: Record<string, string> = {
   oanquan: 'Ô Ăn Quan',
   sheep: 'Sheep Battle',
   chess: 'Cờ Vua',
-  flappy: 'Flappy Đua',
+  flappy: 'Flappy Bird',
   werewolf: 'Ma Sói',
 };
 
@@ -233,13 +233,26 @@ export default function MatchScreen() {
               const mine = result?.rows.find((r: any) => r.userId === profile?.id);
               const win = mine?.result === 'win';
               const draw = mine?.result === 'draw';
+              // Game một người không có đối thủ nên không nói thắng thua, chỉ báo điểm.
+              const solo = !!view?.solo;
               return (
                 <>
                   {/* Mặt cảm xúc vẽ tay đọc rõ hơn icon nét ở cỡ lớn. */}
-                  <StickerArt name={win ? 'win' : draw ? 'draw' : 'sad'} size={72} />
-                  <Txt size={26} weight="display" color={win ? C.mint : draw ? C.sun : C.inkSoft}>
-                    {win ? 'Chiến thắng!' : draw ? 'Hoà rồi!' : 'Thua mất rồi'}
+                  <StickerArt name={solo ? (mine?.score ? 'win' : 'sad') : win ? 'win' : draw ? 'draw' : 'sad'} size={72} />
+                  <Txt size={26} weight="display" color={solo ? C.secondary : win ? C.mint : draw ? C.sun : C.inkSoft}>
+                    {solo
+                      ? `${mine?.score ?? 0} điểm`
+                      : win
+                        ? 'Chiến thắng!'
+                        : draw
+                          ? 'Hoà rồi!'
+                          : 'Thua mất rồi'}
                   </Txt>
+                  {solo ? (
+                    <Txt size={12} color={C.inkSoft} center>
+                      Điểm cao nhất của bạn được ghi lên bảng xếp hạng
+                    </Txt>
+                  ) : null}
                   <View style={{ flexDirection: 'row', gap: S.md }}>
                     <Reward icon="star" label="EXP" value={`+${mine?.xpGain ?? 0}`} color={C.secondary} />
                     <Reward icon="coin" label="Coin" value={`+${mine?.coinGain ?? 0}`} color={C.sun} />
@@ -262,7 +275,7 @@ export default function MatchScreen() {
                   ) : null}
 
                   <View style={{ width: '100%', gap: 6, marginTop: 6 }}>
-                    {result?.rows
+                    {(solo ? [] : (result?.rows ?? []))
                       .slice()
                       .sort((a: any, b: any) => a.place - b.place)
                       .map((r: any) => {

@@ -272,7 +272,7 @@ test('chess: hết giờ là xử thua bên đang đi', () => {
 test('flappy: không vỗ cánh thì rơi và ván kết thúc', () => {
   const engine = ENGINES.flappy;
   const rng = new Rng('f');
-  let state = engine.init(players(2), {}, rng);
+  let state = engine.init(players(1), {}, rng);
   let now = state.startAt;
   for (let i = 0; i < 200 && !engine.finished(state); i++) {
     now += 200;
@@ -280,12 +280,14 @@ test('flappy: không vỗ cánh thì rơi và ván kết thúc', () => {
   }
   assert.equal(engine.finished(state), true);
   assert.ok(state.birds.every((b) => !b.alive));
+  // Chơi một mình thì không có kẻ thắng người thua, chỉ có điểm.
+  assert.deepEqual(state.winnerIds, []);
 });
 
 test('flappy: vỗ cánh đẩy chim lên và chưa tới giờ thì không nhận', () => {
   const engine = ENGINES.flappy;
   const rng = new Rng('f2');
-  const state = engine.init(players(2), {}, rng);
+  const state = engine.init(players(1), {}, rng);
   const early = engine.apply(state, 'u0', 'flap', {}, rng);
   assert.equal(early.ok, false, 'đang đếm ngược thì chưa cho vỗ');
 
@@ -293,13 +295,27 @@ test('flappy: vỗ cánh đẩy chim lên và chưa tới giờ thì không nh�
   const res = engine.apply(started, 'u0', 'flap', {}, rng);
   assert.ok(res.ok);
   assert.ok(res.state.birds[0].vy < started.birds[0].vy, 'vỗ cánh phải đẩy chim lên nhanh hơn');
-  assert.equal(res.state.birds[1].vy, started.birds[1].vy, 'không được đụng vào chim của người kia');
 });
 
-test('flappy: hai chim gặp cùng một hàng ống', () => {
+test('flappy: kết quả là điểm chứ không phải thắng thua', () => {
   const engine = ENGINES.flappy;
-  const a = engine.init(players(2), {}, new Rng('same'));
-  const b = engine.init(players(2), {}, new Rng('same'));
+  const rng = new Rng('f3');
+  let state = engine.init(players(1), {}, rng);
+  let now = state.startAt;
+  while (!engine.finished(state)) {
+    now += 200;
+    state = engine.tick(state, now, rng).state;
+  }
+  const rows = engine.results(state);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].place, 1);
+  assert.equal(rows[0].score, state.birds[0].score);
+});
+
+test('flappy: cùng seed thì cùng một hàng ống', () => {
+  const engine = ENGINES.flappy;
+  const a = engine.init(players(1), {}, new Rng('same'));
+  const b = engine.init(players(1), {}, new Rng('same'));
   assert.deepEqual(
     a.pipes.slice(0, 5).map((p) => p.gapY),
     b.pipes.slice(0, 5).map((p) => p.gapY),

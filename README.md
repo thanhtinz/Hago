@@ -34,7 +34,7 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/20-game-caro.png) | ![](docs/screenshots/21-game-battleship.png) | ![](docs/screenshots/22-game-oanquan.png) |
 
-| Sheep Battle (đấu làn) | Cờ Vua | Flappy Đua |
+| Sheep Battle (đấu làn) | Cờ Vua | Flappy Bird |
 |---|---|---|
 | ![](docs/screenshots/25-game-sheep.png) | ![](docs/screenshots/27-game-chess.png) | ![](docs/screenshots/28-game-flappy.png) |
 
@@ -99,7 +99,7 @@ Mobile (RN/Expo) ──REST──> Express API ──> SQLite (WAL)
 | Ô Ăn Quan | 2 | Board dân gian | Normal/Ranked/Custom | Rải, ăn dây, rải lại khi hết dân |
 | Sheep Battle | 2 | Realtime lane battle | Normal/Ranked/Custom | Đấu làn 30 máu, cừu nhỏ trừ nhiều máu, cừu to đẩy khoẻ |
 | Cờ Vua | 2 | Board strategy | Normal/Ranked/Custom | Luật đủ: nhập thành, bắt tốt qua đường, phong cấp, hoà 50 nước / lặp 3 lần / thiếu quân |
-| Flappy Đua | 2 | Realtime arcade | Normal/Ranked/Custom | Hai chim chung một hàng ống sinh từ seed, engine chia bước 20ms để không xuyên ống |
+| Flappy Bird | 1 | Arcade một người | Normal | Chơi một mình lấy điểm cao; engine chia bước 20ms để không xuyên ống, sprite pixel của dự án |
 | Ma Sói | 4–16 | Social deduction | Normal/Custom | State machine đêm/ngày/vote, 6 vai |
 
 Mỗi engine tuân theo `GameEngine` interface trong `packages/shared/src/engine.ts`:
@@ -168,6 +168,11 @@ reconnect tự động khôi phục ván đang chơi, grace period 60s trước 
 
 **Progression** — Elo với K giảm theo rank, XP/Coin có daily cap chống farm, first-win
 bonus, nhiệm vụ ngày/tuần, thành tựu, bảng xếp hạng tổng và theo game.
+
+Game một người (Flappy Bird) đi đường riêng: không có đối thủ để so nên không tính
+thắng/thua và không đổi rating, thưởng tính theo điểm (6 XP + 4 coin mỗi ống, có
+trần). Bảng xếp hạng của game đó sắp theo `game_stats.best_score` thay vì Elo —
+`isSolo(game)` trong `packages/shared/src/types.ts` là chỗ duy nhất quyết định.
 
 **Economy** — 19 cosmetic (khung, danh hiệu, nền, bong bóng chat, emote, hiệu ứng, theme bàn cờ),
 Coin/Diamond/Season Token, mọi thay đổi số dư ghi transaction bất biến trong SQL transaction.
@@ -256,6 +261,7 @@ bằng component riêng:
 | Art Sheep Battle: 5 giống cừu × 2 phe × 2 animation, icon cấp, hiệu ứng | [TomoSheepFight](https://github.com/dotrungkien/TomoSheepFight) của Do Trung Kien — `apps/mobile/assets/sheep-fight/` | MIT |
 | Art Ô Ăn Quan: bàn gỗ, hai ô Quan, quan chibi, nắp quan, 6 màu hạt, hoa lá | Bản vẽ riêng của dự án — `apps/mobile/assets/oanquan/` | Nội bộ |
 | Art Bắn Tàu: mặt biển, 5 loại tàu (nhìn trên + nhìn ngang), cột nước, tàu cháy, dấu chìm, vòng ngắm | Bản vẽ riêng của dự án — `apps/mobile/assets/battleship/` | Nội bộ |
+| Art Flappy Bird: chim pixel 3 nhịp vỗ cánh | Bản vẽ riêng của dự án, sinh bằng `scripts/make-flappy-art.py` — `apps/mobile/assets/flappy/` | Nội bộ |
 | Avatar người chơi | [DiceBear](https://github.com/dicebear/dicebear) — render SVG server-side, 10 bộ style | MIT |
 | Font tiêu đề | [Baloo 2](https://github.com/googlefonts/baloo) qua `@expo-google-fonts` | OFL |
 | Font nội dung | [Be Vietnam Pro](https://github.com/bettergui/BeVietnamPro) — hỗ trợ tiếng Việt đầy đủ | OFL |
@@ -277,6 +283,14 @@ Script tải SVG gốc về `apps/mobile/assets/game-icons/` (giữ nguyên file
 giấy phép) rồi sinh `src/art/gameArt.ts` — dữ liệu vector đã bỏ nền đen và đánh dấu
 chỗ ăn màu, để `<Art>` vẽ bằng `react-native-svg` và tô theo phe / theo trạng thái.
 Muốn đổi hình cho game nào chỉ cần sửa một dòng trong bảng `ART` của script.
+
+Flappy Bird là **ngoại lệ duy nhất của quy tắc "lấy asset có sẵn"**: con chim
+của bản gốc là art có bản quyền của Dong Nguyen, mọi kho "flappy bird assets"
+trên mạng đều là bản trích xuất từ game gốc nên không dùng được, còn game-icons
+thì không có con chim thân tròn nhìn nghiêng nào đúng chất. Nên sprite được vẽ
+theo phong cách pixel của thể loại bằng `scripts/make-flappy-art.py`: lưới ASCII
+một ký tự một điểm ảnh, ba nhịp vỗ cánh, phóng to nearest-neighbour để giữ cạnh
+răng cưa. Sửa hình = sửa mấy dòng ASCII rồi chạy lại script.
 
 Sheep Battle dùng **art gốc của game Sheep Fight**: mỗi cấp cừu là một giống
 cừu riêng — cừu non chưa có sừng, nhú sừng, sừng xoắn, đeo băng đầu, cừu chúa

@@ -35,7 +35,15 @@ export interface GameMeta {
   /** Tên asset chibi đại diện cho game (không dùng emoji). */
   art: string;
   avgMinutes: number;
+  /**
+   * Game chơi một mình: không có đối thủ nên không tính thắng/thua và không đổi
+   * rating, chỉ lấy điểm cao nhất xếp bảng xếp hạng.
+   */
+  solo?: boolean;
 }
+
+/** Game một người thì xếp hạng theo điểm cao nhất, không theo Elo. */
+export const isSolo = (game: GameType) => GAME_CATALOG[game].maxPlayers === 1;
 
 export const GAME_CATALOG: Record<GameType, GameMeta> = {
   caro: {
@@ -105,16 +113,17 @@ export const GAME_CATALOG: Record<GameType, GameMeta> = {
   },
   flappy: {
     id: 'flappy',
-    name: 'Flappy Đua',
-    nameEn: 'Flappy Race',
-    tagline: 'Cùng một đường ống, ai luồn qua nhiều hơn thì thắng',
-    minPlayers: 2,
-    maxPlayers: 2,
-    category: 'Realtime arcade',
-    modes: ['normal', 'ranked', 'custom'],
+    name: 'Flappy Bird',
+    nameEn: 'Flappy Bird',
+    tagline: 'Luồn qua thật nhiều ống, ghi điểm lên bảng xếp hạng',
+    minPlayers: 1,
+    maxPlayers: 1,
+    category: 'Arcade một người',
+    modes: ['normal'],
     colors: ['#2FA9F5', '#A9DEFF'],
     art: 'game-flappy',
     avgMinutes: 2,
+    solo: true,
   },
   werewolf: {
     id: 'werewolf',

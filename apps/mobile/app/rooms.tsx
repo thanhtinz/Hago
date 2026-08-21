@@ -49,7 +49,8 @@ export default function RoomsScreen() {
 
   useEffect(() => {
     api<{ games: any[] }>('/api/games').then((r) => {
-      setGames(r.games);
+      // Phòng là để chơi cùng người khác, nên bỏ game một người ra khỏi danh sách.
+      setGames(r.games.filter((g) => !g.solo));
       const g = r.games.find((x) => x.id === newGame);
       if (g && !maxPlayers) setMaxPlayers(g.maxPlayers);
     });

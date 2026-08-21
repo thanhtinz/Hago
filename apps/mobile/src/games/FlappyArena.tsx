@@ -1,13 +1,14 @@
 import React from 'react';
-import { Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Txt } from '../components/ui';
-import { Art } from '../components/Art';
-import { C, R, S, SEAT_COLORS, softShadow } from '../theme';
+import { FLAPPY_BIRD, FLAPPY_BIRD_RATIO } from '../art/flappy';
+import { C, R, S, softShadow } from '../theme';
 import { BoardProps, GameLog } from './shared';
 
 /**
- * Flappy Đua — hai chim bay trên cùng một hàng ống, chạm màn hình để vỗ cánh.
+ * Flappy Bird — chơi một mình, chạm màn hình để vỗ cánh, qua được bao nhiêu ống
+ * thì bấy nhiêu điểm.
  *
  * Server tick 200ms một lần, quá thưa để nhìn mượt, nên client **nội suy**: lấy
  * state gần nhất rồi chạy tiếp đúng công thức vật lý của engine (cùng hằng số
@@ -36,66 +37,26 @@ export default function FlappyArena({ view, mySeat, send, space }: BoardProps) {
   const dt = Math.max(0, Math.min(0.6, (now - (view.lastTick ?? now)) / 1000));
   const started = now >= (view.startAt ?? now) && !view.over;
 
-  // Vị trí ngang chung của cả hai chim, chạy tiếp từ mốc server gửi.
   const x = (view.x ?? 0) + (started ? view.speed * dt : 0);
-  const seatOf = (b: any) => b.seat;
-  const me = mySeat < 0 ? 0 : mySeat;
-
-  /** Độ cao hiện tại của một con chim, nội suy từ state gần nhất. */
-  const yOf = (bird: any) => {
-    if (!bird.alive || !started) return bird.y;
-    return bird.y + bird.vy * dt + 0.5 * view.gravity * dt * dt;
-  };
-  /** Chim chúi mũi khi rơi, ngóc lên khi vừa vỗ cánh. */
-  const tiltOf = (bird: any) => {
-    if (!bird.alive) return 90;
-    const vy = bird.vy + (started ? view.gravity * dt : 0);
-    return Math.max(-28, Math.min(70, vy * 0.09));
-  };
-
+  const bird = view.birds?.[Math.max(0, mySeat)] ?? view.birds?.[0];
   const countdown = Math.max(0, (view.startAt ?? 0) - now);
-  const myBird = view.birds.find((b: any) => b.seat === mySeat);
   // Chim đã rơi hoặc chưa hết đếm ngược thì server từ chối 'flap' — chặn ngay ở
   // client cho khỏi hiện toast lỗi mỗi lần người chơi còn quán tính bấm tiếp.
-  const canFlap = !view.over && countdown === 0 && !!myBird?.alive;
+  const canFlap = !view.over && countdown === 0 && !!bird?.alive;
+
+  /** Vận tốc dọc hiện tại, nội suy từ state gần nhất. */
+  const vy = (bird?.vy ?? 0) + (started && bird?.alive ? view.gravity * dt : 0);
+  const y = bird?.alive && started ? bird.y + bird.vy * dt + 0.5 * view.gravity * dt * dt : bird?.y ?? 0;
+  /** Chim chúi mũi khi rơi, ngóc lên khi vừa vỗ cánh. */
+  const tilt = bird?.alive ? Math.max(-26, Math.min(80, vy * 0.09)) : 90;
+  // Vừa vỗ là cánh giơ lên, rơi nhanh là cánh hạ xuống, còn lại để ngang.
+  const wing: 'up' | 'mid' | 'down' = vy < -140 ? 'up' : vy > 240 ? 'down' : 'mid';
+
+  const birdH = view.birdR * 2 * scale * 1.5;
+  const birdW = birdH * FLAPPY_BIRD_RATIO;
 
   return (
     <View style={{ gap: S.sm, alignItems: 'center' }}>
-      {/* Bảng điểm hai bên */}
-      <View style={{ flexDirection: 'row', gap: S.sm, width: W }}>
-        {view.birds.map((b: any) => (
-          <View
-            key={b.seat}
-            style={{
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 6,
-              backgroundColor: b.seat === me ? C.surface : C.surfaceAlt,
-              borderRadius: R.pill,
-              borderWidth: 2,
-              borderColor: b.alive ? SEAT_COLORS[b.seat] : C.line,
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-              opacity: b.alive ? 1 : 0.6,
-            }}
-          >
-            <Art name="bird" size={16} color={SEAT_COLORS[b.seat]} />
-            <Txt size={11} weight="bold" numberOfLines={1} style={{ flex: 1 }}>
-              {view.players[b.seat]?.name ?? `P${b.seat + 1}`}
-            </Txt>
-            <Txt size={15} weight="display" color={SEAT_COLORS[b.seat]}>
-              {b.score}
-            </Txt>
-            {!b.alive ? (
-              <Txt size={10} color={C.inkFaint}>
-                rơi
-              </Txt>
-            ) : null}
-          </View>
-        ))}
-      </View>
-
       <Pressable
         onPress={() => canFlap && send('flap', {})}
         style={[
@@ -103,7 +64,7 @@ export default function FlappyArena({ view, mySeat, send, space }: BoardProps) {
           softShadow(0.2, 16, 8),
         ]}
       >
-        <LinearGradient colors={['#8FD8FF', '#CFEEFF']} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} />
+        <LinearGradient colors={['#4EC0CA', '#9BE0E8']} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} />
 
         {/* Ống: cột trên và cột dưới chừa khe ở giữa */}
         {view.pipes.map((pipe: any) => {
@@ -121,32 +82,28 @@ export default function FlappyArena({ view, mySeat, send, space }: BoardProps) {
         })}
 
         {/* Mặt đất chạy ngang cho thấy tốc độ */}
-        <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 10 * scale, backgroundColor: '#D9B871' }} />
+        <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 12 * scale, backgroundColor: '#DED895', borderTopWidth: 2 * scale, borderTopColor: '#7BC24E' }} />
 
-        {/* Chim: của mình vẽ sau cùng để luôn nằm trên */}
-        {[...view.birds].sort((a: any, b: any) => (seatOf(a) === me ? 1 : -1)).map((bird: any) => {
-          const size = view.birdR * 2 * scale * 1.35;
-          return (
-            <View
-              key={bird.seat}
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                left: view.birdX * scale - size / 2,
-                top: yOf(bird) * scale - size / 2,
-                width: size,
-                height: size,
-                alignItems: 'center',
-                justifyContent: 'center',
-                transform: [{ rotate: `${tiltOf(bird)}deg` }],
-                opacity: bird.alive ? 1 : 0.55,
-              }}
-            >
-              {/* Chim của đối thủ mờ hơn để không lẫn với chim mình */}
-              <Art name="bird" size={size} color={SEAT_COLORS[bird.seat]} shadow />
-            </View>
-          );
-        })}
+        <Image
+          source={FLAPPY_BIRD[wing]}
+          style={{
+            position: 'absolute',
+            left: view.birdX * scale - birdW / 2,
+            top: y * scale - birdH / 2,
+            width: birdW,
+            height: birdH,
+            transform: [{ rotate: `${tilt}deg` }],
+          }}
+          // Giữ nguyên cạnh răng cưa của pixel art, không cho trình duyệt làm mượt.
+          resizeMode="contain"
+        />
+
+        {/* Điểm to giữa trời, đúng kiểu bản gốc */}
+        <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 14, alignItems: 'center' }}>
+          <Txt size={46} weight="display" color="#FFFFFF" style={{ textShadowColor: 'rgba(0,0,0,0.45)', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 0 }}>
+            {bird?.score ?? 0}
+          </Txt>
+        </View>
 
         {countdown > 0 ? (
           <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(20,40,60,0.25)' }}>
@@ -163,8 +120,8 @@ export default function FlappyArena({ view, mySeat, send, space }: BoardProps) {
       <Txt size={11} color={C.inkFaint}>
         {view.over
           ? view.ending ?? 'Kết thúc'
-          : myBird && !myBird.alive
-            ? `Bạn đã rơi ở ống thứ ${myBird.score + 1} — chờ đối thủ`
+          : bird && !bird.alive
+            ? `Rơi ở ống thứ ${bird.score + 1}`
             : 'Chạm bất kỳ đâu trên bầu trời để vỗ cánh'}
       </Txt>
       <GameLog log={view.log} />
@@ -191,24 +148,25 @@ function PipeBody({
   return (
     <>
       <LinearGradient
-        colors={['#4FBF5C', '#2E8B3C']}
+        colors={['#8CD860', '#5CA82F', '#3F7A1E']}
+        locations={[0, 0.45, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={{ position: 'absolute', left, top, width, height, borderWidth: 2, borderColor: '#1F5F2A' }}
+        style={{ position: 'absolute', left, top, width, height, borderWidth: 2, borderColor: '#3A5F1B' }}
       />
       <LinearGradient
-        colors={['#5FD46C', '#33983F']}
+        colors={['#9CE471', '#63B336', '#437F1F']}
+        locations={[0, 0.45, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={{
           position: 'absolute',
-          left: left - width * 0.07,
+          left: left - width * 0.08,
           top: mouth === 'bottom' ? top + height - lip : top,
-          width: width * 1.14,
+          width: width * 1.16,
           height: lip,
-          borderRadius: 4,
           borderWidth: 2,
-          borderColor: '#1F5F2A',
+          borderColor: '#3A5F1B',
         }}
       />
     </>

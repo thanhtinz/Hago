@@ -39,7 +39,7 @@ export const GAME_NAMES: Record<string, string> = {
   oanquan: 'Ô Ăn Quan',
   sheep: 'Sheep Battle',
   chess: 'Cờ Vua',
-  flappy: 'Flappy Đua',
+  flappy: 'Flappy Bird',
   werewolf: 'Ma Sói',
 };
 

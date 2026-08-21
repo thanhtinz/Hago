@@ -1,5 +1,5 @@
 import { EngineResultRow } from './engine';
-import { GameMode, GameType, rankOf } from './types';
+import { GameMode, GameType, isSolo, rankOf } from './types';
 
 export interface RewardCalc {
   userId: string;
@@ -48,6 +48,29 @@ export function computeRewards(input: RewardInput): RewardCalc[] {
   };
   // Trận quá ngắn (<30s) chỉ nhận nửa thưởng để chống farm.
   const shortMatch = durationMs < 30_000;
+  const solo = isSolo(input.gameType);
+
+  /**
+   * Game một người thì không có đối thủ để so, nên thưởng tính theo điểm chứ
+   * không theo thắng/thua: mỗi ống qua được là 6 XP và 4 coin, có trần để một
+   * ván dài không phá vỡ nền kinh tế. Rating giữ nguyên.
+   */
+  if (solo) {
+    return rows.map((row) => {
+      const already = input.dailyXp[row.userId] ?? 0;
+      let xp = Math.min(300, BASE_XP / 2 + row.score * 6);
+      let coin = Math.min(200, BASE_COIN / 2 + row.score * 4);
+      xp = Math.max(0, Math.min(Math.round(xp), cap - already));
+      return {
+        userId: row.userId,
+        result: row.result,
+        place: row.place,
+        xpGain: xp,
+        coinGain: Math.round(coin),
+        ratingDelta: 0,
+      };
+    });
+  }
 
   return rows.map((row) => {
     const mine = ratings[row.userId] ?? 1000;
