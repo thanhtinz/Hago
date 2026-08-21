@@ -38,7 +38,6 @@ export const GAME_NAMES: Record<string, string> = {
   battleship: 'Bắn Tàu',
   oanquan: 'Ô Ăn Quan',
   sheep: 'Sheep Battle',
-  monopoly: 'Cờ Tỷ Phú',
   werewolf: 'Ma Sói',
 };
 
@@ -48,6 +47,5 @@ export const GAME_SHORT: Record<string, string> = {
   battleship: 'Bắn Tàu',
   oanquan: 'Ô Ăn Quan',
   sheep: 'Sheep',
-  monopoly: 'Tỷ Phú',
   werewolf: 'Ma Sói',
 };

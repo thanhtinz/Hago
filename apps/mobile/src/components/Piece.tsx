@@ -41,11 +41,6 @@ export function ShotMark({ size = 18, kind }: { size?: number; kind: 'hit' | 'su
   return <Art name={a.name} size={size} color={a.color} />;
 }
 
-/** Quân trên bàn Cờ tỷ phú. */
-export function TokenDot({ size = 9, color }: { size?: number; color: string }) {
-  return <Art name="meeple" size={size} color={color} />;
-}
-
 /** Ghế người chơi Ma sói: còn sống là người trùm áo, chết là bia mộ. */
 export function SeatFace({ size = 26, alive = true, color = '#FFC46B' }: { size?: number; alive?: boolean; color?: string }) {
   return alive ? <Art name="seat-alive" size={size} color={color} /> : <Art name="seat-dead" size={size} color="#B9B2C7" />;

@@ -10,11 +10,9 @@ chỉ bỏ nền đen và tô màu theo ngữ cảnh.
 | `game-battleship` | ship-bow | delapouite |
 | `game-oanquan` | abacus | delapouite |
 | `game-sheep` | sheep | delapouite |
-| `game-monopoly` | house | delapouite |
 | `game-werewolf` | wolf-head | lorc |
 | `sheep` | sheep | delapouite |
 | `knight` | chess-knight | skoll |
-| `meeple` | meeple | delapouite |
 | `mark-o` | blank | badges |
 | `mark-x` | multiply | badges |
 | `stone` | stone-sphere | lorc |
@@ -40,13 +38,6 @@ chỉ bỏ nền đen và tô màu theo ngữ cảnh.
 | `vote` | vote | delapouite |
 | `moon` | moon | lorc |
 | `sun` | sun | lorc |
-| `tile-house` | house | delapouite |
-| `tile-chance` | question | badges |
-| `tile-jail` | prisoner | delapouite |
-| `tile-tax` | bank | delapouite |
-| `tile-start` | star-flag | delapouite |
-| `tile-park` | park-bench | delapouite |
-| `tile-gotojail` | handcuffs | lorc |
 | `ui-quick` | bolt | badges |
 | `ui-find` | magnifying-glass | lorc |
 | `ui-create` | key | lorc |

@@ -192,9 +192,3 @@ test('progression: first win of the day cộng thêm thưởng', () => {
   assert.equal(withBonus[0].coinGain - without[0].coinGain, 100);
 });
 
-test('monopoly: xúc xắc luôn trong khoảng hợp lệ', () => {
-  for (const type of ['monopoly']) {
-    const { state } = playOut(type, `dice-${type}`);
-    if (type === 'monopoly' && state.dice) state.dice.forEach((d) => assert.ok(d >= 1 && d <= 6));
-  }
-});

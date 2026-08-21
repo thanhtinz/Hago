@@ -5,7 +5,6 @@ export type GameType =
   | 'battleship'
   | 'oanquan'
   | 'sheep'
-  | 'monopoly'
   | 'werewolf';
 
 export type GameMode = 'normal' | 'ranked' | 'custom';
@@ -15,7 +14,6 @@ export const GAME_TYPES: GameType[] = [
   'battleship',
   'oanquan',
   'sheep',
-  'monopoly',
   'werewolf',
 ];
 
@@ -87,19 +85,6 @@ export const GAME_CATALOG: Record<GameType, GameMeta> = {
     colors: ['#39C77F', '#A9F0CB'],
     art: 'game-sheep',
     avgMinutes: 3,
-  },
-  monopoly: {
-    id: 'monopoly',
-    name: 'Cờ Tỷ Phú',
-    nameEn: 'Monopoly',
-    tagline: 'Mua đất, thu tô, làm giàu',
-    minPlayers: 2,
-    maxPlayers: 4,
-    category: 'Board / economy',
-    modes: ['normal', 'custom'],
-    colors: ['#E9556D', '#FFB3BF'],
-    art: 'game-monopoly',
-    avgMinutes: 15,
   },
   werewolf: {
     id: 'werewolf',

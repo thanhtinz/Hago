@@ -46,7 +46,6 @@ export default function RoomsScreen() {
   const [maxPlayers, setMaxPlayers] = useState(0);
   const [boardSize, setBoardSize] = useState(15);
   const [duration, setDuration] = useState(90);
-  const [rounds, setRounds] = useState(30);
 
   useEffect(() => {
     api<{ games: any[] }>('/api/games').then((r) => {
@@ -104,7 +103,6 @@ export default function RoomsScreen() {
     const config: Record<string, unknown> = {};
     if (newGame === 'caro') config.size = boardSize;
     if (newGame === 'sheep') config.durationSeconds = duration;
-    if (newGame === 'monopoly') config.maxRounds = rounds;
 
     const res: any = await emitAck('room.create', {
       gameType: newGame,
@@ -389,14 +387,6 @@ export default function RoomsScreen() {
                 </View>
               ) : null}
 
-              {newGame === 'monopoly' ? (
-                <View style={{ gap: 8 }}>
-                  <Txt size={12} weight="bold" color={C.inkSoft}>
-                    Số vòng tối đa
-                  </Txt>
-                  <Stepper value={rounds} min={10} max={60} step={5} onChange={setRounds} unit="vòng" />
-                </View>
-              ) : null}
 
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <View style={{ flex: 1 }}>

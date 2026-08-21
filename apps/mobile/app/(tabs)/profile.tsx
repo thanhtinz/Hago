@@ -17,7 +17,6 @@ const GAME_NAMES: Record<string, string> = {
   battleship: 'Bắn Tàu',
   oanquan: 'Ô Ăn Quan',
   sheep: 'Sheep Battle',
-  monopoly: 'Cờ Tỷ Phú',
   werewolf: 'Ma Sói',
 };
 const LEVEL_CURVE = (level: number) => Math.round(60 * (level - 1) + 12 * Math.pow(level - 1, 2));

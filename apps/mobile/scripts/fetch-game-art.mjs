@@ -32,13 +32,11 @@ export const ART = {
   'game-battleship': 'delapouite/ship-bow',
   'game-oanquan': 'delapouite/abacus',
   'game-sheep': 'delapouite/sheep',
-  'game-monopoly': 'delapouite/house',
   'game-werewolf': 'lorc/wolf-head',
 
   // quân cờ trong trận
   sheep: 'delapouite/sheep',
   knight: 'skoll/chess-knight',
-  meeple: 'delapouite/meeple',
   'mark-o': 'badges/blank',
   'mark-x': 'badges/multiply',
   stone: 'lorc/stone-sphere',
@@ -68,15 +66,6 @@ export const ART = {
   vote: 'delapouite/vote',
   moon: 'lorc/moon',
   sun: 'lorc/sun',
-
-  // ô trên bàn Cờ tỷ phú
-  'tile-house': 'delapouite/house',
-  'tile-chance': 'badges/question',
-  'tile-jail': 'delapouite/prisoner',
-  'tile-tax': 'delapouite/bank',
-  'tile-start': 'delapouite/star-flag',
-  'tile-park': 'delapouite/park-bench',
-  'tile-gotojail': 'lorc/handcuffs',
 
   // icon lớn của vỏ giao diện (ô hành động, banner, tab bar)
   'ui-quick': 'badges/bolt',

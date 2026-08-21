@@ -70,14 +70,6 @@ function decide(gameType, view, mySeat) {
       if (!options.length) return null;
       return { type: 'sow', payload: { cell: pick(options), dir: Math.random() < 0.5 ? 1 : -1 } };
     }
-    case 'monopoly': {
-      if (view.turnSeat !== mySeat) return null;
-      if (view.phase === 'roll') return { type: 'roll', payload: {} };
-      const me = view.cash?.[mySeat];
-      const price = view.pending?.price ?? Infinity;
-      // Giữ lại 200$ tiền mặt dự phòng trước khi mua đất.
-      return { type: me && me.cash - price > 200 ? 'buy' : 'skip', payload: {} };
-    }
     case 'sheep': {
       const level = view.myQueue?.[0];
       if (!level) return null;

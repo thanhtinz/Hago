@@ -23,18 +23,12 @@ const GAME_NAMES: Record<string, string> = {
   battleship: 'Bắn Tàu',
   oanquan: 'Ô Ăn Quan',
   sheep: 'Sheep Battle',
-  monopoly: 'Cờ Tỷ Phú',
   werewolf: 'Ma Sói',
 };
 
 const FLASH: Record<string, { icon: IconName; text: string }> = {
   win: { icon: 'trophy', text: 'Thắng rồi!' },
-  kick: { icon: 'flame', text: 'Đá ngựa!' },
-  bump: { icon: 'flame', text: 'Húc trúng!' },
   score: { icon: 'star', text: 'Trừ máu!' },
-  rent: { icon: 'coin', text: 'Thu tô!' },
-  bankrupt: { icon: 'flame', text: 'Phá sản!' },
-  chance: { icon: 'question', text: 'Cơ hội!' },
   push: { icon: 'flame', text: 'Đẩy lùi!' },
 };
 
