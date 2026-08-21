@@ -32,11 +32,25 @@ export const ART = {
   'game-battleship': 'delapouite/ship-bow',
   'game-oanquan': 'delapouite/abacus',
   'game-sheep': 'delapouite/sheep',
+  'game-chess': 'skoll/chess-king',
+  'game-flappy': 'delapouite/duck',
   'game-werewolf': 'lorc/wolf-head',
 
   // quân cờ trong trận
   sheep: 'delapouite/sheep',
   knight: 'skoll/chess-knight',
+
+  // quân cờ vua: 6 loại, tô trắng hoặc đen theo phe
+  'chess-p': 'skoll/chess-pawn',
+  'chess-n': 'skoll/chess-knight',
+  'chess-b': 'skoll/chess-bishop',
+  'chess-r': 'skoll/chess-rook',
+  'chess-q': 'skoll/chess-queen',
+  'chess-k': 'skoll/chess-king',
+
+  // Flappy: chim và ống
+  bird: 'delapouite/duck',
+  pipe: 'delapouite/pipes',
   'mark-o': 'badges/blank',
   'mark-x': 'badges/multiply',
   stone: 'lorc/stone-sphere',

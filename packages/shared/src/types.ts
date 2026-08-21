@@ -5,6 +5,8 @@ export type GameType =
   | 'battleship'
   | 'oanquan'
   | 'sheep'
+  | 'chess'
+  | 'flappy'
   | 'werewolf';
 
 export type GameMode = 'normal' | 'ranked' | 'custom';
@@ -14,6 +16,8 @@ export const GAME_TYPES: GameType[] = [
   'battleship',
   'oanquan',
   'sheep',
+  'chess',
+  'flappy',
   'werewolf',
 ];
 
@@ -85,6 +89,32 @@ export const GAME_CATALOG: Record<GameType, GameMeta> = {
     colors: ['#39C77F', '#A9F0CB'],
     art: 'game-sheep',
     avgMinutes: 3,
+  },
+  chess: {
+    id: 'chess',
+    name: 'Cờ Vua',
+    nameEn: 'Chess',
+    tagline: 'Luật đủ: nhập thành, bắt tốt qua đường, phong cấp',
+    minPlayers: 2,
+    maxPlayers: 2,
+    category: 'Board strategy',
+    modes: ['normal', 'ranked', 'custom'],
+    colors: ['#5F5A8C', '#B6B1D8'],
+    art: 'game-chess',
+    avgMinutes: 12,
+  },
+  flappy: {
+    id: 'flappy',
+    name: 'Flappy Đua',
+    nameEn: 'Flappy Race',
+    tagline: 'Cùng một đường ống, ai luồn qua nhiều hơn thì thắng',
+    minPlayers: 2,
+    maxPlayers: 2,
+    category: 'Realtime arcade',
+    modes: ['normal', 'ranked', 'custom'],
+    colors: ['#2FA9F5', '#A9DEFF'],
+    art: 'game-flappy',
+    avgMinutes: 2,
   },
   werewolf: {
     id: 'werewolf',

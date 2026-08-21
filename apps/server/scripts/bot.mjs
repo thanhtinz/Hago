@@ -70,6 +70,32 @@ function decide(gameType, view, mySeat) {
       if (!options.length) return null;
       return { type: 'sow', payload: { cell: pick(options), dir: Math.random() < 0.5 ? 1 : -1 } };
     }
+    case 'chess': {
+      if (view.turnSeat !== mySeat) return null;
+      const moves = view.moves ?? [];
+      if (!moves.length) return null;
+      // Ưu tiên nước ăn quân to nhất, còn lại đi bừa — đủ để bot không đứng im.
+      const worth = { q: 9, r: 5, b: 3, n: 3, p: 1 };
+      const scored = moves.map((m) => {
+        const target = view.board?.[m.to];
+        return { m, gain: target ? worth[target.toLowerCase()] ?? 0 : 0 };
+      });
+      const best = Math.max(...scored.map((s) => s.gain));
+      const pool = scored.filter((s) => s.gain === best).map((s) => s.m);
+      const move = pick(pool);
+      return { type: 'move', payload: { from: move.from, to: move.to, promo: move.promo } };
+    }
+    case 'flappy': {
+      const me = (view.birds ?? []).find((b) => b.seat === mySeat);
+      if (!me || !me.alive || view.countdown > 0) return null;
+      // Bay tới khe ống gần nhất: thấp hơn tâm khe thì vỗ cánh.
+      const nose = view.x + view.birdX;
+      const next = (view.pipes ?? []).find((p) => p.x + view.pipeW > nose);
+      // Nhắm hơi cao hơn tâm khe vì vỗ xong chim còn rơi thêm một nhịp.
+      const aim = next ? next.gapY - view.gap * 0.08 : view.worldH / 2;
+      const falling = me.vy > -30;
+      return me.y > aim && falling ? { type: 'flap', payload: {} } : null;
+    }
     case 'sheep': {
       const level = view.myQueue?.[0];
       if (!level) return null;
@@ -144,8 +170,10 @@ async function spawn(username, opts) {
     setTimeout(() => socket.emit('game.action', { matchId: s.matchId, actionId: actionId(), ...action }), delay);
   });
 
-  // Game realtime không phát state mỗi tick nên bot cần nhịp riêng.
-  if (opts.game === 'sheep' || opts.game === 'werewolf') {
+  // Game realtime không phát state mỗi tick nên bot cần nhịp riêng. Flappy phải
+  // nhanh hơn hẳn: nửa giây mới soi một lần thì chim rơi mất rồi.
+  const beat = opts.game === 'flappy' ? 110 : 550;
+  if (opts.game === 'sheep' || opts.game === 'flappy' || opts.game === 'werewolf') {
     setInterval(() => {
       socket.emit('game.sync', {}, (res) => {
         if (!res?.ok || res.state.finished) return;
@@ -153,7 +181,7 @@ async function spawn(username, opts) {
         const action = decide(res.state.gameType, res.state.view, mySeat);
         if (action) socket.emit('game.action', { matchId: res.state.matchId, actionId: actionId(), ...action });
       });
-    }, 550);
+    }, beat);
   }
 
   // Giữ presence để bạn bè thấy online.

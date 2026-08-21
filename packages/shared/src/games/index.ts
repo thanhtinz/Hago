@@ -4,12 +4,16 @@ import { CaroEngine } from './caro';
 import { BattleshipEngine } from './battleship';
 import { OanQuanEngine } from './oanquan';
 import { SheepEngine } from './sheep';
+import { ChessEngine } from './chess';
+import { FlappyEngine } from './flappy';
 import { WerewolfEngine } from './werewolf';
 
 export * from './caro';
 export * from './battleship';
 export * from './oanquan';
 export * from './sheep';
+export * from './chess';
+export * from './flappy';
 export * from './werewolf';
 
 export const ENGINES: Record<GameType, GameEngine<any, any>> = {
@@ -17,6 +21,8 @@ export const ENGINES: Record<GameType, GameEngine<any, any>> = {
   battleship: BattleshipEngine,
   oanquan: OanQuanEngine,
   sheep: SheepEngine,
+  chess: ChessEngine,
+  flappy: FlappyEngine,
   werewolf: WerewolfEngine,
 };
 

@@ -121,6 +121,8 @@ export const GAME_GRADIENT: Record<string, [string, string]> = {
   battleship: ['#1E96F5', '#5FC2FF'],
   oanquan: ['#FF8A3D', '#FFB25E'],
   sheep: ['#25BE7B', '#5FD9A2'],
+  chess: ['#5F5A8C', '#8E88C4'],
+  flappy: ['#2FA9F5', '#7FCBFF'],
   werewolf: ['#6B55D6', '#3D3277'],
 };
 

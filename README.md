@@ -3,7 +3,7 @@
 Nền tảng social mini-game **mobile-first** theo phong cách **chibi**: chơi game casual cùng bạn bè,
 kết bạn, chat, leo rank, làm nhiệm vụ và sưu tầm cosmetic.
 
-Triển khai đầy đủ theo PRD *Social Mini-Game Platform v1.0*: 5 game launch, realtime
+Triển khai đầy đủ theo PRD *Social Mini-Game Platform v1.0*: 7 game launch, realtime
 server-authoritative, economy có audit, admin panel và analytics.
 
 > Tác giả: **thanhtinz** · Giấy phép: MIT
@@ -28,19 +28,19 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/07-quests.png) | ![](docs/screenshots/08-leaderboard.png) |
 
-### 5 mini game
+### 7 mini game
 
 | Cờ Caro | Bắn Tàu | Ô Ăn Quan |
 |---|---|---|
 | ![](docs/screenshots/20-game-caro.png) | ![](docs/screenshots/21-game-battleship.png) | ![](docs/screenshots/22-game-oanquan.png) |
 
-| Sheep Battle (đấu làn) | Ma Sói | Kho game |
+| Sheep Battle (đấu làn) | Cờ Vua | Flappy Đua |
 |---|---|---|
-| ![](docs/screenshots/25-game-sheep.png) | ![](docs/screenshots/26-game-werewolf.png) | ![](docs/screenshots/03-games.png) |
+| ![](docs/screenshots/25-game-sheep.png) | ![](docs/screenshots/27-game-chess.png) | ![](docs/screenshots/28-game-flappy.png) |
 
-| Đang tìm trận |
-|---|
-| ![](docs/screenshots/13-searching.png) |
+| Ma Sói | Kho game | Đang tìm trận |
+|---|---|---|
+| ![](docs/screenshots/26-game-werewolf.png) | ![](docs/screenshots/03-games.png) | ![](docs/screenshots/13-searching.png) |
 
 Mọi game chạy **full screen**: HUD chỉ cao 46px, phần còn lại là bàn chơi và bàn cờ tự
 co giãn theo kích thước màn hình.
@@ -65,8 +65,8 @@ Modular monolith cho MVP, tách rõ realtime gateway để scale độc lập v�
 
 ```
 hago/
-├── packages/shared/     TypeScript thuần: domain model + 5 game engine + progression
-│   └── src/games/       caro, battleship, oanquan, sheep, werewolf
+├── packages/shared/     TypeScript thuần: domain model + 7 game engine + progression
+│   └── src/games/       caro, battleship, oanquan, sheep, chess, flappy, werewolf
 ├── apps/server/         Node.js + Express + Socket.IO + SQLite (better-sqlite3)
 │   ├── src/routes/      REST: auth, users, social, economy, progress, admin
 │   ├── src/services/    users, social, economy, quests, notifications, analytics
@@ -98,6 +98,8 @@ Mobile (RN/Expo) ──REST──> Express API ──> SQLite (WAL)
 | Bắn Tàu | 2 | Turn-based | Normal/Ranked/Custom | Mỗi lượt chỉ hiện một bàn, trúng được bắn tiếp |
 | Ô Ăn Quan | 2 | Board dân gian | Normal/Ranked/Custom | Rải, ăn dây, rải lại khi hết dân |
 | Sheep Battle | 2 | Realtime lane battle | Normal/Ranked/Custom | Đấu làn 30 máu, cừu nhỏ trừ nhiều máu, cừu to đẩy khoẻ |
+| Cờ Vua | 2 | Board strategy | Normal/Ranked/Custom | Luật đủ: nhập thành, bắt tốt qua đường, phong cấp, hoà 50 nước / lặp 3 lần / thiếu quân |
+| Flappy Đua | 2 | Realtime arcade | Normal/Ranked/Custom | Hai chim chung một hàng ống sinh từ seed, engine chia bước 20ms để không xuyên ống |
 | Ma Sói | 4–16 | Social deduction | Normal/Custom | State machine đêm/ngày/vote, 6 vai |
 
 Mỗi engine tuân theo `GameEngine` interface trong `packages/shared/src/engine.ts`:
@@ -250,7 +252,7 @@ bằng component riêng:
 
 | Loại | Nguồn | Giấy phép |
 |---|---|---|
-| Art trong trận: mark 5 game, quân cờ, xúc xắc, vai Ma Sói, sticker | [game-icons.net](https://github.com/game-icons/icons) — 70 asset trong `apps/mobile/assets/game-icons/` | CC BY 3.0 |
+| Art trong trận: mark 7 game, quân cờ vua, chim, xúc xắc, vai Ma Sói, sticker | [game-icons.net](https://github.com/game-icons/icons) — 70 asset trong `apps/mobile/assets/game-icons/` | CC BY 3.0 |
 | Art Sheep Battle: 5 giống cừu × 2 phe × 2 animation, icon cấp, hiệu ứng | [TomoSheepFight](https://github.com/dotrungkien/TomoSheepFight) của Do Trung Kien — `apps/mobile/assets/sheep-fight/` | MIT |
 | Art Ô Ăn Quan: bàn gỗ, hai ô Quan, quan chibi, nắp quan, 6 màu hạt, hoa lá | Bản vẽ riêng của dự án — `apps/mobile/assets/oanquan/` | Nội bộ |
 | Art Bắn Tàu: mặt biển, 5 loại tàu (nhìn trên + nhìn ngang), cột nước, tàu cháy, dấu chìm, vòng ngắm | Bản vẽ riêng của dự án — `apps/mobile/assets/battleship/` | Nội bộ |
@@ -262,7 +264,7 @@ bằng component riêng:
 
 **Art của game lấy từ kho có sẵn, không vẽ tay.** game-icons.net là kho 4000+ icon
 game do hoạ sĩ vẽ, cùng khung 512×512 và cùng ngôn ngữ tạo hình silhouette — nhờ
-vậy 5 game xếp cạnh nhau vẫn ăn khớp, thứ mà tự vẽ từng cái rất khó giữ đồng bộ.
+vậy 7 game xếp cạnh nhau vẫn ăn khớp, thứ mà tự vẽ từng cái rất khó giữ đồng bộ.
 Ghi công từng asset trong `apps/mobile/assets/game-icons/CREDITS.md`.
 
 Tải và cập nhật bộ asset:
@@ -360,7 +362,7 @@ Cosmetic trong shop vẫn vẽ bằng gradient nên thêm item mới chỉ cần
 | Friend, Block, Text chat 1-1 & room | ✅ |
 | Home, game catalog, Quick Match | ✅ |
 | Lobby, Room, Invite, room code | ✅ |
-| 5 game launch (Normal/Ranked/Custom) | ✅ |
+| 7 game launch (Normal/Ranked/Custom) | ✅ |
 | XP, Coin, Rank, Achievement, Quest | ✅ |
 | Shop, Inventory, Payment (mô phỏng) | ✅ |
 | Notification in-app | ✅ |

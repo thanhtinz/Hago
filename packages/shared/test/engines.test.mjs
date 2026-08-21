@@ -192,3 +192,116 @@ test('progression: first win of the day cộng thêm thưởng', () => {
   assert.equal(withBonus[0].coinGain - without[0].coinGain, 100);
 });
 
+
+// ---------------------------------------------------------------- Cờ Vua
+
+/** Đi một loạt nước theo ô, ví dụ ['e2e4', 'e7e5']. Trả state sau cùng. */
+function playChess(moves, config = {}) {
+  const engine = ENGINES.chess;
+  const rng = new Rng('chess');
+  let state = engine.init(players(2), config, rng);
+  moves.forEach((m, i) => {
+    const from = sq(m.slice(0, 2));
+    const to = sq(m.slice(2, 4));
+    const promo = m[4];
+    const res = engine.apply(state, `u${i % 2}`, 'move', { from, to, promo }, rng);
+    assert.ok(res.ok, `nước ${m} bị từ chối: ${res.error}`);
+    state = res.state;
+  });
+  return state;
+}
+
+/** 'e4' -> chỉ số ô trên bàn 64 ô. */
+function sq(name) {
+  const col = 'abcdefgh'.indexOf(name[0]);
+  const row = 8 - Number(name[1]);
+  return row * 8 + col;
+}
+
+test('chess: thế khai cuộc có đúng 20 nước đi', () => {
+  const engine = ENGINES.chess;
+  const state = engine.init(players(2), {}, new Rng('c'));
+  assert.equal(engine.view(state, 'u0').moves.length, 20);
+});
+
+test('chess: chiếu bí bốn nước (Scholar mate) kết thúc ván', () => {
+  const state = playChess(['e2e4', 'e7e5', 'f1c4', 'b8c6', 'd1h5', 'g8f6', 'h5f7']);
+  assert.equal(state.over, true);
+  assert.equal(state.draw, false);
+  assert.deepEqual(state.winnerIds, ['u0']);
+  assert.equal(state.history[state.history.length - 1].san, 'Qxf7#');
+});
+
+test('chess: đang bị chiếu thì nước không gỡ chiếu bị từ chối', () => {
+  const engine = ENGINES.chess;
+  const rng = new Rng('pin');
+  // 1.d4 e5 2.Nf3 Bb4+ — tượng đen ăn dọc b4-c3-d2-e1, vua trắng đang bị chiếu.
+  const state = playChess(['d2d4', 'e7e5', 'g1f3', 'f8b4']);
+  const bad = engine.apply(state, 'u0', 'move', { from: sq('f3'), to: sq('g5') }, rng);
+  assert.equal(bad.ok, false);
+  assert.equal(bad.error, 'ILLEGAL_MOVE');
+  // Chặn bằng tốt c3 thì hợp lệ.
+  const good = engine.apply(state, 'u0', 'move', { from: sq('c2'), to: sq('c3') }, rng);
+  assert.equal(good.ok, true);
+});
+
+test('chess: nhập thành gần vua dời cả xe', () => {
+  const state = playChess(['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1c4', 'f8c5', 'e1g1']);
+  assert.equal(state.board[sq('g1')], 'K');
+  assert.equal(state.board[sq('f1')], 'R');
+  assert.equal(state.board[sq('h1')], null);
+  assert.equal(state.history[state.history.length - 1].san, 'O-O');
+});
+
+test('chess: bắt tốt qua đường ăn đúng con tốt bên cạnh', () => {
+  const state = playChess(['e2e4', 'a7a6', 'e4e5', 'd7d5', 'e5d6']);
+  assert.equal(state.board[sq('d6')], 'P');
+  assert.equal(state.board[sq('d5')], null, 'tốt đen phải bị nhấc khỏi bàn');
+});
+
+test('chess: hết giờ là xử thua bên đang đi', () => {
+  const engine = ENGINES.chess;
+  const state = engine.init(players(2), {}, new Rng('t'));
+  const out = engine.timeout(state, new Rng('t')).state;
+  assert.equal(out.over, true);
+  assert.deepEqual(out.winnerIds, ['u1']);
+});
+
+// ---------------------------------------------------------------- Flappy
+
+test('flappy: không vỗ cánh thì rơi và ván kết thúc', () => {
+  const engine = ENGINES.flappy;
+  const rng = new Rng('f');
+  let state = engine.init(players(2), {}, rng);
+  let now = state.startAt;
+  for (let i = 0; i < 200 && !engine.finished(state); i++) {
+    now += 200;
+    state = engine.tick(state, now, rng).state;
+  }
+  assert.equal(engine.finished(state), true);
+  assert.ok(state.birds.every((b) => !b.alive));
+});
+
+test('flappy: vỗ cánh đẩy chim lên và chưa tới giờ thì không nhận', () => {
+  const engine = ENGINES.flappy;
+  const rng = new Rng('f2');
+  const state = engine.init(players(2), {}, rng);
+  const early = engine.apply(state, 'u0', 'flap', {}, rng);
+  assert.equal(early.ok, false, 'đang đếm ngược thì chưa cho vỗ');
+
+  const started = { ...state, startAt: Date.now() - 10, lastTick: Date.now() - 10 };
+  const res = engine.apply(started, 'u0', 'flap', {}, rng);
+  assert.ok(res.ok);
+  assert.ok(res.state.birds[0].vy < started.birds[0].vy, 'vỗ cánh phải đẩy chim lên nhanh hơn');
+  assert.equal(res.state.birds[1].vy, started.birds[1].vy, 'không được đụng vào chim của người kia');
+});
+
+test('flappy: hai chim gặp cùng một hàng ống', () => {
+  const engine = ENGINES.flappy;
+  const a = engine.init(players(2), {}, new Rng('same'));
+  const b = engine.init(players(2), {}, new Rng('same'));
+  assert.deepEqual(
+    a.pipes.slice(0, 5).map((p) => p.gapY),
+    b.pipes.slice(0, 5).map((p) => p.gapY),
+  );
+});

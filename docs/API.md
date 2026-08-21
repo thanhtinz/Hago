@@ -129,6 +129,8 @@ tài khoản bị khoá.
 | battleship | `place` / `fire` | `{ships?}` (bỏ trống = xếp ngẫu nhiên) / `{x, y}` |
 | oanquan | `sow` | `{cell, dir}` — `dir` là `1` hoặc `-1` |
 | sheep | `deploy` | `{lane}` — thả cừu đầu hàng chờ vào làn |
+| chess | `move` / `resign` | `{from, to, promo?}` — ô đánh số 0–63, `promo` là `q\|r\|b\|n` / `{}` |
+| flappy | `flap` | `{}` — vỗ cánh, chỉ nhận sau khi hết đếm ngược |
 | werewolf | `night_action` / `vote` / `ready_vote` | `{target}` / `{target}` / `{}` |
 
 ### Mã lỗi thường gặp

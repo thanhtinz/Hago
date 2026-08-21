@@ -3,6 +3,8 @@ import CaroBoard from './CaroBoard';
 import BattleshipBoard from './BattleshipBoard';
 import OanQuanBoard from './OanQuanBoard';
 import SheepArena from './SheepArena';
+import ChessBoard from './ChessBoard';
+import FlappyArena from './FlappyArena';
 import WerewolfTable from './WerewolfTable';
 import { BoardProps } from './shared';
 
@@ -11,5 +13,7 @@ export const BOARDS: Record<string, React.ComponentType<BoardProps>> = {
   battleship: BattleshipBoard,
   oanquan: OanQuanBoard,
   sheep: SheepArena,
+  chess: ChessBoard,
+  flappy: FlappyArena,
   werewolf: WerewolfTable,
 };
