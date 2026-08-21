@@ -106,7 +106,7 @@ Mobile (RN/Expo) ──REST──> Express API ──> SQLite (WAL)
 | Bắn Tàu | 2 | Turn-based | Normal/Ranked/Custom | Mỗi lượt chỉ hiện một bàn, trúng được bắn tiếp |
 | Ô Ăn Quan | 2 | Board dân gian | Normal/Ranked/Custom | Rải, ăn dây, rải lại khi hết dân |
 | Sheep Battle | 2 | Realtime lane battle | Normal/Ranked/Custom | Đấu làn 30 máu, cừu nhỏ trừ nhiều máu, cừu to đẩy khoẻ |
-| Cờ Vua | 2 | Board strategy | Normal/Ranked/Custom | Luật đủ: nhập thành, bắt tốt qua đường, phong cấp, hoà 50 nước / lặp 3 lần / thiếu quân |
+| Cờ Vua | 2 | Board strategy | Normal/Ranked/Custom | Bàn vẽ 2.5D phối cảnh một điểm tụ; luật đủ: nhập thành, bắt tốt qua đường, phong cấp, hoà 50 nước / lặp 3 lần / thiếu quân |
 | Flappy Bird | 1 | Arcade một người | Normal | Chơi một mình lấy điểm cao; engine chia bước 20ms để không xuyên ống, sprite pixel của dự án |
 | Ma Sói | 4–16 | Social deduction | Normal/Custom | State machine đêm/ngày/vote, 6 vai |
 
@@ -291,6 +291,21 @@ Script tải SVG gốc về `apps/mobile/assets/game-icons/` (giữ nguyên file
 giấy phép) rồi sinh `src/art/gameArt.ts` — dữ liệu vector đã bỏ nền đen và đánh dấu
 chỗ ăn màu, để `<Art>` vẽ bằng `react-native-svg` và tô theo phe / theo trạng thái.
 Muốn đổi hình cho game nào chỉ cần sửa một dòng trong bảng `ART` của script.
+
+**Cờ Vua vẽ 2.5D bằng SVG.** Ô cờ trong phối cảnh là hình thang chứ không phải
+hình chữ nhật, mà `<View>` chỉ vẽ được hình chữ nhật — nên cả bàn là một `<Svg>`
+với 64 `<Polygon>`. Phép chiếu là phối cảnh một điểm tụ thật: bề ngang và khoảng
+cách hàng đều tỉ lệ `1/z`, nhờ vậy các hàng dồn lại về phía xa đúng như mắt nhìn,
+kèm hàng xa nhạt dần (phối cảnh khí quyển) và thành bàn phía gần cho thấy bề dày.
+Quân dùng lại đúng bộ chess-* của game-icons — silhouette nhìn nghiêng vốn đã hợp
+với góc đứng — nhúng thẳng vào cảnh nên co theo tỉ lệ xa gần, có bóng đổ dẹt dưới
+chân.
+
+Chạm thì **nghịch đảo phép chiếu** ra ô cờ thay vì gắn `onPress` lên từng polygon:
+`react-native-svg` không chuyển `onPress` thành sự kiện chuột trên web, mà một hàm
+nghịch đảo thì đúng tuyệt đối và chạy được cả hai nền. Toạ độ lấy từ
+`onResponderRelease` chứ không từ `Pressable` — `onPress` của Pressable trên web
+không kèm `locationX/locationY`.
 
 Flappy Bird là **ngoại lệ duy nhất của quy tắc "lấy asset có sẵn"**: con chim
 của bản gốc là art có bản quyền của Dong Nguyen, mọi kho "flappy bird assets"

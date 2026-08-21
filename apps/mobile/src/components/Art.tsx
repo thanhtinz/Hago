@@ -33,6 +33,22 @@ function draw(shape: ArtShape, color: string, hi: string, keyPrefix = '') {
   });
 }
 
+/**
+ * Vẽ hình của một asset vào trong một <Svg> có sẵn của người gọi, thay vì tự mở
+ * <Svg> riêng — dùng khi cần đặt asset vào một cảnh chung (bàn cờ 2.5D) để nó
+ * ăn theo phép chiếu của cảnh.
+ */
+export function artNodes(name: ArtName, color: string, hi = color, keyPrefix = '') {
+  const shape: ArtShape | undefined = GAME_ART[name];
+  return shape ? draw(shape, color, hi, keyPrefix) : null;
+}
+
+/** Cạnh khung nhìn gốc của asset, để tính tỉ lệ khi đặt vào cảnh. */
+export function artSpan(name: ArtName): number {
+  const shape: ArtShape | undefined = GAME_ART[name];
+  return Number(shape?.viewBox.split(' ')[2]) || 512;
+}
+
 export function Art({
   name,
   size = 32,
