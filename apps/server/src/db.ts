@@ -123,6 +123,45 @@ CREATE TABLE IF NOT EXISTS season_claims (
   PRIMARY KEY (user_id, season_id, tier, track)
 );
 
+CREATE TABLE IF NOT EXISTS tournaments (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  game_type  TEXT NOT NULL,
+  -- Số suất: 4, 8 hoặc 16. Đủ suất là tự khai mạc.
+  size       INTEGER NOT NULL,
+  entry_coin INTEGER NOT NULL DEFAULT 0,
+  base_prize INTEGER NOT NULL DEFAULT 0,
+  -- 'open' đang nhận đăng ký, 'running' đang thi đấu, 'finished' đã xong.
+  status     TEXT NOT NULL DEFAULT 'open',
+  winner_id  TEXT REFERENCES users(id) ON DELETE SET NULL,
+  created_at INTEGER NOT NULL,
+  started_at INTEGER,
+  ended_at   INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS tournament_players (
+  tournament_id TEXT NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+  user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  -- Hạt giống xếp theo rating lúc khai mạc; trước đó để 0.
+  seed          INTEGER NOT NULL DEFAULT 0,
+  joined_at     INTEGER NOT NULL,
+  PRIMARY KEY (tournament_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS tournament_matches (
+  tournament_id TEXT NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+  -- Vòng 1 là vòng ngoài cùng; vòng cuối là chung kết.
+  round         INTEGER NOT NULL,
+  slot          INTEGER NOT NULL,
+  p1            TEXT REFERENCES users(id) ON DELETE SET NULL,
+  p2            TEXT REFERENCES users(id) ON DELETE SET NULL,
+  winner_id     TEXT REFERENCES users(id) ON DELETE SET NULL,
+  match_id      TEXT,
+  PRIMARY KEY (tournament_id, round, slot)
+);
+
+CREATE INDEX IF NOT EXISTS tournament_matches_by_match ON tournament_matches(match_id);
+
 CREATE TABLE IF NOT EXISTS sessions (
   id         TEXT PRIMARY KEY,
   user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

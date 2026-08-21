@@ -133,6 +133,16 @@ tài khoản bị khoá.
 | flappy | `flap` | `{}` — vỗ cánh, chỉ nhận sau khi hết đếm ngược (game một người) |
 | werewolf | `night_action` / `vote` / `ready_vote` | `{target}` / `{target}` / `{}` |
 
+### Giải đấu
+
+| Method | Endpoint | Mô tả |
+|---|---|---|
+| GET | `/api/tournaments` | Giải đang mở, đang chạy và vừa kết thúc |
+| GET | `/api/tournaments/:id` | Một giải kèm danh sách người và nhánh đấu |
+| POST | `/api/tournaments` | Tạo giải (admin) — `{name, gameType, size, entryCoin?, basePrize?}` |
+| POST | `/api/tournaments/:id/join` | Đăng ký, trừ lệ phí; đủ suất là tự khai mạc |
+| POST | `/api/tournaments/:id/leave` | Rút tên trước khai mạc, hoàn lệ phí |
+
 ### Battle Pass
 
 | Method | Endpoint | Mô tả |

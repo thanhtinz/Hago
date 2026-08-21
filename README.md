@@ -24,13 +24,17 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/41-room-find.png) | ![](docs/screenshots/40-room-create.png) | ![](docs/screenshots/12-quickplay.png) |
 
-| Battle Pass | Bang hội (tìm bang) | Trang bang |
+| Battle Pass | Giải đấu | Nhánh đấu |
 |---|---|---|
-| ![](docs/screenshots/54-season.png) | ![](docs/screenshots/50-guild-find.png) | ![](docs/screenshots/52-guild-home.png) |
+| ![](docs/screenshots/54-season.png) | ![](docs/screenshots/56-tournaments.png) | ![](docs/screenshots/57-tournament-bracket.png) |
 
-| Chat bang | Hồ sơ | Nhiệm vụ |
+| Bang hội (tìm bang) | Trang bang | Chat bang |
 |---|---|---|
-| ![](docs/screenshots/53-guild-chat.png) | ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/07-quests.png) |
+| ![](docs/screenshots/50-guild-find.png) | ![](docs/screenshots/52-guild-home.png) | ![](docs/screenshots/53-guild-chat.png) |
+
+| Hồ sơ | Nhiệm vụ | Cửa hàng |
+|---|---|---|
+| ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/07-quests.png) | ![](docs/screenshots/05-shop.png) |
 
 | Bảng xếp hạng | Thông báo | Cài đặt |
 |---|---|---|
@@ -196,6 +200,13 @@ mất 500 coin; ba mức nhận người: vào tự do / duyệt đơn / chỉ m
 sĩ quan – thành viên, chủ bang còn người thì phải nhường ghế mới rời được. Bang lên
 cấp theo điểm đóng góp (mỗi trận 5 điểm, thắng 15), mỗi cấp mở thêm 5 chỗ. Kênh chat
 riêng dùng lại hệ thống channel sẵn có nên không phải dựng thêm đường truyền.
+
+**Giải đấu** — bảng loại trực tiếp 4/8/16 suất, chỉ mở cho game 2 người vì nhánh
+cần mỗi cặp ra đúng một người thắng. Đủ suất là tự khai mạc, xếp hạt giống theo
+rating rồi ghép 1–N, 2–(N‑1)… để hai người mạnh nhất chỉ gặp nhau ở chung kết. **Mỗi
+cặp trong nhánh là một trận thật** chạy qua đúng hệ trận đấu sẵn có — cùng luật, cùng
+tính giờ, cùng reconnect — giải chỉ nối các trận lại và biết ai đi tiếp. Lệ phí gộp
+vào giải thưởng, vô địch 70% và á quân 30%; rút tên trước khai mạc thì hoàn tiền.
 
 **Battle Pass** — mùa dài 60 ngày, 30 mốc, hai nhánh miễn phí và cao cấp (250 kim
 cương, mở là nhận được cả mốc đã qua). XP mùa đi theo XP trận và nhiệm vụ chứ không
@@ -437,7 +448,7 @@ Cosmetic trong shop vẫn vẽ bằng gradient nên thêm item mới chỉ cần
 | Reconnect + grace period | ✅ |
 | Guild (bang hội) + chat bang | ✅ |
 | Battle Pass theo mùa | ✅ |
-| Tournament bracket | 🔜 Phase 2 |
+| Tournament bracket (loại trực tiếp) | ✅ |
 | Push notification (FCM/APNs) | 🔜 Phase 2 |
 | Skill-based MM nâng cao, seasonal rank | 🔜 Phase 2 |
 

@@ -383,3 +383,95 @@ test('battle pass: XP mùa cộng sau khi chơi xong một trận', async () => 
   const a = (await get('/api/season', users.alpha.token)).json.season;
   assert.ok(a.xp > 0, 'alpha đã chơi Caro ở test trên nên phải có XP mùa');
 });
+
+test('giải đấu: chỉ admin tạo, đủ suất là tự khai mạc và sinh nhánh', async () => {
+  const admin = (await post('/api/auth/login', { login: 'admin', password: 'admin123' })).json;
+
+  // Người thường không tạo được giải.
+  assert.equal((await post('/api/tournaments', { name: 'X', gameType: 'caro', size: 4 }, users.alpha.token)).status, 403);
+  // Game nhiều người không mở giải loại trực tiếp được.
+  assert.equal(
+    (await post('/api/tournaments', { name: 'X', gameType: 'werewolf', size: 4 }, admin.token)).json.error,
+    'GAME_NOT_ELIGIBLE',
+  );
+
+  const t = (await post('/api/tournaments', { name: 'Cúp Test', gameType: 'caro', size: 4, entryCoin: 50 }, admin.token))
+    .json.tournament;
+  assert.equal(t.status, 'open');
+
+  const names = ['tour1', 'tour2', 'tour3', 'tour4'];
+  const players = [];
+  for (const n of names) players.push((await post('/api/auth/register', { username: n, password: 'secret123' })).json);
+
+  for (let i = 0; i < 3; i++) {
+    const r = await post(`/api/tournaments/${t.id}/join`, {}, players[i].token);
+    assert.equal(r.status, 200);
+    assert.equal(r.json.balance.coin, 450, 'lệ phí phải trừ đúng 50');
+  }
+  assert.equal((await post(`/api/tournaments/${t.id}/join`, {}, players[0].token)).json.error, 'ALREADY_JOINED');
+
+  // Người thứ tư làm giải đủ suất -> tự khai mạc.
+  const full = await post(`/api/tournaments/${t.id}/join`, {}, players[3].token);
+  assert.equal(full.json.tournament.status, 'running');
+  assert.equal(full.json.tournament.bracket.length, 3, 'bảng 4 người có 2 trận vòng 1 + 1 chung kết');
+
+  const round1 = full.json.tournament.bracket.filter((m) => m.round === 1);
+  assert.equal(round1.length, 2);
+  assert.ok(round1.every((m) => m.p1 && m.p2), 'vòng 1 phải đủ cặp');
+  assert.ok(round1.every((m) => m.matchId), 'vòng 1 phải mở trận thật');
+
+  // Giải đã chạy thì không rút tên được nữa.
+  assert.equal((await post(`/api/tournaments/${t.id}/leave`, {}, players[0].token)).json.error, 'TOURNAMENT_STARTED');
+});
+
+test('giải đấu: rút tên trước khai mạc thì hoàn lệ phí', async () => {
+  const admin = (await post('/api/auth/login', { login: 'admin', password: 'admin123' })).json;
+  const t = (await post('/api/tournaments', { name: 'Cúp Hoàn Tiền', gameType: 'caro', size: 8, entryCoin: 120 }, admin.token))
+    .json.tournament;
+  const u = (await post('/api/auth/register', { username: 'refunder', password: 'secret123' })).json;
+
+  assert.equal((await post(`/api/tournaments/${t.id}/join`, {}, u.token)).json.balance.coin, 380);
+  assert.equal((await post(`/api/tournaments/${t.id}/leave`, {}, u.token)).json.balance.coin, 500);
+  assert.equal((await post(`/api/tournaments/${t.id}/leave`, {}, u.token)).json.error, 'NOT_JOINED');
+});
+
+test('giải đấu: thắng trận vòng 1 thì được đẩy sang vòng sau', async () => {
+  const admin = (await post('/api/auth/login', { login: 'admin', password: 'admin123' })).json;
+  const t = (await post('/api/tournaments', { name: 'Cúp Tiến Nhánh', gameType: 'caro', size: 4 }, admin.token)).json
+    .tournament;
+
+  const accounts = [];
+  for (const n of ['brk1', 'brk2', 'brk3', 'brk4']) {
+    accounts.push((await post('/api/auth/register', { username: n, password: 'secret123' })).json);
+  }
+  // Nối socket trước khi khai mạc để không lỡ sự kiện match.start.
+  const conns = accounts.map((a) => io(API, { auth: { token: a.token }, transports: ['websocket'] }));
+  sockets.push(...conns);
+  await Promise.all(conns.map((c) => waitFor(c, 'connect')));
+
+  const starts = conns.map((c) => waitFor(c, 'match.start', 20000));
+  for (const a of accounts) await post(`/api/tournaments/${t.id}/join`, {}, a.token);
+  const startEvents = await Promise.all(starts);
+
+  // Chơi xong trận vòng 1 đầu tiên: seat 0 xếp 5 quân dọc là thắng.
+  const matchId = startEvents[0].matchId;
+  const sync = await ack(conns[0], 'game.sync', { matchId });
+  const seats = sync.state.view.players.map((p) => p.id);
+  const sock = (uid) => conns[accounts.findIndex((a) => a.profile.id === uid)];
+  const first = sock(seats[0]);
+  const second = sock(seats[1]);
+
+  for (let y = 0; y < 5; y++) {
+    await ack(first, 'game.action', { matchId, actionId: `t${y}`, type: 'move', payload: { x: 7, y } });
+    const now = await ack(first, 'game.sync', { matchId });
+    if (now.state.finished) break;
+    if (y < 4) await ack(second, 'game.action', { matchId, actionId: `u${y}`, type: 'move', payload: { x: 0, y } });
+  }
+  await new Promise((r) => setTimeout(r, 600));
+
+  const after = (await get(`/api/tournaments/${t.id}`, admin.token)).json.tournament;
+  const r1 = after.bracket.find((m) => m.round === 1 && m.matchId === matchId);
+  assert.equal(r1.winnerId, seats[0], 'người thắng phải được ghi vào nhánh');
+  const final = after.bracket.find((m) => m.round === 2);
+  assert.ok(final.p1 === seats[0] || final.p2 === seats[0], 'người thắng phải có mặt ở chung kết');
+});

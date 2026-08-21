@@ -105,6 +105,15 @@ export const ERROR_TEXT: Record<string, string> = {
   PREMIUM_REQUIRED: 'Cần mở nhánh cao cấp trước',
   ALREADY_CLAIMED: 'Bạn đã nhận phần này rồi',
   NO_REWARD: 'Mốc này không có thưởng ở nhánh đó',
+
+  // Giải đấu
+  TOURNAMENT_NOT_FOUND: 'Không tìm thấy giải',
+  TOURNAMENT_STARTED: 'Giải đã khai mạc, không đổi được nữa',
+  TOURNAMENT_FULL: 'Giải đã đủ người',
+  ALREADY_JOINED: 'Bạn đã đăng ký giải này',
+  NOT_JOINED: 'Bạn chưa đăng ký giải này',
+  GAME_NOT_ELIGIBLE: 'Game này không mở giải đấu được',
+  BAD_SIZE: 'Số suất phải là 4, 8 hoặc 16',
 };
 
 export function friendlyError(code: string): string {

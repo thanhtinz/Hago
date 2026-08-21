@@ -19,6 +19,7 @@ import { bindNotificationEmitter, notify } from '../services/notifications';
 import { track } from '../services/analytics';
 import * as Rooms from './rooms';
 import * as MM from './matchmaking';
+import { bindTournamentRunner, reportMatch } from '../services/tournaments';
 import {
   applyAction,
   bindMatchHooks,
@@ -105,6 +106,25 @@ export function initGateway(server: HttpServer): Server {
   });
 
   bindNotificationEmitter((userId, row) => emitToUser(userId, 'notification', row));
+
+  /**
+   * Giải đấu mở trận qua đúng đường của trận thường: cùng createMatch, cùng
+   * sự kiện match.start, nên client không cần biết trận này nằm trong nhánh.
+   */
+  bindTournamentRunner((gameType, a, b) => {
+    const players: EnginePlayer[] = [a, b].map((id, seat) => ({
+      id,
+      name: findUser(id)?.display_name ?? 'Player',
+      seat,
+    }));
+    const match = createMatch({ roomId: null, gameType, mode: 'ranked', players });
+    players.forEach((p) =>
+      emitToUser(p.id, 'match.start', { matchId: match.id, gameType, mode: 'ranked', roomId: null }),
+    );
+    pushMatchState(match);
+    return match.id;
+  });
+
   bindMatchHooks(
     (match, events) => pushMatchState(match, events),
     (match, summary) => {
@@ -116,6 +136,10 @@ export function initGateway(server: HttpServer): Server {
           rows: summary.rows,
         }),
       );
+      // Nếu trận này nằm trong nhánh giải đấu thì đẩy người thắng sang vòng sau.
+      const champion = summary.rows.find((r) => r.result === 'win');
+      reportMatch(match.id, champion?.userId ?? null);
+
       if (match.roomId) {
         const room = Rooms.getRoom(match.roomId);
         if (room) {

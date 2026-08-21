@@ -210,6 +210,26 @@ export function ensureSeed(): void {
       );
     }
 
+    // Hai giải mở sẵn để màn Giải đấu có cái mà xem ngay lần chạy đầu.
+    [
+      { name: 'Cúp Cờ Caro Mùa Hè', game: 'caro', size: 8, entry: 100, prize: 1000 },
+      { name: 'Giải Cờ Vua Chớp Nhoáng', game: 'chess', size: 4, entry: 0, prize: 600 },
+    ].forEach((c, ci) => {
+      const tid = nid();
+      db.prepare(
+        `INSERT INTO tournaments (id, name, game_type, size, entry_coin, base_prize, status, created_at)
+         VALUES (?,?,?,?,?,?,'open',?)`,
+      ).run(tid, c.name, c.game, c.size, c.entry, c.prize, nowMs());
+      // Đăng ký sẵn vài người, nhưng chừa chỗ để demo bấm được nút đăng ký.
+      others.slice(ci, ci + c.size - 2).forEach((u) =>
+        db.prepare('INSERT OR IGNORE INTO tournament_players (tournament_id, user_id, seed, joined_at) VALUES (?,?,0,?)').run(
+          tid,
+          u.id,
+          nowMs(),
+        ),
+      );
+    });
+
     // Vài bang sẵn có để màn Bang hội không trống trơn lúc mới cài.
     const GUILDS = [
       { name: 'Hội Cừu Vui Vẻ', tag: 'CUU', emblem: 'crown', color: '#7C6BFF', policy: 'open', xp: 2400 },
