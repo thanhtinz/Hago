@@ -14,6 +14,9 @@ import { BS_ICON, BS_MARK, BS_RATIO, BS_SEA, BS_SHIP_SIDE, BS_SHIP_TOP, ShipKind
  * Art: assets/battleship/, cắt bằng scripts/slice-battleship-art.py.
  */
 
+/** Giữ bàn địch thêm ngần này sau khi bắn để kịp nhìn kết quả rồi mới lật bàn. */
+const SHOT_HOLD_MS = 1600;
+
 /** Loại tàu cho từng chiếc trong hạm đội — hai tàu 3 ô thì chiếc sau là tàu ngầm. */
 function fleetKinds(fleet: number[]): ShipKind[] {
   const seen = new Map<number, number>();
@@ -39,6 +42,27 @@ export default function BattleshipBoard({ view, mySeat, send, deadline, space }:
   const wide = Math.max(240, space.width - 16);
   const cell = Math.max(20, Math.floor(Math.min(wide, space.height - 250) / size));
 
+  /**
+   * Bắn trượt là mất lượt ngay, nếu lật bàn tức thì thì người chơi không kịp
+   * thấy phát vừa bắn rơi vào đâu. Giữ bàn địch thêm một nhịp rồi mới lật.
+   */
+  const myShots: any[] = view.me?.shots ?? [];
+  const [holdUntil, setHoldUntil] = React.useState(0);
+  const seenShots = React.useRef(myShots.length);
+  const [, redraw] = React.useState(0);
+  React.useEffect(() => {
+    if (myShots.length > seenShots.current) {
+      seenShots.current = myShots.length;
+      setHoldUntil(Date.now() + SHOT_HOLD_MS);
+    }
+  }, [myShots.length]);
+  React.useEffect(() => {
+    const left = holdUntil - Date.now();
+    if (left <= 0) return;
+    const t = setTimeout(() => redraw((n) => n + 1), left);
+    return () => clearTimeout(t);
+  }, [holdUntil]);
+
   if (view.phase === 'placement') {
     return (
       <View style={{ gap: S.lg, alignItems: 'center' }}>
@@ -63,7 +87,7 @@ export default function BattleshipBoard({ view, mySeat, send, deadline, space }:
     );
   }
 
-  const attacking = yourTurn || (view.over && view.winnerIds?.includes(view.players?.[mySeat]?.id));
+  const attacking = yourTurn || Date.now() < holdUntil || (view.over && !!view.winnerIds?.includes(view.players?.[mySeat]?.id));
   const board = attacking
     ? { title: 'Bản đồ đối thủ', tone: 'red' as const, alive: view.foe?.alive, total: view.foe?.total }
     : { title: 'Bản đồ của bạn', tone: 'blue' as const, alive: view.me?.alive, total: view.me?.total };
@@ -89,9 +113,12 @@ export default function BattleshipBoard({ view, mySeat, send, deadline, space }:
         <Grid
           size={size}
           cell={cell}
-          shots={view.me?.shots ?? []}
+          shots={myShots}
+          // Server chỉ trả về tàu địch **đã chìm**, nên bật showShips ở đây là
+          // lộ đúng mấy xác tàu đó chứ không lộ tàu còn sống.
           ships={view.foe?.ships ?? []}
-          kinds={kinds}
+          kinds={[]}
+          showShips
           interactive={yourTurn}
           onPress={(x, y) => send('fire', { x, y })}
         />
@@ -147,7 +174,43 @@ function BoardHeader({ title, note, tone }: { title: string; note: string; tone:
   );
 }
 
-function Grid({
+/**
+ * Lưới kèm thước toạ độ: chữ cái A.. chạy dọc bên trái là hàng, số 1.. chạy
+ * ngang bên trên là cột — đúng cách đọc ô trong bản thiết kế và trong nhật ký
+ * trận ("bắn C7" = hàng C, cột 7).
+ */
+function Grid(props: React.ComponentProps<typeof Sea> & { size: number; cell: number }) {
+  const { size, cell } = props;
+  const label = Math.max(11, Math.round(cell * 0.42));
+  const edge = 3;
+  return (
+    <View style={{ flexDirection: 'row' }}>
+      <View style={{ width: label, paddingTop: label + edge }}>
+        {Array.from({ length: size }, (_, y) => (
+          <View key={y} style={{ height: cell, alignItems: 'center', justifyContent: 'center' }}>
+            <Txt size={Math.max(8, Math.round(cell * 0.32))} weight="bold" color={C.inkSoft}>
+              {String.fromCharCode(65 + y)}
+            </Txt>
+          </View>
+        ))}
+      </View>
+      <View>
+        <View style={{ flexDirection: 'row', height: label, paddingLeft: edge }}>
+          {Array.from({ length: size }, (_, x) => (
+            <View key={x} style={{ width: cell, alignItems: 'center', justifyContent: 'center' }}>
+              <Txt size={Math.max(8, Math.round(cell * 0.32))} weight="bold" color={C.inkSoft}>
+                {x + 1}
+              </Txt>
+            </View>
+          ))}
+        </View>
+        <Sea {...props} />
+      </View>
+    </View>
+  );
+}
+
+function Sea({
   size,
   cell,
   shots,

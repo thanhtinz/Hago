@@ -177,7 +177,8 @@ export const BattleshipEngine: GameEngine<BattleshipState, BattleshipConfig> = {
         turnStartedAt: Date.now(),
         log: [
           ...state.log,
-          `${state.players[seat].name} bắn ${String.fromCharCode(65 + x)}${y + 1}: ${
+          // Nhãn ô theo kiểu bản đồ: chữ cái là hàng (y), số là cột (x).
+          `${state.players[seat].name} bắn ${String.fromCharCode(65 + y)}${x + 1}: ${
             sunkId !== null ? 'CHÌM TÀU!' : hit ? 'TRÚNG!' : 'trượt'
           }`,
         ].slice(-20),
