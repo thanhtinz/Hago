@@ -95,6 +95,34 @@ CREATE TABLE IF NOT EXISTS guild_requests (
   PRIMARY KEY (guild_id, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS seasons (
+  id       TEXT PRIMARY KEY,
+  name     TEXT NOT NULL,
+  start_at INTEGER NOT NULL,
+  end_at   INTEGER NOT NULL,
+  active   INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS user_season (
+  user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  season_id TEXT NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
+  xp        INTEGER NOT NULL DEFAULT 0,
+  -- Đã mở nhánh cao cấp của mùa này chưa.
+  premium   INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, season_id)
+);
+
+-- Mỗi mốc mỗi nhánh chỉ nhận được một lần; khoá chính lo luôn việc chống nhận
+-- trùng, không phải tin vào kiểm tra ở tầng code.
+CREATE TABLE IF NOT EXISTS season_claims (
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  season_id  TEXT NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
+  tier       INTEGER NOT NULL,
+  track      TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, season_id, tier, track)
+);
+
 CREATE TABLE IF NOT EXISTS sessions (
   id         TEXT PRIMARY KEY,
   user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

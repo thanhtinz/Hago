@@ -133,6 +133,15 @@ tài khoản bị khoá.
 | flappy | `flap` | `{}` — vỗ cánh, chỉ nhận sau khi hết đếm ngược (game một người) |
 | werewolf | `night_action` / `vote` / `ready_vote` | `{target}` / `{target}` / `{}` |
 
+### Battle Pass
+
+| Method | Endpoint | Mô tả |
+|---|---|---|
+| GET | `/api/season` | Mùa hiện tại: tiến độ, 30 mốc thưởng, mốc đã nhận |
+| POST | `/api/season/premium` | Mở nhánh cao cấp, trừ 250 kim cương |
+| POST | `/api/season/claim` | Nhận một mốc — `{tier, track}` với `track` là `free \| premium` |
+| POST | `/api/season/claim-all` | Nhận hết mốc đã mở mà chưa lấy |
+
 ### Bang hội
 
 | Method | Endpoint | Mô tả |

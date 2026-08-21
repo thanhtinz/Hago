@@ -5,6 +5,7 @@ import { db, nowMs } from '../db';
 import { claimQuest, userAchievements, userQuests } from '../services/quests';
 import { listNotifications, markRead, unreadCount } from '../services/notifications';
 import { balanceOf } from '../services/economy';
+import { buyPremium, claimAll, claimTier, seasonView } from '../services/season';
 import { track } from '../services/analytics';
 import { matchHistory } from '../realtime/match';
 import { allRooms, listPublicRooms, toRoomView } from '../realtime/rooms';
@@ -20,6 +21,38 @@ progressRouter.post('/quests/:id/claim', requireAuth, (req, res) => {
   try {
     const reward = claimQuest(req.auth!.sub, req.params.id);
     res.json({ ok: true, reward, balance: balanceOf(req.auth!.sub) });
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+/* ------------------------------ Battle Pass ------------------------------ */
+
+progressRouter.get('/season', requireAuth, (req, res) => {
+  res.json({ season: seasonView(req.auth!.sub), balance: balanceOf(req.auth!.sub) });
+});
+
+progressRouter.post('/season/premium', requireAuth, (req, res) => {
+  try {
+    res.json({ season: buyPremium(req.auth!.sub), balance: balanceOf(req.auth!.sub) });
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+progressRouter.post('/season/claim', requireAuth, (req, res) => {
+  try {
+    const { tier, track } = req.body ?? {};
+    const out = claimTier(req.auth!.sub, Number(tier), track);
+    res.json({ ...out, balance: balanceOf(req.auth!.sub) });
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+progressRouter.post('/season/claim-all', requireAuth, (req, res) => {
+  try {
+    res.json({ ...claimAll(req.auth!.sub), balance: balanceOf(req.auth!.sub) });
   } catch (e: any) {
     res.status(400).json({ error: e.message });
   }

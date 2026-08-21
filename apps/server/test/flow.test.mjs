@@ -337,3 +337,49 @@ test('kênh chat của bang chỉ thành viên mới đọc và gửi được',
   assert.equal(asMember.ok, true);
   assert.equal(asMember.messages.length, 1);
 });
+
+test('battle pass: mốc chưa tới thì không nhận được, nhận rồi không nhận lại', async () => {
+  const a = (await post('/api/auth/register', { username: 'bpuser', password: 'secret123' })).json;
+
+  const first = (await get('/api/season', a.token)).json.season;
+  assert.equal(first.tier, 1);
+  assert.equal(first.premium, false);
+  assert.equal(first.tiers.length, 30);
+
+  // Mốc 1 nhánh miễn phí có thưởng và đã mở.
+  const got = await post('/api/season/claim', { tier: 1, track: 'free' }, a.token);
+  assert.equal(got.status, 200);
+  assert.equal(got.json.reward.kind, 'coin');
+  assert.equal(got.json.balance.coin, 500 + got.json.reward.amount);
+
+  // Nhận lại phải bị chặn bởi khoá chính, không phải bởi kiểm tra lỏng ở code.
+  assert.equal((await post('/api/season/claim', { tier: 1, track: 'free' }, a.token)).json.error, 'ALREADY_CLAIMED');
+
+  // Mốc cao chưa tới.
+  assert.equal((await post('/api/season/claim', { tier: 9, track: 'free' }, a.token)).json.error, 'TIER_LOCKED');
+  // Nhánh cao cấp chưa mở.
+  assert.equal((await post('/api/season/claim', { tier: 1, track: 'premium' }, a.token)).json.error, 'PREMIUM_REQUIRED');
+});
+
+test('battle pass: mua nhánh cao cấp mở lại được cả mốc đã qua', async () => {
+  const a = (await post('/api/auth/register', { username: 'bppremium', password: 'secret123' })).json;
+  // Tài khoản mới có 20 kim cương, nhánh cao cấp giá 250 — phải thiếu tiền.
+  assert.equal((await post('/api/season/premium', {}, a.token)).json.error, 'INSUFFICIENT_FUNDS');
+
+  const admin = (await post('/api/auth/login', { login: 'admin', password: 'admin123' })).json;
+  await post(`/api/admin/users/${a.profile.id}/currency`, { currency: 'diamond', amount: 400, reason: 'test' }, admin.token);
+
+  const bought = await post('/api/season/premium', {}, a.token);
+  assert.equal(bought.status, 200);
+  assert.equal(bought.json.season.premium, true);
+  assert.equal(bought.json.balance.diamond, 420 - 250);
+
+  const claimed = await post('/api/season/claim', { tier: 1, track: 'premium' }, a.token);
+  assert.equal(claimed.status, 200);
+  assert.equal(claimed.json.reward.kind, 'seasonToken');
+});
+
+test('battle pass: XP mùa cộng sau khi chơi xong một trận', async () => {
+  const a = (await get('/api/season', users.alpha.token)).json.season;
+  assert.ok(a.xp > 0, 'alpha đã chơi Caro ở test trên nên phải có XP mùa');
+});

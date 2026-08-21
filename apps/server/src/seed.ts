@@ -191,6 +191,25 @@ export function ensureSeed(): void {
     );
     db.prepare("UPDATE profiles SET frame_id = 'frame_sakura' WHERE user_id = ?").run(demoId);
 
+    // Tiến độ Battle Pass sẵn có cho demo, để màn mùa không trống ở lần chạy đầu.
+    {
+      const sid = nid();
+      const start = nowMs();
+      db.prepare('INSERT INTO seasons (id, name, start_at, end_at, active) VALUES (?,?,?,?,1)').run(
+        sid,
+        'Mùa 1',
+        start,
+        start + 60 * 86400_000,
+      );
+      db.prepare('INSERT INTO user_season (user_id, season_id, xp, premium) VALUES (?,?,?,0)').run(demoId, sid, 2600);
+      // Đã nhận vài mốc đầu, để thấy đủ cả ba trạng thái ô thưởng.
+      [1, 2, 3].forEach((tier) =>
+        db.prepare(
+          'INSERT OR IGNORE INTO season_claims (user_id, season_id, tier, track, created_at) VALUES (?,?,?,?,?)',
+        ).run(demoId, sid, tier, 'free', nowMs()),
+      );
+    }
+
     // Vài bang sẵn có để màn Bang hội không trống trơn lúc mới cài.
     const GUILDS = [
       { name: 'Hội Cừu Vui Vẻ', tag: 'CUU', emblem: 'crown', color: '#7C6BFF', policy: 'open', xp: 2400 },

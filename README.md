@@ -24,13 +24,17 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/41-room-find.png) | ![](docs/screenshots/40-room-create.png) | ![](docs/screenshots/12-quickplay.png) |
 
-| Bang hội (tìm bang) | Trang bang | Chat bang |
+| Battle Pass | Bang hội (tìm bang) | Trang bang |
 |---|---|---|
-| ![](docs/screenshots/50-guild-find.png) | ![](docs/screenshots/52-guild-home.png) | ![](docs/screenshots/53-guild-chat.png) |
+| ![](docs/screenshots/54-season.png) | ![](docs/screenshots/50-guild-find.png) | ![](docs/screenshots/52-guild-home.png) |
 
-| Hồ sơ | Nhiệm vụ | Bảng xếp hạng |
+| Chat bang | Hồ sơ | Nhiệm vụ |
 |---|---|---|
-| ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/07-quests.png) | ![](docs/screenshots/08-leaderboard.png) |
+| ![](docs/screenshots/53-guild-chat.png) | ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/07-quests.png) |
+
+| Bảng xếp hạng | Thông báo | Cài đặt |
+|---|---|---|
+| ![](docs/screenshots/08-leaderboard.png) | ![](docs/screenshots/09-notifications.png) | ![](docs/screenshots/10-settings.png) |
 
 ### 7 mini game
 
@@ -192,6 +196,13 @@ mất 500 coin; ba mức nhận người: vào tự do / duyệt đơn / chỉ m
 sĩ quan – thành viên, chủ bang còn người thì phải nhường ghế mới rời được. Bang lên
 cấp theo điểm đóng góp (mỗi trận 5 điểm, thắng 15), mỗi cấp mở thêm 5 chỗ. Kênh chat
 riêng dùng lại hệ thống channel sẵn có nên không phải dựng thêm đường truyền.
+
+**Battle Pass** — mùa dài 60 ngày, 30 mốc, hai nhánh miễn phí và cao cấp (250 kim
+cương, mở là nhận được cả mốc đã qua). XP mùa đi theo XP trận và nhiệm vụ chứ không
+có hệ đếm riêng, để tiến độ khớp với cảm nhận của người chơi. Mỗi mốc mỗi nhánh chỉ
+nhận một lần — chống nhận trùng bằng khoá chính của bảng `season_claims` chứ không
+bằng kiểm tra ở tầng code, nên bấm hai lần cùng lúc cũng chỉ ăn một. Mùa tự gối
+nhau: hết hạn thì lần gọi tiếp theo đóng mùa cũ và mở mùa mới, không cần cron.
 
 **Economy** — 19 cosmetic (khung, danh hiệu, nền, bong bóng chat, emote, hiệu ứng, theme bàn cờ),
 Coin/Diamond/Season Token, mọi thay đổi số dư ghi transaction bất biến trong SQL transaction.
@@ -425,7 +436,8 @@ Cosmetic trong shop vẫn vẽ bằng gradient nên thêm item mới chỉ cần
 | Report/Ban/Mute, profanity filter | ✅ |
 | Reconnect + grace period | ✅ |
 | Guild (bang hội) + chat bang | ✅ |
-| Tournament bracket, Battle Pass | 🔜 Phase 2 |
+| Battle Pass theo mùa | ✅ |
+| Tournament bracket | 🔜 Phase 2 |
 | Push notification (FCM/APNs) | 🔜 Phase 2 |
 | Skill-based MM nâng cao, seasonal rank | 🔜 Phase 2 |
 
