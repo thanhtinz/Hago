@@ -6,30 +6,30 @@ export const OAN_QUAN_BOARD = require('../../assets/oanquan/board.png');
 
 /** Toạ độ trên bàn, ghi theo tỉ lệ 0..1 nên co giãn cỡ nào cũng đúng. */
 export const OAN_QUAN_LAYOUT = {
-  "boardW": 1181,
-  "boardH": 457,
+  "boardW": 1095,
+  "boardH": 353,
   "pitXs": [
-    0.25826,
-    0.37849,
-    0.49873,
-    0.61897,
-    0.7392
+    0.24018,
+    0.36986,
+    0.49954,
+    0.62922,
+    0.7589
   ],
-  "rowTop": 0.20131,
-  "rowBottom": 0.73742,
-  "pitW": 0.10076,
-  "pitH": 0.20569,
+  "rowTop": 0.13314,
+  "rowBottom": 0.84136,
+  "pitW": 0.10868,
+  "pitH": 0.26629,
   "quanLeft": {
-    "cx": 0.11473,
-    "cy": 0.4814,
-    "w": 0.14479,
-    "h": 0.73523
+    "cx": 0.08539,
+    "cy": 0.49858,
+    "w": 0.15616,
+    "h": 0.95184
   },
   "quanRight": {
-    "cx": 0.88357,
-    "cy": 0.48249,
-    "w": 0.14479,
-    "h": 0.73742
+    "cx": 0.91461,
+    "cy": 0.5,
+    "w": 0.15616,
+    "h": 0.95467
   }
 } as const;
 

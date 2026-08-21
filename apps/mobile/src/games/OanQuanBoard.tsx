@@ -1,8 +1,8 @@
 import React from 'react';
 import { Image, Pressable, View } from 'react-native';
 import { Btn, Txt } from '../components/ui';
-import { C, R, S, SEAT_COLORS } from '../theme';
-import { BoardProps, GameLog, TurnBanner, VersusBar } from './shared';
+import { C, S, SEAT_COLORS } from '../theme';
+import { BoardProps, TurnBanner, VersusBar } from './shared';
 import {
   OAN_QUAN_BOARD,
   OAN_QUAN_DECOR,
@@ -26,6 +26,16 @@ import {
  */
 
 const BOARD_RATIO = L.boardW / L.boardH;
+
+/**
+ * Chữ đặt thẳng lên mặt gỗ: quầng sáng quanh nét thay cho viên nền trắng, đọc
+ * vẫn rõ mà không có mảng trắng đè lên bàn.
+ */
+const CARVED = {
+  textShadowColor: 'rgba(255,244,222,0.95)',
+  textShadowOffset: { width: 0, height: 1 },
+  textShadowRadius: 4,
+} as const;
 
 /** Rải hạt trong lòng ô theo hai vòng, màu xen kẽ như bản vẽ. */
 function SeedPile({ count, radius, seed, salt }: { count: number; radius: number; seed: number; salt: number }) {
@@ -133,23 +143,18 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
             }}
           />
         ) : null}
-        <SeedPile count={count} radius={pitW * 0.3} seed={Math.max(10, pitW * 0.3)} salt={index} />
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            bottom: -pitH * 0.06,
-            minWidth: 18,
-            paddingHorizontal: 4,
-            borderRadius: R.pill,
-            alignItems: 'center',
-            backgroundColor: 'rgba(255,247,232,0.9)',
-          }}
-        >
-          <Txt size={Math.max(10, Math.round(pitW * 0.26))} weight="display" color="#5E3F1C">
-            {count}
-          </Txt>
+        {/* Hạt nhích lên một chút để không đè lên số dân ở đáy ô */}
+        <View pointerEvents="none" style={{ position: 'absolute', top: pitH * 0.44 }}>
+          <SeedPile count={count} radius={pitW * 0.27} seed={Math.max(10, pitW * 0.28)} salt={index} />
         </View>
+        <Txt
+          size={Math.max(10, Math.round(pitW * 0.26))}
+          weight="display"
+          color="#4A3113"
+          style={[{ position: 'absolute', bottom: pitH * 0.1 }, CARVED]}
+        >
+          {count}
+        </Txt>
       </Pressable>
     );
   };
@@ -179,22 +184,12 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
       >
         <Image source={art} resizeMode="contain" style={{ width: artW, height: artW / ratio }} />
         {/* Số dân đang nằm trong ô Quan */}
-        <View
-          style={{
-            position: 'absolute',
-            bottom: h * 0.06,
-            paddingHorizontal: 7,
-            paddingVertical: 1,
-            borderRadius: R.pill,
-            alignItems: 'center',
-            backgroundColor: 'rgba(255,246,229,0.92)',
-          }}
-        >
-          <Txt size={10} weight="bold" color="#5E3F1C">
+        <View style={{ position: 'absolute', bottom: h * 0.05, alignItems: 'center' }}>
+          <Txt size={11} weight="display" color="#4A3113" style={CARVED}>
             {alive ? `Quan ${view.quanValue}` : 'Đã ăn'}
           </Txt>
           {view.cells[index] ? (
-            <Txt size={9} color="#8C6239">
+            <Txt size={10} weight="bold" color="#6B4A22" style={CARVED}>
               +{view.cells[index]} dân
             </Txt>
           ) : null}
@@ -269,7 +264,6 @@ export default function OanQuanBoard({ view, mySeat, send, deadline, space }: Bo
           </View>
         ))}
       </View>
-      <GameLog log={view.log} />
     </View>
   );
 }

@@ -61,6 +61,21 @@ def cutout(im, mask, box):
 
 
 FEATHER = 14
+# Mặt sân rộng hơn hai ô Quan chừng này pixel; cắt tới đó là hết khung gỗ ngoài.
+FRAME_MARGIN = 8
+# Bo nhẹ bốn góc cho khỏi trông như bị chặt phăng.
+CORNER_RADIUS = 34
+
+
+def rounded_alpha(img, radius):
+    """Alpha hiện có, nhân thêm mặt nạ bo góc."""
+    from PIL import ImageDraw
+
+    mask = Image.new("L", img.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, img.size[0] - 1, img.size[1] - 1], radius, fill=255)
+    return Image.fromarray(
+        (np.array(img.split()[3], dtype=float) * (np.array(mask, dtype=float) / 255)).astype("uint8"), "L"
+    )
 
 
 def blend_paste(canvas, tile, x):
@@ -187,7 +202,27 @@ def main():
     for i in range(lanes):
         blend_paste(canvas, tile, tile_x0 + i * pitch)
     blend_paste(canvas, bimg.crop((right_x0, 0, bw, bh)), tile_x0 + pitch * lanes)
+
+    left_oval, right_oval = sorted(ovals)
+    shift = new_w - bw
+
+    # Cắt bỏ khung gỗ sáng bao quanh (kèm mấy chùm lá ở góc) để chỉ còn mặt sân.
+    # Mốc là hai ô Quan: mặt sân chỉ rộng hơn chúng đúng một khoảng nhỏ.
+    m = FRAME_MARGIN
+    cx0 = max(0, left_oval[0] - m)
+    cx1 = min(new_w, right_oval[0] + shift + right_oval[2] + m)
+    cy0 = max(0, min(left_oval[1], right_oval[1]) - m)
+    cy1 = min(bh, max(left_oval[1] + left_oval[3], right_oval[1] + right_oval[3]) + m)
+    canvas = canvas.crop((cx0, cy0, cx1, cy1))
+    new_w, bh = canvas.size
+    canvas.putalpha(rounded_alpha(canvas, CORNER_RADIUS))
     canvas.save(os.path.join(OUT_IMG, "board.png"))
+
+    # Mọi toạ độ bên dưới tính trên bàn đã cắt.
+    tile_x0 -= cx0
+    left_oval = (left_oval[0] - cx0, left_oval[1] - cy0, left_oval[2], left_oval[3])
+    right_oval = (right_oval[0] + shift - cx0, right_oval[1] - cy0, right_oval[2], right_oval[3])
+    round_pits = [(x - cx0, y - cy0, w, h) for (x, y, w, h) in round_pits]
 
     ys = sorted({round(p[1] / 5) * 5 for p in round_pits})
     top_y = min(ys)
@@ -197,16 +232,14 @@ def main():
     row_bottom = (bottom_y + pit_h / 2) / bh
     pit_xs = [(tile_x0 + i * pitch + pitch / 2) / new_w for i in range(lanes)]
 
-    left_oval, right_oval = sorted(ovals)
     quan_left = {
         "cx": (left_oval[0] + left_oval[2] / 2) / new_w,
         "cy": (left_oval[1] + left_oval[3] / 2) / bh,
         "w": left_oval[2] / new_w,
         "h": left_oval[3] / bh,
     }
-    shift = new_w - bw
     quan_right = {
-        "cx": (right_oval[0] + shift + right_oval[2] / 2) / new_w,
+        "cx": (right_oval[0] + right_oval[2] / 2) / new_w,
         "cy": (right_oval[1] + right_oval[3] / 2) / bh,
         "w": right_oval[2] / new_w,
         "h": right_oval[3] / bh,
