@@ -49,7 +49,8 @@ const waitFor = (socket, event, ms = 15000) =>
 
 before(async () => {
   server = spawn('node', [path.join(import.meta.dirname, '../dist/index.js')], {
-    env: { ...process.env, PORT: String(PORT), DB_FILE, JWT_SECRET: 'test-secret' },
+    // PUSH_ENABLED=0: test không gọi ra exp.host, đường push vẫn chạy đủ.
+    env: { ...process.env, PORT: String(PORT), DB_FILE, JWT_SECRET: 'test-secret', PUSH_ENABLED: '0' },
     stdio: 'ignore',
   });
   for (let i = 0; i < 60; i++) {
@@ -484,4 +485,17 @@ test('rank theo mùa: trận ranked tính vào định hạng, trận thường 
   assert.equal(r.status.placed, false, 'chưa đủ 5 trận thì chưa có rank chính thức');
   assert.ok(r.status.peak > 0);
   assert.deepEqual(r.history, [], 'chưa có mùa nào kết thúc');
+});
+
+test('push: chỉ nhận token Expo hợp lệ, đăng ký lại thì chuyển chủ', async () => {
+  const a = (await post('/api/auth/register', { username: 'pushuser', password: 'secret123' })).json;
+  const b = (await post('/api/auth/register', { username: 'pushuser2', password: 'secret123' })).json;
+  const token = 'ExponentPushToken[abcdef1234567890]';
+
+  assert.equal((await post('/api/push/register', { token: 'khong-phai-token' }, a.token)).json.error, 'BAD_PUSH_TOKEN');
+  assert.equal((await post('/api/push/register', { token, platform: 'android' }, a.token)).status, 200);
+  // Cùng một máy đổi tài khoản: token phải thuộc về người đăng ký sau cùng.
+  assert.equal((await post('/api/push/register', { token, platform: 'android' }, b.token)).status, 200);
+  assert.equal((await post('/api/push/unregister', { token }, b.token)).status, 200);
+  assert.equal((await post('/api/push/register', { token }, undefined)).status, 401);
 });

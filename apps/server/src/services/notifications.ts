@@ -1,9 +1,17 @@
 import { NotificationRow, NotificationType } from '@hago/shared';
 import { db, nowMs } from '../db';
 import { nid } from '../util';
+import { sendPush } from './push';
 
 type Emitter = (userId: string, row: NotificationRow) => void;
 let emitter: Emitter = () => {};
+
+/** Ai đang mở app thì gateway báo về đây, để khỏi bắn push cho người đang xem. */
+type Presence = (userId: string) => boolean;
+let isOnline: Presence = () => false;
+export function bindPresenceCheck(fn: Presence): void {
+  isOnline = fn;
+}
 
 export function bindNotificationEmitter(fn: Emitter): void {
   emitter = fn;
@@ -29,6 +37,8 @@ export function notify(
     'INSERT INTO notifications (id, user_id, type, title, body, payload, read_at, created_at) VALUES (?,?,?,?,?,?,NULL,?)',
   ).run(row.id, userId, type, title, body, JSON.stringify(payload), row.createdAt);
   emitter(userId, row);
+  // Người đang mở app đã thấy thông báo trong app rồi, bắn push nữa là phiền.
+  if (!isOnline(userId)) sendPush(userId, title, body, { ...payload, type, notificationId: row.id });
   return row;
 }
 

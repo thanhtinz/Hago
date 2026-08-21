@@ -7,15 +7,34 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "backgroundColor": "#FFF7F0",
-    "splash": { "backgroundColor": "#FFD8C2", "resizeMode": "contain" },
-    "assetBundlePatterns": ["**/*"],
-    "ios": { "supportsTablet": false, "bundleIdentifier": "com.hago.app" },
+    "splash": {
+      "backgroundColor": "#FFD8C2",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.hago.app"
+    },
     "android": {
       "package": "com.hago.app",
-      "adaptiveIcon": { "backgroundColor": "#FFD8C2" }
+      "adaptiveIcon": {
+        "backgroundColor": "#FFD8C2"
+      }
     },
-    "web": { "bundler": "metro", "output": "single" },
-    "plugins": ["expo-router", "expo-font"],
-    "experiments": { "typedRoutes": false }
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-notifications"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
   }
 }

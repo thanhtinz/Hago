@@ -11,6 +11,11 @@ export const CONFIG = {
   reconnectGraceMs: Number(process.env.RECONNECT_GRACE_MS ?? 60_000),
   tickMs: Number(process.env.TICK_MS ?? 200),
   dailyXpCap: Number(process.env.DAILY_XP_CAP ?? 3000),
+  /**
+   * Bật gửi push qua Expo. Tắt trong test và môi trường dev không có mạng để
+   * khỏi gọi ra ngoài; code đường push vẫn chạy, chỉ là không phát đi.
+   */
+  pushEnabled: process.env.PUSH_ENABLED !== '0',
   chatRateLimit: { windowMs: 10_000, max: 12 },
   actionRateLimit: { windowMs: 1_000, max: 25 },
 };

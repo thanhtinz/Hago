@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { api, getToken, setToken } from '../lib/api';
+import { registerForPush, unregisterPush } from '../lib/push';
 import { closeSocket, connectSocket } from '../lib/socket';
 
 export interface Profile {
@@ -86,6 +87,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (token) {
         await refresh();
         await bootSocket();
+        // Mở lại app: token push có thể đã đổi sau khi cài lại hoặc cập nhật.
+        void registerForPush();
       }
       setReady(true);
     })();
@@ -101,6 +104,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       await setToken(res.token);
       setProfile(res.profile);
       await bootSocket();
+      // Xin quyền push sau khi vào được app, không chặn màn đăng nhập.
+      void registerForPush();
     },
     [bootSocket],
   );
@@ -115,12 +120,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       await setToken(res.token);
       setProfile(res.profile);
       await bootSocket();
+      void registerForPush();
     },
     [bootSocket],
   );
 
   const logout = useCallback(async () => {
     try {
+      // Gỡ token push trước khi mất phiên, không thì máy này còn nhận push của
+      // tài khoản vừa đăng xuất.
+      await unregisterPush();
       await api('/api/auth/logout', { method: 'POST' });
     } catch {
       /* offline logout vẫn xoá token local */

@@ -11,6 +11,7 @@ import { economyRouter } from './routes/economy';
 import { progressRouter } from './routes/progress';
 import { guildsRouter } from './routes/guilds';
 import { tournamentsRouter } from './routes/tournaments';
+import { pushRouter } from './routes/push';
 import { adminRouter } from './routes/admin';
 import { initGateway } from './realtime/gateway';
 import { ensureSeed } from './seed';
@@ -38,6 +39,7 @@ app.use('/api/economy', economyRouter);
 app.use('/api', progressRouter);
 app.use('/api/guilds', guildsRouter);
 app.use('/api/tournaments', tournamentsRouter);
+app.use('/api/push', pushRouter);
 app.use('/api/admin', adminRouter);
 
 // Admin dashboard build tĩnh (nếu đã chạy `npm run build -w @hago/admin`).

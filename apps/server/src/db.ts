@@ -174,6 +174,16 @@ CREATE TABLE IF NOT EXISTS season_ranks (
   PRIMARY KEY (season_id, user_id)
 );
 
+-- Thiết bị nhận push. Một người có thể có nhiều máy nên khoá là chính cái token.
+CREATE TABLE IF NOT EXISTS push_tokens (
+  token      TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  platform   TEXT NOT NULL DEFAULT 'unknown',
+  updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS push_tokens_by_user ON push_tokens(user_id);
+
 CREATE TABLE IF NOT EXISTS sessions (
   id         TEXT PRIMARY KEY,
   user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

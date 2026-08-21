@@ -133,6 +133,13 @@ tài khoản bị khoá.
 | flappy | `flap` | `{}` — vỗ cánh, chỉ nhận sau khi hết đếm ngược (game một người) |
 | werewolf | `night_action` / `vote` / `ready_vote` | `{target}` / `{target}` / `{}` |
 
+### Push notification
+
+| Method | Endpoint | Mô tả |
+|---|---|---|
+| POST | `/api/push/register` | Lưu token — `{token, platform}`; chỉ nhận `ExponentPushToken[...]` |
+| POST | `/api/push/unregister` | Gỡ token, gọi lúc đăng xuất |
+
 ### Rank theo mùa
 
 | Method | Endpoint | Mô tả |

@@ -201,6 +201,19 @@ sĩ quan – thành viên, chủ bang còn người thì phải nhường ghế 
 cấp theo điểm đóng góp (mỗi trận 5 điểm, thắng 15), mỗi cấp mở thêm 5 chỗ. Kênh chat
 riêng dùng lại hệ thống channel sẵn có nên không phải dựng thêm đường truyền.
 
+**Push notification** — app chạy bằng Expo nên không nói chuyện thẳng với FCM/APNs:
+client lấy `ExponentPushToken` gửi lên server, server đẩy qua Expo Push Service và
+Expo chuyển tiếp sang FCM/APNs. Nhờ vậy không phải nhúng khoá của Google hay Apple
+vào mã nguồn — hai khoá đó khai báo một lần trong dự án Expo lúc phát hành. Mọi
+thông báo trong app đều có bản push tương ứng, nhưng **chỉ gửi cho người đang không
+mở app** (gateway báo trạng thái online về cho tầng notification). Token chết
+(`DeviceNotRegistered`) bị xoá ngay khi Expo báo về. Push hỏng không bao giờ làm hỏng
+request đang phục vụ: mọi lỗi đều nuốt và ghi log.
+
+> Phần này **chưa chạy thật được trong repo**: cần một dự án Expo có khoá FCM/APNs và
+> một máy thật để lấy token. Test chỉ phủ tới lớp đăng ký token (`PUSH_ENABLED=0` để
+> không gọi ra `exp.host`).
+
 **Rank theo mùa** — mỗi mùa phải đá 5 trận định hạng mới hiện rank; trước đó hồ sơ
 chỉ đếm tiến độ chứ không gọi tên hạng. Hết mùa, điểm được chốt vào `season_ranks`
 để xem lại lịch sử rồi **kéo mềm về mốc 1000** (đi một nửa khoảng cách): đưa hẳn về
@@ -460,7 +473,7 @@ Cosmetic trong shop vẫn vẽ bằng gradient nên thêm item mới chỉ cần
 | Guild (bang hội) + chat bang | ✅ |
 | Battle Pass theo mùa | ✅ |
 | Tournament bracket (loại trực tiếp) | ✅ |
-| Push notification (FCM/APNs) | 🔜 Phase 2 |
+| Push notification (Expo → FCM/APNs) | ✅ mã hoàn chỉnh, chưa chạy thật |
 | Seasonal rank + định hạng đầu mùa | ✅ |
 | Skill-based MM: ghép theo trình sát nhất | ✅ |
 

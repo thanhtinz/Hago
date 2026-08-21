@@ -15,7 +15,7 @@ import {
   requireChannelMember,
   roomChannel,
 } from '../services/social';
-import { bindNotificationEmitter, notify } from '../services/notifications';
+import { bindNotificationEmitter, bindPresenceCheck, notify } from '../services/notifications';
 import { track } from '../services/analytics';
 import * as Rooms from './rooms';
 import * as MM from './matchmaking';
@@ -106,6 +106,7 @@ export function initGateway(server: HttpServer): Server {
   });
 
   bindNotificationEmitter((userId, row) => emitToUser(userId, 'notification', row));
+  bindPresenceCheck(isUserOnline);
 
   /**
    * Giải đấu mở trận qua đúng đường của trận thường: cùng createMatch, cùng
