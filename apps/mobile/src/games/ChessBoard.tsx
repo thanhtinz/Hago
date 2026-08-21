@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { Txt } from '../components/ui';
 import { Art, ArtName } from '../components/Art';
 import { C, R, S, softShadow } from '../theme';
-import { BoardProps, GameLog, TurnBanner, VersusBar } from './shared';
+import { BoardProps, TurnBanner, VersusBar } from './shared';
 
 /**
  * Bàn Cờ Vua. Bàn luôn xoay để quân của người đang xem nằm phía dưới, chạm một
@@ -180,7 +180,6 @@ export default function ChessBoard({ view, mySeat, send, deadline, space }: Boar
       </View>
 
       <TakenRow pieces={lostBy(mySeat === 1)} width={size} />
-      <GameLog log={view.log} />
     </View>
   );
 }

@@ -42,8 +42,16 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/26-game-werewolf.png) | ![](docs/screenshots/03-games.png) | ![](docs/screenshots/13-searching.png) |
 
-Mọi game chạy **full screen**: HUD chỉ cao 46px, phần còn lại là bàn chơi và bàn cờ tự
-co giãn theo kích thước màn hình.
+Mọi game chạy **full screen thật**: bàn chơi lấy trọn màn hình trừ safe area, không
+có thanh nào ăn bớt chiều cao. Thanh tiêu đề (nút thoát, tên game, báo mất kết nối)
+nằm **đè lên trên và tự ẩn sau 2,6 giây**; chạm vào dải mép trên là hiện lại, chỗ đó
+có một vạch mờ làm dấu. Dải chạm chỉ bắt sự kiện khi thanh đang ẩn nên không cướp
+thao tác của bàn chơi. Nhật ký trận và dòng gợi ý cũng bỏ khỏi các màn cần trọn màn
+hình — riêng Ma Sói giữ lại vì lời dẫn đêm/ngày chính là nội dung game.
+
+| Đang chơi (thanh đã ẩn) | Chạm mép trên (thanh hiện lại) |
+|---|---|
+| ![](docs/screenshots/27-game-chess.png) | ![](docs/screenshots/27b-game-chess-hud.png) |
 
 ### Admin Dashboard
 

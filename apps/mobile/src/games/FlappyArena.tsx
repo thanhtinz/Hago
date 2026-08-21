@@ -3,8 +3,8 @@ import { Image, Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Txt } from '../components/ui';
 import { FLAPPY_BIRD, FLAPPY_BIRD_RATIO } from '../art/flappy';
-import { C, R, S, softShadow } from '../theme';
-import { BoardProps, GameLog } from './shared';
+import { R, softShadow } from '../theme';
+import { BoardProps } from './shared';
 
 /**
  * Flappy Bird — chơi một mình, chạm màn hình để vỗ cánh, qua được bao nhiêu ống
@@ -29,7 +29,9 @@ export default function FlappyArena({ view, mySeat, send, space }: BoardProps) {
 
   const worldW: number = view.worldW ?? 360;
   const worldH: number = view.worldH ?? 560;
-  const scale = Math.min((space.width - 12) / worldW, (space.height - 150) / worldH);
+  // Full screen: co theo cạnh chật nhất của phần màn hình còn lại, không chừa
+  // chỗ cho thanh nào nữa vì tiêu đề đã thành lớp đè tự ẩn.
+  const scale = Math.min(space.width / worldW, space.height / worldH);
   const W = worldW * scale;
   const H = worldH * scale;
 
@@ -56,13 +58,10 @@ export default function FlappyArena({ view, mySeat, send, space }: BoardProps) {
   const birdW = birdH * FLAPPY_BIRD_RATIO;
 
   return (
-    <View style={{ gap: S.sm, alignItems: 'center' }}>
+    <View style={{ alignItems: 'center' }}>
       <Pressable
         onPress={() => canFlap && send('flap', {})}
-        style={[
-          { width: W, height: H, borderRadius: R.lg, overflow: 'hidden', borderWidth: 3, borderColor: '#2C7CB8' },
-          softShadow(0.2, 16, 8),
-        ]}
+        style={[{ width: W, height: H, borderRadius: R.md, overflow: 'hidden' }, softShadow(0.18, 14, 6)]}
       >
         <LinearGradient colors={['#4EC0CA', '#9BE0E8']} style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }} />
 
@@ -117,14 +116,6 @@ export default function FlappyArena({ view, mySeat, send, space }: BoardProps) {
         ) : null}
       </Pressable>
 
-      <Txt size={11} color={C.inkFaint}>
-        {view.over
-          ? view.ending ?? 'Kết thúc'
-          : bird && !bird.alive
-            ? `Rơi ở ống thứ ${bird.score + 1}`
-            : 'Chạm bất kỳ đâu trên bầu trời để vỗ cánh'}
-      </Txt>
-      <GameLog log={view.log} />
     </View>
   );
 }

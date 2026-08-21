@@ -45,13 +45,37 @@ export default function MatchScreen() {
   const [flash, setFlash] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
   const flashTimer = useRef<any>(null);
+  /**
+   * Màn chơi để trống hết cho bàn cờ: thanh tiêu đề nằm đè lên trên và tự ẩn
+   * sau vài giây, chạm vào dải mép trên mới hiện lại. Hiện lúc đầu một nhịp để
+   * người chơi biết nút thoát nằm ở đâu.
+   */
+  const [hud, setHud] = useState(true);
+  /** Đọc trong handler socket nên phải là ref, state ở đó là bản cũ. */
+  const soloRef = useRef(false);
+  const hudTimer = useRef<any>(null);
+  const showHud = React.useCallback(() => {
+    setHud(true);
+    clearTimeout(hudTimer.current);
+    hudTimer.current = setTimeout(() => setHud(false), 2600);
+  }, []);
+  useEffect(() => {
+    showHud();
+    return () => clearTimeout(hudTimer.current);
+  }, [showHud]);
 
   useEffect(() => {
     if (!socket) return;
-    const onState = (s: any) => s.matchId === id && setState(s);
+    const onState = (s: any) => {
+      if (s.matchId !== id) return;
+      soloRef.current = !!s.view?.solo;
+      setState(s);
+    };
     const onResult = (r: any) => r.matchId === id && setResult(r);
     const onEvent = (e: any) => {
       if (e.matchId !== id) return;
+      // Game một người không có đối thủ nên không nháy banner "Thắng rồi!".
+      if (soloRef.current) return;
       const hit = e.events.map((x: any) => x.type).find((t: string) => FLASH[t]);
       if (hit) {
         setFlash(hit);
@@ -62,7 +86,7 @@ export default function MatchScreen() {
     socket.on('game.state', onState);
     socket.on('match.result', onResult);
     socket.on('game.event', onEvent);
-    emitAck('game.sync', { matchId: id }).then((res: any) => res?.ok && setState(res.state));
+    emitAck('game.sync', { matchId: id }).then((res: any) => res?.ok && onState(res.state));
     return () => {
       socket.off('game.state', onState);
       socket.off('match.result', onResult);
@@ -96,12 +120,13 @@ export default function MatchScreen() {
   const mySeat = view.mySeat ?? view.players?.findIndex((p: any) => p.id === profile?.id) ?? 0;
   const grad = (GAME_GRADIENT[state.gameType] ?? ['#FF8A65', '#FF5E7D']) as [string, string];
 
-  // Full screen: chỉ chừa HUD trên (48px) và safe area — phần còn lại là bàn chơi.
+  // Full screen thật: bàn chơi lấy trọn màn hình trừ safe area, thanh tiêu đề
+  // đè lên trên chứ không ăn bớt chiều cao.
   const HUD = 46;
-  const PAD = 8;
+  const PAD = 6;
   const space = {
     width: width - PAD * 2,
-    height: height - HUD - insets.top - insets.bottom - PAD * 2,
+    height: height - insets.top - insets.bottom - PAD * 2,
   };
 
   return (
@@ -118,18 +143,48 @@ export default function MatchScreen() {
       />
       <DotPattern rows={9} cols={9} gap={64} color={grad[1] + '26'} />
 
-      {/* HUD mỏng, không chiếm chỗ của bàn chơi */}
+      {/* Dải chạm để gọi thanh tiêu đề về, chỉ bắt sự kiện khi đang ẩn */}
+      {!hud ? (
+        <Pressable
+          onPress={showHud}
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, height: insets.top + 34, zIndex: 20 }}
+        >
+          {/* Vạch mờ ở mép trên: dấu hiệu duy nhất cho biết chạm đâu thì hiện lại */}
+          <View
+            style={{
+              position: 'absolute',
+              top: insets.top + 6,
+              alignSelf: 'center',
+              width: 34,
+              height: 4,
+              borderRadius: 2,
+              backgroundColor: 'rgba(46,37,69,0.22)',
+            }}
+          />
+        </Pressable>
+      ) : null}
+
+      {/* Thanh tiêu đề đè lên bàn chơi, tự ẩn sau vài giây */}
       <LinearGradient
         colors={grad}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
+        pointerEvents={hud ? 'auto' : 'none'}
         style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: 0,
+          zIndex: 25,
+          opacity: hud ? 1 : 0,
           paddingTop: insets.top,
           height: HUD + insets.top,
           paddingHorizontal: S.md,
           flexDirection: 'row',
           alignItems: 'center',
           gap: 8,
+          borderBottomLeftRadius: R.lg,
+          borderBottomRightRadius: R.lg,
         }}
       >
         <Pressable onPress={() => setMenu(true)} hitSlop={12} style={{ paddingRight: 4 }}>
@@ -168,6 +223,7 @@ export default function MatchScreen() {
         contentContainerStyle={{
           flexGrow: 1,
           padding: PAD,
+          paddingTop: insets.top + PAD,
           paddingBottom: insets.bottom + PAD,
           // Căn giữa cả khối: bàn cờ vuông luôn thừa chiều cao trên màn dọc,
           // chia đều khoảng thừa cho trên và dưới thì cân hơn là dồn một chỗ.

@@ -2,7 +2,7 @@ import React from 'react';
 import { Image, Pressable, View } from 'react-native';
 import { Btn, Chip, Txt } from '../components/ui';
 import { C, R, S, softShadow } from '../theme';
-import { BoardProps, GameLog, TurnBanner, TurnTimer, VersusBar } from './shared';
+import { BoardProps, TurnBanner, TurnTimer, VersusBar } from './shared';
 import { BS_ICON, BS_MARK, BS_RATIO, BS_SEA, BS_SHIP_SIDE, BS_SHIP_TOP, ShipKind, shipKind } from '../art/battleship';
 
 /**
@@ -78,7 +78,8 @@ export default function BattleshipBoard({ view, mySeat, send, deadline, space }:
         {view.me?.placed ? (
           <Chip label="Đã sẵn sàng — chờ đối thủ" icon="check" color={C.mint} soft={C.mintSoft} />
         ) : (
-          <Btn label="Xếp tàu ngẫu nhiên" icon="dice" size="lg" onPress={() => send('place', {})} />
+          // Btn mặc định alignSelf 'flex-start', phải ghi đè mới nằm giữa cột.
+          <Btn label="Xếp tàu ngẫu nhiên" icon="dice" size="lg" style={{ alignSelf: 'center' }} onPress={() => send('place', {})} />
         )}
         {view.me?.placed ? (
           <Grid size={size} cell={cell} shots={[]} ships={view.me?.ships ?? []} kinds={kinds} showShips />
@@ -134,7 +135,6 @@ export default function BattleshipBoard({ view, mySeat, send, deadline, space }:
         mine={!attacking}
         width={Math.min(wide, 360)}
       />
-      <GameLog log={view.log} />
     </View>
   );
 }

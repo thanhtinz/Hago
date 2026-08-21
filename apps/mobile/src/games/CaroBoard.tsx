@@ -3,7 +3,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { Txt } from '../components/ui';
 import { CaroMark } from '../components/Piece';
 import { C, R, S, SEAT_COLORS } from '../theme';
-import { BoardProps, BoardSurface, GameLog, TurnBanner, VersusBar } from './shared';
+import { BoardProps, BoardSurface, TurnBanner, VersusBar } from './shared';
 
 export default function CaroBoard({ view, mySeat, send, deadline, space }: BoardProps) {
   const size = view.size ?? 15;
@@ -54,7 +54,6 @@ export default function CaroBoard({ view, mySeat, send, deadline, space }: Board
         <Legend color={SEAT_COLORS[0]} label={view.players[0]?.name} shape="o" />
         <Legend color={SEAT_COLORS[1]} label={view.players[1]?.name} shape="x" />
       </View>
-      <GameLog log={view.log} />
     </View>
   );
 }

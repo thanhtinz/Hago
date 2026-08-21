@@ -53,7 +53,11 @@ export interface FlappyState extends BaseState {
 }
 
 export const WORLD_W = 360;
-export const WORLD_H = 560;
+/**
+ * Khung trời cao gần gấp đôi bề ngang để tỉ lệ khớp màn điện thoại dọc — co
+ * theo bề rộng là vừa kín màn hình, không còn dải trống trên dưới.
+ */
+export const WORLD_H = 720;
 /** Chim bay ngang với tốc độ này (đơn vị/giây). */
 const SPEED = 132;
 const GRAVITY = 1250;
@@ -77,7 +81,7 @@ const FIRST_PIPE = 560;
 /** Thả chim với chút đà bay lên, khỏi rơi thẳng ngay khi vào trận. */
 const START_VY = -150;
 
-const rowGap = (gap: number) => Math.max(120, Math.min(220, gap));
+const rowGap = (gap: number) => Math.max(140, Math.min(280, gap));
 
 function makePipes(rng: Rng, gap: number): FlappyPipe[] {
   const pipes: FlappyPipe[] = [];
@@ -135,7 +139,7 @@ export const FlappyEngine: GameEngine<FlappyState, FlappyConfig> = {
   realtime: true,
 
   init(players: EnginePlayer[], config: FlappyConfig = {}, rng: Rng): FlappyState {
-    const gap = rowGap(config.pipeGap ?? 168);
+    const gap = rowGap(config.pipeGap ?? 200);
     const now = Date.now();
     return {
       players,
