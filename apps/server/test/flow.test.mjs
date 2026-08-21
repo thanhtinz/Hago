@@ -475,3 +475,13 @@ test('giải đấu: thắng trận vòng 1 thì được đẩy sang vòng sau'
   const final = after.bracket.find((m) => m.round === 2);
   assert.ok(final.p1 === seats[0] || final.p2 === seats[0], 'người thắng phải có mặt ở chung kết');
 });
+
+test('rank theo mùa: trận ranked tính vào định hạng, trận thường thì không', async () => {
+  // alpha và beta đã đá 1 trận ranked và 1 trận thường ở các test phía trên.
+  const r = (await get('/api/users/me/rank', users.alpha.token)).json;
+  assert.equal(r.status.placement, 5);
+  assert.equal(r.status.played, 1, 'chỉ trận ranked mới được đếm');
+  assert.equal(r.status.placed, false, 'chưa đủ 5 trận thì chưa có rank chính thức');
+  assert.ok(r.status.peak > 0);
+  assert.deepEqual(r.history, [], 'chưa có mùa nào kết thúc');
+});

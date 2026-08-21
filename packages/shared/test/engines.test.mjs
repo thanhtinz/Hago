@@ -13,6 +13,7 @@ import {
   computeRewards,
   levelFromXp,
   rankOf,
+  softResetRating,
   xpForLevel,
 } from '../dist/index.js';
 
@@ -320,4 +321,14 @@ test('flappy: cùng seed thì cùng một hàng ống', () => {
     a.pipes.slice(0, 5).map((p) => p.gapY),
     b.pipes.slice(0, 5).map((p) => p.gapY),
   );
+});
+
+test('rank mùa mới kéo mềm về mốc 1000, giữ nguyên thứ tự', () => {
+  assert.equal(softResetRating(1000), 1000, 'đúng mốc thì không đổi');
+  assert.equal(softResetRating(3000), 2000, 'cao thủ tụt một nửa khoảng cách');
+  assert.equal(softResetRating(600), 800, 'người dưới mốc được kéo lên');
+  // Thứ tự cũ phải còn nguyên sau khi reset.
+  const before = [500, 900, 1000, 1600, 2400, 3200];
+  const after = before.map(softResetRating);
+  assert.deepEqual(after, [...after].sort((a, b) => a - b));
 });

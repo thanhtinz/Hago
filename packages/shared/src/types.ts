@@ -215,6 +215,20 @@ export function rankOf(rating: number): RankInfo {
   return RANKS.find((r) => rating >= r.min && rating <= r.max) ?? RANKS[0];
 }
 
+/** Số trận xếp hạng phải đá xong trong mùa mới hiện rank. */
+export const PLACEMENT_MATCHES = 5;
+
+/**
+ * Điểm rank đầu mùa mới, kéo mềm về mốc 1000.
+ *
+ * Đưa hẳn về 1000 thì cao thủ phải leo lại từ đầu mỗi mùa, còn giữ nguyên thì
+ * bảng xếp hạng mùa nào cũng y hệt mùa trước. Kéo một nửa khoảng cách là mức
+ * quen thuộc: thứ tự cũ vẫn còn, mà khoảng cách thì hẹp lại.
+ */
+export function softResetRating(rating: number): number {
+  return Math.round(1000 + (rating - 1000) * 0.5);
+}
+
 /** Total XP required to reach a given level (quadratic curve). */
 export function xpForLevel(level: number): number {
   return Math.round(60 * (level - 1) + 12 * Math.pow(level - 1, 2));

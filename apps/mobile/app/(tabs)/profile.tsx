@@ -29,18 +29,22 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [achievements, setAchievements] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
+  /** Tình trạng định hạng mùa này — chưa đủ trận thì chưa có rank chính thức. */
+  const [rank, setRank] = useState<any>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!profile) return;
     setBusy(true);
     try {
-      const [a, h] = await Promise.all([
+      const [a, h, r] = await Promise.all([
         api<any>('/api/achievements'),
         api<any>(`/api/users/${profile.id}/history?limit=10`),
+        api<any>('/api/users/me/rank'),
       ]);
       setAchievements(a.achievements);
       setHistory(h.history);
+      setRank(r);
       await refresh();
     } finally {
       setBusy(false);
@@ -90,7 +94,17 @@ export default function ProfileScreen() {
         </Txt>
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
           <Chip label={`Lv.${profile.level}`} color="#fff" soft="rgba(255,255,255,0.24)" />
-          <Chip label={`${profile.rank} · ${profile.rating}`} art={rankArt(profile.rank)} color="#fff" soft="rgba(255,255,255,0.24)" />
+          {/* Chưa đá đủ trận định hạng thì chưa gọi tên rank, chỉ đếm tiến độ */}
+          {rank?.status && !rank.status.placed ? (
+            <Chip
+              label={`Định hạng ${rank.status.played}/${rank.status.placement}`}
+              icon="target"
+              color="#fff"
+              soft="rgba(255,255,255,0.24)"
+            />
+          ) : (
+            <Chip label={`${profile.rank} · ${profile.rating}`} art={rankArt(profile.rank)} color="#fff" soft="rgba(255,255,255,0.24)" />
+          )}
           {profile.isAdmin ? <Chip label="Admin" icon="shield" color="#fff" soft="rgba(255,255,255,0.24)" /> : null}
         </View>
         <View style={{ width: '80%', gap: 4, marginTop: 8 }}>

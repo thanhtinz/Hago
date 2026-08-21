@@ -78,7 +78,25 @@ export function findMatches(): { gameType: GameType; mode: GameMode; entries: Qu
         (e) => e.userId === anchor.userId || Math.abs(e.rating - anchor.rating) <= window,
       );
       if (candidates.length < need) break;
-      const chosen = candidates.slice(0, Math.min(meta.maxPlayers, candidates.length));
+      /**
+       * Trong số những người lọt cửa sổ, ưu tiên người sát trình nhất với
+       * anchor chứ không phải người vào hàng sớm nhất — cùng một cửa sổ nhưng
+       * cặp đấu cân hơn hẳn khi hàng chờ đông. Ai chờ lâu vẫn được ghép trước
+       * vì anchor luôn là người đứng đầu hàng.
+       */
+      const ranked = mode === 'ranked'
+        ? [
+            anchor,
+            ...candidates
+              .filter((e) => e.userId !== anchor.userId)
+              .sort(
+                (a, b) =>
+                  Math.abs(a.rating - anchor.rating) - Math.abs(b.rating - anchor.rating) ||
+                  a.joinedAt - b.joinedAt,
+              ),
+          ]
+        : candidates;
+      const chosen = ranked.slice(0, Math.min(meta.maxPlayers, candidates.length));
       /**
        * Game nhiều người (Ma Sói) chơi hay nhất khi đủ bàn,
        * nên chờ thêm một lúc để gom cho đủ `maxPlayers`. Quá thời gian chờ mà

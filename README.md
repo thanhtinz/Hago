@@ -201,6 +201,17 @@ sĩ quan – thành viên, chủ bang còn người thì phải nhường ghế 
 cấp theo điểm đóng góp (mỗi trận 5 điểm, thắng 15), mỗi cấp mở thêm 5 chỗ. Kênh chat
 riêng dùng lại hệ thống channel sẵn có nên không phải dựng thêm đường truyền.
 
+**Rank theo mùa** — mỗi mùa phải đá 5 trận định hạng mới hiện rank; trước đó hồ sơ
+chỉ đếm tiến độ chứ không gọi tên hạng. Hết mùa, điểm được chốt vào `season_ranks`
+để xem lại lịch sử rồi **kéo mềm về mốc 1000** (đi một nửa khoảng cách): đưa hẳn về
+1000 thì cao thủ phải leo lại từ đầu, giữ nguyên thì mùa nào bảng cũng y hệt mùa
+trước. Chỉ trận Ranked mới tính; trận Thường không đụng tới rank.
+
+**Ghép trận theo trình** — cửa sổ Elo vẫn nới dần theo thời gian chờ, nhưng trong số
+người lọt cửa sổ thì chọn người **sát trình nhất** với người đứng đầu hàng thay vì
+người vào hàng sớm nhất. Cùng một cửa sổ mà cặp đấu cân hơn hẳn khi hàng chờ đông,
+và ai chờ lâu vẫn được ghép trước vì người đứng đầu hàng luôn là mỏ neo.
+
 **Giải đấu** — bảng loại trực tiếp 4/8/16 suất, chỉ mở cho game 2 người vì nhánh
 cần mỗi cặp ra đúng một người thắng. Đủ suất là tự khai mạc, xếp hạt giống theo
 rating rồi ghép 1–N, 2–(N‑1)… để hai người mạnh nhất chỉ gặp nhau ở chung kết. **Mỗi
@@ -450,7 +461,8 @@ Cosmetic trong shop vẫn vẽ bằng gradient nên thêm item mới chỉ cần
 | Battle Pass theo mùa | ✅ |
 | Tournament bracket (loại trực tiếp) | ✅ |
 | Push notification (FCM/APNs) | 🔜 Phase 2 |
-| Skill-based MM nâng cao, seasonal rank | 🔜 Phase 2 |
+| Seasonal rank + định hạng đầu mùa | ✅ |
+| Skill-based MM: ghép theo trình sát nhất | ✅ |
 
 Chi tiết kỹ thuật: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · API: [`docs/API.md`](docs/API.md)
 

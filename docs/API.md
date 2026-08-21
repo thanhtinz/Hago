@@ -133,6 +133,12 @@ tài khoản bị khoá.
 | flappy | `flap` | `{}` — vỗ cánh, chỉ nhận sau khi hết đếm ngược (game một người) |
 | werewolf | `night_action` / `vote` / `ready_vote` | `{target}` / `{target}` / `{}` |
 
+### Rank theo mùa
+
+| Method | Endpoint | Mô tả |
+|---|---|---|
+| GET | `/api/users/me/rank` | Tiến độ định hạng mùa này và lịch sử rank các mùa trước |
+
 ### Giải đấu
 
 | Method | Endpoint | Mô tả |

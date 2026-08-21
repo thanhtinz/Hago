@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { GAME_TYPES, RANKS, isSolo } from '@hago/shared';
+import { rankHistory, rankStatus } from '../services/season';
 import { requireAuth } from '../auth';
 import { db } from '../db';
 import { AVATAR_STYLES } from '../avatar';
@@ -82,6 +83,11 @@ usersRouter.get('/leaderboard', (req, res) => {
 });
 
 usersRouter.get('/ranks', (_req, res) => res.json({ ranks: RANKS }));
+
+/** Tình trạng định hạng mùa này và lịch sử rank các mùa trước. */
+usersRouter.get('/me/rank', requireAuth, (req, res) => {
+  res.json({ status: rankStatus(req.auth!.sub), history: rankHistory(req.auth!.sub) });
+});
 
 usersRouter.get('/:id', requireAuth, (req, res) => {
   const row = findUser(req.params.id);

@@ -162,6 +162,18 @@ CREATE TABLE IF NOT EXISTS tournament_matches (
 
 CREATE INDEX IF NOT EXISTS tournament_matches_by_match ON tournament_matches(match_id);
 
+-- Ảnh chụp rank cuối mỗi mùa: giữ lại thành tích để xem lịch sử, đồng thời là
+-- chỗ đếm số trận xếp hạng đã đá trong mùa (placement).
+CREATE TABLE IF NOT EXISTS season_ranks (
+  season_id     TEXT NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
+  user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  rating_start  INTEGER NOT NULL,
+  rating_end    INTEGER NOT NULL,
+  peak          INTEGER NOT NULL,
+  ranked_played INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (season_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS sessions (
   id         TEXT PRIMARY KEY,
   user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
