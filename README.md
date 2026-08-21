@@ -256,6 +256,7 @@ bằng component riêng:
 | Art Sheep Battle: 5 giống cừu × 2 phe × 2 animation, icon cấp, hiệu ứng | [TomoSheepFight](https://github.com/dotrungkien/TomoSheepFight) của Do Trung Kien — `apps/mobile/assets/sheep-fight/` | MIT |
 | Art Ô Ăn Quan: bàn gỗ, hai ô Quan, quan chibi, nắp quan, 6 màu hạt, hoa lá | Bản vẽ riêng của dự án — `apps/mobile/assets/oanquan/` | Nội bộ |
 | Art Bắn Tàu: mặt biển, 5 loại tàu (nhìn trên + nhìn ngang), cột nước, tàu cháy, dấu chìm, vòng ngắm | Bản vẽ riêng của dự án — `apps/mobile/assets/battleship/` | Nội bộ |
+| Art Cờ Cá Ngựa: 4 tranh ngựa góc bàn, quân ngựa 4 màu, ô xuất phát, ô an toàn, số ô về chuồng, hoa văn giữa | Bản vẽ riêng của dự án — `apps/mobile/assets/ludo/` | Nội bộ |
 | Avatar người chơi | [DiceBear](https://github.com/dicebear/dicebear) — render SVG server-side, 10 bộ style | MIT |
 | Font tiêu đề | [Baloo 2](https://github.com/googlefonts/baloo) qua `@expo-google-fonts` | OFL |
 | Font nội dung | [Be Vietnam Pro](https://github.com/bettergui/BeVietnamPro) — hỗ trợ tiếng Việt đầy đủ | OFL |
@@ -330,6 +331,18 @@ với tàu giấu sạch, chỉ thấy chỗ đã bắn; tới lượt địch t
 mới nhìn được hạm đội của chính mình và đối thủ đang dò vào đâu. Bảng hạm đội
 bên dưới cũng đổi theo. Nhờ vậy bàn to gần gấp đôi và không lộ tàu lúc đang
 ngắm bắn.
+
+Cờ Cá Ngựa cắt bằng `python3 apps/mobile/scripts/slice-ludo-art.py`. Bàn trong
+bản vẽ được vẽ tay nên các ô **không đều tăm tắp** — lấy cả tấm làm nền rồi chấm
+quân lên là lệch ô. Nên script chỉ cắt từng mảnh (4 tranh ngựa ở góc, quân, ô
+xuất phát, ô an toàn, 6 ô số về chuồng mỗi màu, hoa văn giữa), còn bàn thì dựng
+lại bằng **lưới 15×15 đều đặn** trong app:
+
+- Đường chạy 52 ô sinh theo đúng thứ tự của engine, ô xuất phát bốn ghế rơi
+  trúng chỉ số 0/13/26/39.
+- Cầu về chuồng chỉ vẽ **5 ô**: lưới 15×15 chừa đúng 5 ô giữa mép chuồng và hoa
+  văn giữa, còn ô thứ 6 của engine chính là về đích (`lane === 5` là `done`).
+- Bàn luôn vẽ đủ bốn góc, góc không có người chơi thì làm mờ.
 
 **Không dùng emoji ở bất kỳ đâu trong giao diện** — emoji mỗi hệ điều hành vẽ một
 kiểu, không đổi được màu theo ngữ cảnh và không canh được nét với chữ.
