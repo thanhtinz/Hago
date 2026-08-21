@@ -255,6 +255,7 @@ bằng component riêng:
 | Art trong trận: mark 7 game, quân cờ, xúc xắc, vai Ma Sói, ô bàn Tỷ Phú, sticker | [game-icons.net](https://github.com/game-icons/icons) — 70 asset trong `apps/mobile/assets/game-icons/` | CC BY 3.0 |
 | Art Sheep Battle: 5 giống cừu × 2 phe × 2 animation, icon cấp, hiệu ứng | [TomoSheepFight](https://github.com/dotrungkien/TomoSheepFight) của Do Trung Kien — `apps/mobile/assets/sheep-fight/` | MIT |
 | Art Ô Ăn Quan: bàn gỗ, hai ô Quan, quan chibi, nắp quan, 6 màu hạt, hoa lá | Bản vẽ riêng của dự án — `apps/mobile/assets/oanquan/` | Nội bộ |
+| Art Bắn Tàu: mặt biển, 5 loại tàu (nhìn trên + nhìn ngang), cột nước, tàu cháy, dấu chìm, vòng ngắm | Bản vẽ riêng của dự án — `apps/mobile/assets/battleship/` | Nội bộ |
 | Avatar người chơi | [DiceBear](https://github.com/dicebear/dicebear) — render SVG server-side, 10 bộ style | MIT |
 | Font tiêu đề | [Baloo 2](https://github.com/googlefonts/baloo) qua `@expo-google-fonts` | OFL |
 | Font nội dung | [Be Vietnam Pro](https://github.com/bettergui/BeVietnamPro) — hỗ trợ tiếng Việt đầy đủ | OFL |
@@ -307,6 +308,22 @@ bằng `python3 apps/mobile/scripts/slice-oanquan-art.py`:
   14px cho khỏi lộ vệt vân gỗ. Giữ nguyên nét vẽ gốc thay vì co ảnh cho vừa.
 - Tâm từng lòng ô được dò ngay trên bàn đã ghép và ghi ra `src/art/oanQuan.ts`
   dưới dạng **tỉ lệ 0..1**, nên bàn to nhỏ cỡ nào thì hạt vẫn rơi đúng ô.
+
+Bắn Tàu cũng cắt từ một bảng thiết kế (`assets/battleship/source/battleship-sheet.png`)
+bằng `python3 apps/mobile/scripts/slice-battleship-art.py`, nhưng nền bảng này là
+dải chuyển màu tối chứ không phải nền trắng:
+
+- Nền chuyển màu rất mượt nên **làm mờ mạnh cả tấm là ra gần đúng nền**; chỗ nào
+  lệch nhiều so với bản mờ đó chính là hình. Alpha lấy theo độ lệch ấy nên mép
+  tàu mượt, không răng cưa.
+- Mặt biển cắt đúng **một ô nước** trong lòng bàn gốc (40×40, vạch lưới vẽ sẵn ở
+  mép) rồi lát ra — bàn 8 hay 12 ô thì lưới vẫn liền, thay vì kéo giãn cả tấm
+  10×10 rồi lệch vạch.
+- Cột nước, tàu cháy và dấu chìm được bóc khỏi nền xanh của ô bằng khoảng cách
+  màu so với màu viền ô, rồi bỏ các mảng vụn (viền và vệt sáng của chính ô cũng
+  lệch màu) nên chỉ còn đúng hình.
+- Tàu nhìn từ trên được kéo phủ đúng số ô nó chiếm; giữ nguyên tỉ lệ thì tàu
+  ngắn hơn ô của nó vì bản vẽ gốc vẽ tàu mập hơn một ô.
 
 **Không dùng emoji ở bất kỳ đâu trong giao diện** — emoji mỗi hệ điều hành vẽ một
 kiểu, không đổi được màu theo ngữ cảnh và không canh được nét với chữ.
