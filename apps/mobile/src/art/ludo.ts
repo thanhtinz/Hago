@@ -52,7 +52,7 @@ export const LUDO_RATIO: Record<string, number> = {
   "yard-red": 1.0,
   "yard-green": 1.0,
   "yard-yellow": 1.0,
-  "center": 1.2982,
+  "center": 0.9593,
   "horse-blue": 0.5776,
   "horse-red": 0.6068,
   "horse-yellow": 0.5776,

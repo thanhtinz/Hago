@@ -198,8 +198,10 @@ export default function LudoBoard({ view, mySeat, send, deadline, space }: Board
                 <Image
                   key={`lane${seat}-${k}`}
                   source={LUDO_LANE[artOf(seat)][k]}
-                  resizeMode="stretch"
-                  style={{ position: 'absolute', ...at(col, row), width: cell, height: cell }}
+                  // Ảnh cắt sát mép nên lát liền nhau vẫn hở một sợi; nới ra
+                  // 1px mỗi bên để các ô dính vào nhau thành một dải.
+                  resizeMode="cover"
+                  style={{ position: 'absolute', left: col * cell - 1, top: row * cell - 1, width: cell + 2, height: cell + 2 }}
                 />
               ))
             : null,
@@ -249,10 +251,17 @@ export default function LudoBoard({ view, mySeat, send, deadline, space }: Board
         })}
 
         {/* Hoa văn bốn cánh ở giữa */}
+        {/* Hoa văn giữa giữ đúng tỉ lệ gốc, đặt vào giữa khối 3x3 */}
         <Image
           source={LUDO_CENTER}
-          resizeMode="stretch"
-          style={{ position: 'absolute', ...at(6, 6), width: cell * 3, height: cell * 3 }}
+          resizeMode="contain"
+          style={{
+            position: 'absolute',
+            left: cell * 6.05,
+            top: cell * 6.05,
+            width: cell * 2.9,
+            height: cell * 2.9,
+          }}
         />
 
         {/* Ngựa còn trong chuồng */}

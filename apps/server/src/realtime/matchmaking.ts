@@ -55,6 +55,9 @@ export function queueSizes(): Record<string, number> {
  * Ghép trận theo game + mode + region. Ranked dùng cửa sổ rating nới dần theo
  * thời gian chờ (skill-based matchmaking cơ bản); Normal ghép theo thứ tự vào hàng.
  */
+/** Chờ tối đa ngần này để gom đủ bàn cho game nhiều người rồi mới mở trận. */
+const FILL_WAIT_MS = 15_000;
+
 export function findMatches(): { gameType: GameType; mode: GameMode; entries: QueueEntry[] }[] {
   const results: { gameType: GameType; mode: GameMode; entries: QueueEntry[] }[] = [];
   const now = Date.now();
@@ -76,8 +79,16 @@ export function findMatches(): { gameType: GameType; mode: GameMode; entries: Qu
       );
       if (candidates.length < need) break;
       const chosen = candidates.slice(0, Math.min(meta.maxPlayers, candidates.length));
-      // Chỉ lấy đủ số người cần; số dư chờ lượt ghép sau.
-      const take = chosen.length >= need ? chosen.slice(0, need === meta.maxPlayers ? need : chosen.length) : [];
+      /**
+       * Game nhiều người (Cá Ngựa, Cờ Tỷ Phú, Ma Sói) chơi hay nhất khi đủ bàn,
+       * nên chờ thêm một lúc để gom cho đủ `maxPlayers`. Quá thời gian chờ mà
+       * vẫn chưa đủ thì mở trận với số người đang có, miễn không dưới mức tối
+       * thiểu — thà bàn thiếu người còn hơn bắt chờ mãi.
+       */
+      const wantFull = meta.maxPlayers > need && waited < FILL_WAIT_MS;
+      const want = wantFull ? meta.maxPlayers : need;
+      if (chosen.length < want) break;
+      const take = chosen.slice(0, Math.min(meta.maxPlayers, chosen.length));
       if (take.length < need) break;
       results.push({ gameType, mode, entries: take });
       const takenIds = new Set(take.map((e) => e.userId));

@@ -41,9 +41,11 @@ GRID_CELL = 59.75
 YARD_INSET = 8
 YARDS = {"blue": (0, 0), "red": (9, 0), "green": (9, 9), "yellow": (0, 9)}
 
-# Hoa văn bốn cánh: lấy bản in trong bảng chú thích ("Ô TRUNG TÂM") vì bản trên
-# bàn bị mấy mũi tên cầu về chuồng chèn vào.
-CENTER_BOX = (1057, 952, 1131, 1009)
+# Hoa văn bốn cánh: lấy ngay trên bàn chứ đừng lấy con dấu trong bảng chú thích
+# — con dấu chỉ 74x57 và có khung thẻ bao quanh, phóng lên cỡ ô là vừa nhoè vừa
+# lòi ra cái viền đen. Bản trên bàn to hơn và nằm gọn trên nền kem, cắt đặc luôn
+# vì nền kem trùng với nền bàn trong app.
+CENTER_BOX = (410, 426, 528, 549)
 
 # Mảnh rời trong bảng chú thích bên phải (toạ độ trên bản vẽ gốc).
 PIECES = {
@@ -98,6 +100,30 @@ def cutout(im, mask, box):
     return piece
 
 
+def restamp(base, donor):
+    """Thay chữ số trên một ô bằng chữ số của ô khác cùng cỡ.
+
+    Chữ số là nét trắng nằm giữa ô, nền là mảng màu đặc. Xoá chữ cũ bằng cách
+    tô lại màu nền, rồi vẽ nét trắng lấy từ ô mẫu (đã co về đúng cỡ).
+    """
+    out = base.convert("RGBA")
+    a = np.array(out).astype(float)
+    rgb, alpha = a[:, :, :3], a[:, :, 3]
+
+    inside = alpha > 200
+    glyph = inside & (rgb.min(2) > 190)
+    fill = np.median(rgb[inside & ~glyph], 0) if (inside & ~glyph).any() else np.array([230, 170, 30])
+    rgb[glyph] = fill
+
+    d = np.array(donor.convert("RGBA").resize(out.size, Image.LANCZOS)).astype(float)
+    dmask = np.clip((d[:, :, :3].min(2) - 170) / 60, 0, 1) * (d[:, :, 3] / 255)
+    for c in range(3):
+        rgb[:, :, c] = rgb[:, :, c] * (1 - dmask) + 255 * dmask
+
+    a[:, :, :3] = rgb
+    return Image.fromarray(a.astype("uint8"), "RGBA")
+
+
 def cell_box(col, row, cols=1, rows=1, inset=0):
     """Khung pixel của một vùng ô trên bàn, tính theo lưới 15x15."""
     x0 = BOARD[0] + GRID_ORIGIN + col * GRID_CELL + inset
@@ -126,18 +152,27 @@ def main():
     for color, (col, row) in YARDS.items():
         save(f"yard-{color}", im.crop(cell_box(col, row, 6, 6, YARD_INSET)))
 
-    save("center", cutout(im, mask, CENTER_BOX))
+    save("center", im.crop(CENTER_BOX))
 
     for name, box in PIECES.items():
         save(name, cutout(im, mask, box))
 
     # Mỗi dải chia đều 6 ô; bản vẽ xếp số 6 ở trên nên đảo lại cho 1 nằm đầu.
+    lane_tiles = {}
     for color, (x0, y0, x1, y1) in LANE_STRIPS.items():
         step = (y1 - y0) / 6
         for k in range(6):
             top = int(round(y0 + (5 - k) * step))
             bottom = int(round(y0 + (6 - k) * step))
-            save(f"lane-{color}-{k + 1}", cutout(im, mask, (x0, top, x1, bottom)))
+            lane_tiles[(color, k + 1)] = cutout(im, mask, (x0, top, x1, bottom))
+
+    # Bản vẽ gốc đánh nhầm cột vàng: đọc từ trên xuống là 6, 6, 4, 3, 2, 1 —
+    # thiếu hẳn số 5. Dựng lại ô đó: lấy nền vàng của một ô cùng cột, xoá chữ cũ
+    # rồi in chữ 5 lấy từ ô cùng số của màu khác (chữ số vẽ giống hệt nhau).
+    lane_tiles[("yellow", 5)] = restamp(lane_tiles[("yellow", 5)], lane_tiles[("blue", 5)])
+
+    for (color, k), img in lane_tiles.items():
+        save(f"lane-{color}-{k}", img)
 
     colors = list(YARDS)
     lane_entries = "\n".join(

@@ -343,6 +343,13 @@ lại bằng **lưới 15×15 đều đặn** trong app:
 - Cầu về chuồng chỉ vẽ **5 ô**: lưới 15×15 chừa đúng 5 ô giữa mép chuồng và hoa
   văn giữa, còn ô thứ 6 của engine chính là về đích (`lane === 5` là `done`).
 - Bàn luôn vẽ đủ bốn góc, góc không có người chơi thì làm mờ.
+- Bản vẽ gốc đánh nhầm cột số của màu vàng: đọc từ trên xuống là 6, 6, 4, 3, 2,
+  1 — thiếu hẳn số 5. Script dựng lại ô đó bằng cách xoá chữ trên nền vàng rồi
+  in chữ 5 lấy từ ô cùng số của màu khác.
+
+Quick Match với game nhiều người (Cá Ngựa, Cờ Tỷ Phú, Ma Sói) **chờ gom đủ bàn**
+trước: trong 15 giây đầu chỉ mở trận khi đủ `maxPlayers`, quá thời gian đó thì
+mở với số người đang có miễn không dưới mức tối thiểu.
 
 **Không dùng emoji ở bất kỳ đâu trong giao diện** — emoji mỗi hệ điều hành vẽ một
 kiểu, không đổi được màu theo ngữ cảnh và không canh được nét với chữ.
