@@ -128,7 +128,6 @@ tài khoản bị khoá.
 | caro | `move` | `{x, y}` |
 | battleship | `place` / `fire` | `{ships?}` (bỏ trống = xếp ngẫu nhiên) / `{x, y}` |
 | oanquan | `sow` | `{cell, dir}` — `dir` là `1` hoặc `-1` |
-| ludo | `roll` / `move` | `{}` / `{pieceId}` |
 | monopoly | `roll` / `buy` / `skip` | `{}` |
 | sheep | `deploy` | `{lane}` — thả cừu đầu hàng chờ vào làn |
 | werewolf | `night_action` / `vote` / `ready_vote` | `{target}` / `{target}` / `{}` |

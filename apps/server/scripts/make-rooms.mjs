@@ -6,7 +6,6 @@ const API = process.env.API_URL ?? 'http://localhost:4000';
 const PLAN = [
   { user: 'minhcaro', gameType: 'caro', mode: 'ranked' },
   { user: 'soigia', gameType: 'werewolf', mode: 'custom' },
-  { user: 'meomap', gameType: 'ludo', mode: 'custom', password: 'abc' },
   { user: 'nhimxu', gameType: 'battleship', mode: 'custom' },
 ];
 

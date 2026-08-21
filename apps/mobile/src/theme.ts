@@ -122,7 +122,6 @@ export const GAME_GRADIENT: Record<string, [string, string]> = {
   oanquan: ['#FF8A3D', '#FFB25E'],
   sheep: ['#25BE7B', '#5FD9A2'],
   monopoly: ['#EE4C6C', '#FF859C'],
-  ludo: ['#FF7530', '#FFA45C'],
   werewolf: ['#6B55D6', '#3D3277'],
 };
 

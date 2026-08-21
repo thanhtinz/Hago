@@ -70,12 +70,6 @@ function decide(gameType, view, mySeat) {
       if (!options.length) return null;
       return { type: 'sow', payload: { cell: pick(options), dir: Math.random() < 0.5 ? 1 : -1 } };
     }
-    case 'ludo': {
-      if (view.turnSeat !== mySeat) return null;
-      if (!view.rolled) return { type: 'roll', payload: {} };
-      if (view.moves?.length) return { type: 'move', payload: { pieceId: pick(view.moves) } };
-      return null;
-    }
     case 'monopoly': {
       if (view.turnSeat !== mySeat) return null;
       if (view.phase === 'roll') return { type: 'roll', payload: {} };

@@ -33,7 +33,6 @@ export const ART = {
   'game-oanquan': 'delapouite/abacus',
   'game-sheep': 'delapouite/sheep',
   'game-monopoly': 'delapouite/house',
-  'game-ludo': 'skoll/chess-knight',
   'game-werewolf': 'lorc/wolf-head',
 
   // quân cờ trong trận

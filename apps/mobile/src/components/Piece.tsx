@@ -9,11 +9,6 @@ import { Art, ArtName } from './Art';
  * Ở đây chỉ quyết định *dùng asset nào* và *tô màu gì* theo trạng thái ván đấu.
  */
 
-/** Quân cá ngựa — dùng quân mã cờ vua. */
-export function HorsePiece({ size = 26, color = '#FF7A59' }: { size?: number; color?: string }) {
-  return <Art name="knight" size={size} color={color} />;
-}
-
 /** Quân Caro: vòng tròn hoặc dấu nhân. */
 export function CaroMark({ size = 22, kind, color }: { size?: number; kind: 'o' | 'x'; color: string }) {
   // Hai quân là cặp huy hiệu cùng bộ: đĩa mang màu phe, ký hiệu màu trắng.

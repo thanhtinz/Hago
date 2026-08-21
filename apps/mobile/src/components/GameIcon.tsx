@@ -5,7 +5,7 @@ import { Art } from './Art';
  * Mark của 7 game — lấy từ kho asset game-icons.net (CC BY 3.0), không tự vẽ.
  * Xem apps/mobile/assets/game-icons/CREDITS.md và scripts/fetch-game-art.mjs.
  */
-export type GameIconName = 'caro' | 'battleship' | 'oanquan' | 'sheep' | 'monopoly' | 'ludo' | 'werewolf';
+export type GameIconName = 'caro' | 'battleship' | 'oanquan' | 'sheep' | 'monopoly' | 'werewolf';
 
 export function GameIcon({
   name,

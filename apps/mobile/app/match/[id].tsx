@@ -24,7 +24,6 @@ const GAME_NAMES: Record<string, string> = {
   oanquan: 'Ô Ăn Quan',
   sheep: 'Sheep Battle',
   monopoly: 'Cờ Tỷ Phú',
-  ludo: 'Cờ Cá Ngựa',
   werewolf: 'Ma Sói',
 };
 

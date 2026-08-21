@@ -6,7 +6,6 @@ export type GameType =
   | 'oanquan'
   | 'sheep'
   | 'monopoly'
-  | 'ludo'
   | 'werewolf';
 
 export type GameMode = 'normal' | 'ranked' | 'custom';
@@ -17,7 +16,6 @@ export const GAME_TYPES: GameType[] = [
   'oanquan',
   'sheep',
   'monopoly',
-  'ludo',
   'werewolf',
 ];
 
@@ -102,19 +100,6 @@ export const GAME_CATALOG: Record<GameType, GameMeta> = {
     colors: ['#E9556D', '#FFB3BF'],
     art: 'game-monopoly',
     avgMinutes: 15,
-  },
-  ludo: {
-    id: 'ludo',
-    name: 'Cờ Cá Ngựa',
-    nameEn: 'Ludo',
-    tagline: 'Tung xúc xắc, đua ngựa về đích',
-    minPlayers: 2,
-    maxPlayers: 4,
-    category: 'Board casual',
-    modes: ['normal', 'ranked', 'custom'],
-    colors: ['#FF8A3D', '#FFD0AC'],
-    art: 'game-ludo',
-    avgMinutes: 10,
   },
   werewolf: {
     id: 'werewolf',

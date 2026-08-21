@@ -80,7 +80,7 @@ export function findMatches(): { gameType: GameType; mode: GameMode; entries: Qu
       if (candidates.length < need) break;
       const chosen = candidates.slice(0, Math.min(meta.maxPlayers, candidates.length));
       /**
-       * Game nhiều người (Cá Ngựa, Cờ Tỷ Phú, Ma Sói) chơi hay nhất khi đủ bàn,
+       * Game nhiều người (Cờ Tỷ Phú, Ma Sói) chơi hay nhất khi đủ bàn,
        * nên chờ thêm một lúc để gom cho đủ `maxPlayers`. Quá thời gian chờ mà
        * vẫn chưa đủ thì mở trận với số người đang có, miễn không dưới mức tối
        * thiểu — thà bàn thiếu người còn hơn bắt chờ mãi.

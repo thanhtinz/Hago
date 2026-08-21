@@ -11,7 +11,6 @@ chỉ bỏ nền đen và tô màu theo ngữ cảnh.
 | `game-oanquan` | abacus | delapouite |
 | `game-sheep` | sheep | delapouite |
 | `game-monopoly` | house | delapouite |
-| `game-ludo` | chess-knight | skoll |
 | `game-werewolf` | wolf-head | lorc |
 | `sheep` | sheep | delapouite |
 | `knight` | chess-knight | skoll |
