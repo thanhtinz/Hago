@@ -19,7 +19,7 @@ import { bindNotificationEmitter, bindPresenceCheck, notify } from '../services/
 import { track } from '../services/analytics';
 import * as Rooms from './rooms';
 import * as MM from './matchmaking';
-import { bindTournamentRunner, reportMatch, tickTournaments } from '../services/tournaments';
+import { bindTournamentAnnouncer, bindTournamentRunner, reportMatch, tickTournaments } from '../services/tournaments';
 import { SpectateError, joinSpectate, leaveSpectate, liveMatchesFor, spectatingMatch } from '../services/spectate';
 import { askedFor, declineRematch, isTournamentMatch, offerRematch } from './rematch';
 import {
@@ -137,6 +137,8 @@ export function initGateway(server: HttpServer): Server {
    * Giải đấu mở trận qua đúng đường của trận thường: cùng createMatch, cùng
    * sự kiện match.start, nên client không cần biết trận này nằm trong nhánh.
    */
+  bindTournamentAnnouncer((userId, call) => emitToUser(userId, 'tournament.call', { call }));
+
   bindTournamentRunner((gameType, a, b, tournamentId) => {
     const players: EnginePlayer[] = [a, b].map((id, seat) => ({
       id,

@@ -40,6 +40,10 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/86-guild-cup-schedule.png) | ![](docs/screenshots/88-guild-cup-call.png) | ![](docs/screenshots/87-guild-cup-rival-call.png) |
 
+| Lời gọi nổi trên mọi màn | Đã sẵn sàng, chờ đối thủ |
+|---|---|
+| ![](docs/screenshots/89-tournament-call-anywhere.png) | ![](docs/screenshots/90-tournament-call-ready.png) |
+
 | Rủ đấu lại | Đối thủ rủ đấu lại | Ván mới, đổi lượt đi trước |
 |---|---|---|
 | ![](docs/screenshots/83-rematch-offer.png) | ![](docs/screenshots/84-rematch-asked.png) | ![](docs/screenshots/85-rematch-new-match.png) |
@@ -277,6 +281,14 @@ Tới lượt mỗi cặp, trận **chưa mở ngay**: hai bên có một cửa 
 giờ. Hết giờ mà chỉ một người có mặt thì người đó thắng và đi tiếp không cần đánh;
 cả hai vắng thì hạt giống cao hơn đi tiếp. Không có luật này thì cả nhánh đứng chờ
 một người đã đi ngủ, mà giải loại trực tiếp thì một cặp treo là cả bảng treo.
+
+Lời gọi vào trận **nổi trên mọi màn**, không nằm yên trong trang bang: cửa sổ chỉ vài
+phút và hết giờ là thua, nên nó phải đi theo người chơi chứ không chờ người ta tự mở
+đúng tab ra xem. Thanh gọi đổi sang màu đỏ khi còn dưới 30 giây, và tự ẩn khi đang
+trong trận — người đang đánh không phải người đang bị gọi. Trạng thái đẩy qua socket
+`tournament.call`; lúc mở app hoặc vừa nối lại mạng thì hỏi `GET /api/tournaments/pending`
+một phát cho khỏi lỡ lời gọi đã bắn trước khi kết nối. Người tắt hẳn app vẫn nhận
+push, vì mọi thông báo trong app đều có bản push tương ứng.
 
 Trận của giải kéo người chơi vào thẳng dù họ đang ở màn nào — `match.start` mang theo
 `tournamentId` và được bắt ở gốc điều hướng, chứ không phải chỉ ở màn tìm trận.

@@ -17,6 +17,7 @@ import {
 import { StoreProvider, useStore } from '../src/state/store';
 import { C, F } from '../src/theme';
 import { Toast } from '../src/components/Toast';
+import { TournamentCall } from '../src/components/TournamentCall';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -58,6 +59,8 @@ function Gate() {
   return (
     <>
       <Slot />
+      {/* Lời gọi vào trận của giải phải nổi trên mọi màn, không chỉ trang bang. */}
+      <TournamentCall />
       <Toast />
     </>
   );

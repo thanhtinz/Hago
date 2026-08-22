@@ -1297,3 +1297,40 @@ test('giải bang: cả hai xác nhận thì trận thật mở ngay, không đ�
   // Giải chưa khai mạc thì không có gì để xác nhận.
   assert.equal((await post(`/api/tournaments/${t.id}/ready`, {}, owner.token)).json.error, 'NO_PENDING_MATCH');
 });
+
+test('giải bang: lời gọi vào trận tra được từ mọi màn và tắt khi trận mở', async () => {
+  const owner = (await post('/api/auth/register', { username: 'callowner', password: 'secret123' })).json;
+  const mate = (await post('/api/auth/register', { username: 'callmate', password: 'secret123' })).json;
+  const bystander = (await post('/api/auth/register', { username: 'callbystander', password: 'secret123' })).json;
+  const gid = (await post('/api/guilds', { name: 'Bang Goi Ten', tag: 'GT' }, owner.token)).json.guild.id;
+  await post(`/api/guilds/${gid}/join`, {}, mate.token);
+
+  assert.equal((await get('/api/tournaments/pending', owner.token)).json.call, null, 'chưa có giải thì không có lời gọi');
+
+  const t = (
+    await post(`/api/guilds/${gid}/tournaments`, { name: 'Cúp Gọi', gameType: 'caro', size: 4, noShowMinutes: 10 }, owner.token)
+  ).json.tournament;
+  await post(`/api/tournaments/${t.id}/join`, {}, owner.token);
+  await post(`/api/tournaments/${t.id}/join`, {}, mate.token);
+  await post(`/api/tournaments/${t.id}/start`, {}, owner.token);
+
+  // Hỏi được lời gọi mà không cần biết id giải — client gọi đúng cách này lúc mở app.
+  const call = (await get('/api/tournaments/pending', owner.token)).json.call;
+  assert.equal(call.tournamentId, t.id);
+  assert.equal(call.name, 'Cúp Gọi');
+  assert.equal(call.gameType, 'caro');
+  assert.equal(call.opponentName, mate.profile.displayName);
+  assert.equal(call.iAmReady, false);
+  assert.equal(call.rivalReady, false);
+  assert.ok(call.deadline > Date.now());
+  assert.equal((await get('/api/tournaments/pending', bystander.token)).json.call, null, 'người ngoài không bị gọi');
+
+  await post(`/api/tournaments/${t.id}/ready`, {}, owner.token);
+  const half = (await get('/api/tournaments/pending', mate.token)).json.call;
+  assert.equal(half.iAmReady, false);
+  assert.equal(half.rivalReady, true, 'bên kia phải thấy đối thủ đã sẵn sàng');
+
+  await post(`/api/tournaments/${t.id}/ready`, {}, mate.token);
+  assert.equal((await get('/api/tournaments/pending', owner.token)).json.call, null, 'trận mở rồi thì tắt lời gọi');
+  assert.equal((await get('/api/tournaments/pending', mate.token)).json.call, null);
+});

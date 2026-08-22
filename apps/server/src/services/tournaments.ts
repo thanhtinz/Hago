@@ -35,6 +35,59 @@ export function bindTournamentRunner(fn: StartMatch): void {
   startMatch = fn;
 }
 
+/**
+ * Báo cho một người biết lời gọi vào trận của họ vừa đổi (mở ra, đối thủ đã
+ * sẵn sàng, hoặc đã đóng). Gateway đẩy qua socket; ở đây chỉ biết gọi hàm.
+ */
+type Announce = (userId: string, call: PendingCall | null) => void;
+let announce: Announce = () => {};
+export function bindTournamentAnnouncer(fn: Announce): void {
+  announce = fn;
+}
+
+export interface PendingCall {
+  tournamentId: string;
+  name: string;
+  gameType: GameType;
+  deadline: number;
+  opponentName: string;
+  iAmReady: boolean;
+  rivalReady: boolean;
+}
+
+/**
+ * Cặp đang chờ người này xác nhận, tìm trên **mọi giải** chứ không riêng một
+ * giải: người chơi cần thấy lời gọi dù đang đứng ở màn nào trong app.
+ */
+export function pendingCall(userId: string): PendingCall | null {
+  const m = db
+    .prepare(
+      `SELECT tm.*, t.name, t.game_type FROM tournament_matches tm
+       JOIN tournaments t ON t.id = tm.tournament_id
+       WHERE tm.ready_deadline IS NOT NULL AND tm.winner_id IS NULL AND tm.match_id IS NULL
+         AND t.status = 'running' AND (tm.p1 = ? OR tm.p2 = ?)
+       ORDER BY tm.ready_deadline LIMIT 1`,
+    )
+    .get(userId, userId) as any;
+  if (!m) return null;
+  const mine = m.p1 === userId;
+  const rivalId = mine ? m.p2 : m.p1;
+  return {
+    tournamentId: m.tournament_id,
+    name: m.name,
+    gameType: m.game_type as GameType,
+    deadline: m.ready_deadline,
+    opponentName: (db.prepare('SELECT display_name FROM users WHERE id = ?').get(rivalId) as any)?.display_name ?? '—',
+    iAmReady: !!(mine ? m.ready_p1 : m.ready_p2),
+    rivalReady: !!(mine ? m.ready_p2 : m.ready_p1),
+  };
+}
+
+/** Đẩy trạng thái lời gọi mới nhất cho từng người trong danh sách. */
+function announceTo(userIds: (string | null)[]): void {
+  for (const uid of userIds) if (uid) announce(uid, pendingCall(uid));
+}
+
 const row = (id: string): any => db.prepare('SELECT * FROM tournaments WHERE id = ?').get(id);
 
 const playerIds = (id: string): string[] =>
@@ -456,6 +509,7 @@ function openRound(id: string, round: number): void {
         tournamentId: id,
       });
     }
+    announceTo([m.p1, m.p2]);
   }
 }
 
@@ -469,6 +523,7 @@ function launchPair(t: any, m: any): boolean {
     m.round,
     m.slot,
   );
+  announceTo([m.p1, m.p2]);
   return true;
 }
 
@@ -495,6 +550,7 @@ export function markReady(userId: string, tournamentId: string) {
 
   const both = (m.p1 === userId ? m.ready_p2 : m.ready_p1) != null;
   if (both) launchPair(t, m);
+  announceTo([m.p1, m.p2]);
   return toTournamentView(row(tournamentId), userId);
 }
 
@@ -530,6 +586,7 @@ function resolveNoShows(now: number): void {
     notify(winner, 'event', 'Thắng do đối thủ vắng mặt', `${t.name} — bạn được đi tiếp`, { tournamentId: t.id });
     if (loser) notify(loser, 'event', 'Bị xử thua vắng mặt', `${t.name} — bạn không vào trận kịp giờ`, { tournamentId: t.id });
     advance(m.tournament_id, m.round, m.slot, winner);
+    announceTo([m.p1, m.p2]);
   }
 }
 

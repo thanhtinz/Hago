@@ -32,6 +32,7 @@ export const C = {
   roseSoft: '#FFE0EE',
 
   danger: '#EE5A5A',
+  dangerSoft: '#FFE1E1',
   white: '#FFFFFF',
   shadow: '#E4CDBB',
   overlay: 'rgba(46, 37, 69, 0.45)',

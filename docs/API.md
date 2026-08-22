@@ -134,6 +134,7 @@ tài khoản bị khoá.
 | `chat.message` | `ChatMessage` |
 | `notification` | `NotificationRow` |
 | `presence` | `{user, online}` — chỉ gửi cho bạn bè |
+| `tournament.call` | `{call}` — lời gọi vào trận đổi trạng thái; `call: null` là đã đóng |
 
 **Đấu lại.** Trận xong còn sống trên máy chủ 5 phút để client xem kết quả; đúng cửa
 sổ đó là lúc rủ nhau đánh ván nữa. Ván mới chỉ mở khi **mọi người trong trận đều
@@ -179,6 +180,7 @@ nhịp** để lượt đi trước không rơi mãi vào một người. `accep
 | POST | `/api/tournaments/:id/leave` | Rút tên trước khai mạc, hoàn lệ phí |
 | POST | `/api/tournaments/:id/start` | Chủ giải khai mạc sớm (từ 2 người) |
 | POST | `/api/tournaments/:id/ready` | Xác nhận có mặt khi tới lượt |
+| GET | `/api/tournaments/pending` | Lời gọi vào trận đang treo của chính mình, trên mọi giải |
 | POST | `/api/tournaments/:id/cancel` | Chủ giải huỷ khi chưa khai mạc, hoàn hết tiền |
 
 Chỉ nhận game đúng 2 người. Sức chứa là 4, 8 hoặc 16; đủ suất thì tự khai mạc.
@@ -210,6 +212,13 @@ Trong view, mỗi ô `bracket` có thêm `readyDeadline` và `ready: [p1, p2]`, 
 `{round, slot, deadline, opponentId, iAmReady, rivalReady}` hoặc `null`. Khi trận
 thật mở, `match.start` gửi kèm `tournamentId` để client nhảy vào thẳng dù đang ở màn
 nào.
+
+Ngoài view của một giải cụ thể, client còn có hai đường để không bao giờ lỡ lời gọi:
+`GET /api/tournaments/pending` trả về lời gọi đang treo trên **mọi giải**
+(`{tournamentId, name, gameType, deadline, opponentName, iAmReady, rivalReady}` hoặc
+`null`) — hỏi một lần lúc mở app và mỗi lần nối lại socket; còn sự kiện
+`tournament.call` đẩy trạng thái mới mỗi khi nó đổi (mở ra, một bên xác nhận, trận mở,
+hoặc xử vắng mặt xong).
 
 ### Bang hội
 

@@ -9,6 +9,7 @@ import {
   leaveTournament,
   listTournaments,
   markReady,
+  pendingCall,
   startTournament,
   toTournamentView,
 } from '../services/tournaments';
@@ -20,6 +21,15 @@ const fail = (res: any, e: any) => res.status(400).json({ error: e.message ?? 'B
 
 tournamentsRouter.get('/', requireAuth, (req, res) => {
   res.json({ tournaments: listTournaments(req.auth!.sub), sizes: TOURNAMENT_SIZES });
+});
+
+/**
+ * Lời gọi vào trận đang treo của chính mình, trên mọi giải. Client hỏi một lần
+ * lúc mở app rồi nghe socket `tournament.call`; đặt trước `/:id` để 'pending'
+ * không bị nuốt làm id giải.
+ */
+tournamentsRouter.get('/pending', requireAuth, (req, res) => {
+  res.json({ call: pendingCall(req.auth!.sub) });
 });
 
 tournamentsRouter.get('/:id', requireAuth, (req, res) => {
