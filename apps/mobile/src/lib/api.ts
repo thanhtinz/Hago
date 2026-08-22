@@ -118,6 +118,14 @@ export const ERROR_TEXT: Record<string, string> = {
   GAME_NOT_ELIGIBLE: 'Game này không mở giải đấu được',
   BAD_SIZE: 'Số suất phải là 4, 8 hoặc 16',
   TOURNAMENT_ONGOING: 'Bang đang có một giải chưa xong',
+
+  // Đấu lại
+  MATCH_NOT_FOUND: 'Trận này đã đóng, không đấu lại được nữa',
+  NOT_A_PLAYER: 'Bạn không ở trong trận này',
+  SOLO_MATCH: 'Game một người không có đấu lại',
+  TOURNAMENT_MATCH: 'Trận trong giải đấu không đấu lại được',
+  OPPONENT_LEFT: 'Đối thủ đã rời đi rồi',
+  ALREADY_IN_MATCH: 'Có người đang ở trận khác',
 };
 
 export function friendlyError(code: string): string {

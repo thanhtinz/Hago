@@ -36,6 +36,10 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/77-guild-cup-form.png) | ![](docs/screenshots/79-guild-cup-joined.png) | ![](docs/screenshots/82-guild-cup-bye.png) |
 
+| Rủ đấu lại | Đối thủ rủ đấu lại | Ván mới, đổi lượt đi trước |
+|---|---|---|
+| ![](docs/screenshots/83-rematch-offer.png) | ![](docs/screenshots/84-rematch-asked.png) | ![](docs/screenshots/85-rematch-new-match.png) |
+
 | Hồ sơ | Menu ba vạch | Túi đồ |
 |---|---|---|
 | ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/06b-profile-menu.png) | ![](docs/screenshots/05-inventory.png) |
@@ -256,6 +260,13 @@ thu về luỹ thừa 2 vừa đủ số người đã ghi tên, và vì vẫn g
 nhiều nhất một suất trống, nhánh vẫn cân. Mỗi bang chỉ một giải chưa kết thúc tại
 một thời điểm, vì mở chồng nhau thì một người bị gọi vào hai trận cùng lúc mà nhánh
 nào cũng cần họ đánh xong mới đi tiếp.
+
+**Đấu lại** — hết trận, bảng kết quả có nút rủ đối thủ đánh ván nữa: một người bấm
+là thành lời rủ, người kia gật là vào luôn, không phải quay về sảnh tìm trận lại từ
+đầu. Ván mới dùng đúng game, chế độ và tuỳ chọn cũ nhưng **xoay chỗ ngồi đi một
+nhịp**, không thì lượt đi trước rơi mãi vào một người. Ai bấm từ chối thì lời rủ xoá
+hẳn để người kia biết ngay, chứ không treo đó tới lúc trận cũ bị dọn. Trận trong
+nhánh giải đấu thì không rủ được — kết quả đã đẩy người thắng sang vòng sau rồi.
 
 **Cosmetic & tiền tệ** — 19 cosmetic và **cả 8 loại đều có tác dụng thật**: khung
 avatar, danh hiệu dưới tên, nền hồ sơ, bong bóng chat, theme mặt bàn cờ, hiệu ứng ăn

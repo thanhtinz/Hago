@@ -110,6 +110,8 @@ tài khoản bị khoá.
 | `mm.leave` | `{}` | `{ok}` |
 | `game.action` | `{matchId, actionId, type, payload}` | `{ok, version}` |
 | `game.sync` | `{matchId?}` | `{ok, state}` |
+| `match.rematch` | `{matchId, accept?}` | `{ok, asked[]}` khi còn chờ, `{ok, matchId}` khi mở ván mới |
+| `match.rematch.state` | `{matchId}` | `{ok, asked[]}` |
 | `spectate.join` | `{matchId}` | `{ok, state, players}` hoặc `{ok:false, error}` |
 | `spectate.leave` | `{matchId?}` | `{ok}` |
 | `spectate.list` | `{}` | `{ok, matches}` |
@@ -124,13 +126,22 @@ tài khoản bị khoá.
 | `room.state` | `RoomView` đầy đủ |
 | `room.left` | `{roomId, kicked?}` |
 | `mm.found` | `{roomId, gameType, mode, waitMs}` |
-| `match.start` | `{matchId, gameType, mode, roomId}` |
+| `match.start` | `{matchId, gameType, mode, roomId, rematchOf?}` |
+| `match.rematch` | `{matchId, asked[], declinedBy?}` — lời rủ đấu lại của trận vừa xong |
 | `game.state` | `{matchId, gameType, version, view, finished, deadline, spectators, spectating?}` |
 | `game.event` | `{matchId, version, events[]}` — hiệu ứng: win, kick, bump, score, rent… |
 | `match.result` | `{matchId, gameType, mode, rows[], spectating?}` với xpGain, coinGain, ratingDelta |
 | `chat.message` | `ChatMessage` |
 | `notification` | `NotificationRow` |
 | `presence` | `{user, online}` — chỉ gửi cho bạn bè |
+
+**Đấu lại.** Trận xong còn sống trên máy chủ 5 phút để client xem kết quả; đúng cửa
+sổ đó là lúc rủ nhau đánh ván nữa. Ván mới chỉ mở khi **mọi người trong trận đều
+bấm đồng ý**, dùng lại đúng game, chế độ và tuỳ chọn cũ, và **xoay chỗ ngồi đi một
+nhịp** để lượt đi trước không rơi mãi vào một người. `accept: false` xoá hẳn lời rủ
+(người kia nhận `declinedBy`) chứ không để treo đến hết giờ. Bị từ chối bằng lỗi:
+`SOLO_MATCH` (game một người), `TOURNAMENT_MATCH` (trận trong nhánh giải — kết quả
+đã đẩy người thắng đi tiếp), `OPPONENT_LEFT`, `ALREADY_IN_MATCH`.
 
 ### Action theo từng game
 

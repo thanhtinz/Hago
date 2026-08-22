@@ -94,6 +94,37 @@ async function asAdmin() {
   return adminToken;
 }
 
+/**
+ * Đánh caro tới khi có người thắng: người được đi trước xếp dọc cột x=7, người
+ * kia rải cột x=0. Luôn hỏi `turnSeat` rồi mới đi thay vì giả định ai đi trước —
+ * bám theo thứ tự ghế thì chỉ cần một nước bị từ chối là cả ván kẹt lại.
+ */
+async function playCaroToWin(matchId, socketById) {
+  const ids = Object.keys(socketById);
+  const probe = socketById[ids[0]];
+  const firstId = (await ack(probe, 'game.sync', { matchId })).state.view.players[
+    (await ack(probe, 'game.sync', { matchId })).state.view.turnSeat
+  ].id;
+  const column = Object.fromEntries(ids.map((id) => [id, id === firstId ? 7 : 0]));
+  const next = Object.fromEntries(ids.map((id) => [id, 0]));
+
+  for (let i = 0; i < 20; i++) {
+    const sync = await ack(probe, 'game.sync', { matchId });
+    if (sync.state.finished) return true;
+    const v = sync.state.view;
+    const turnId = v.players[v.turnSeat].id;
+    const y = next[turnId]++;
+    const r = await ack(socketById[turnId], 'game.action', {
+      matchId,
+      actionId: `${matchId}-${turnId}-${y}`,
+      type: 'move',
+      payload: { x: column[turnId], y },
+    });
+    assert.equal(r.ok, true, `nước đi phải hợp lệ: ${r.error}`);
+  }
+  return (await ack(probe, 'game.sync', { matchId })).state.finished;
+}
+
 /** Nạp thêm coin cho một tài khoản test qua đường admin. */
 async function grantCoin(userId, amount) {
   const r = await post(`/api/admin/users/${userId}/currency`, { currency: 'coin', amount }, await asAdmin());
@@ -1046,4 +1077,99 @@ test('giải bang: khai mạc sớm thì bảng thu nhỏ và người dư suấ
   assert.equal(finalMatch.p1, bye.winnerId);
   assert.equal(finalMatch.p2, null);
   assert.ok(!finalMatch.matchId, 'chung kết chưa mở khi mới có một người');
+});
+
+test('đấu lại: cả hai đồng ý thì mở ván mới, chỗ ngồi xoay đi một nhịp', async () => {
+  const a = (await post('/api/auth/register', { username: 'again1', password: 'secret123' })).json;
+  const b = (await post('/api/auth/register', { username: 'again2', password: 'secret123' })).json;
+  const sa = io(API, { auth: { token: a.token }, transports: ['websocket'] });
+  const sb = io(API, { auth: { token: b.token }, transports: ['websocket'] });
+  sockets.push(sa, sb);
+  await Promise.all([waitFor(sa, 'connect'), waitFor(sb, 'connect')]);
+
+  const started = [waitFor(sa, 'match.start'), waitFor(sb, 'match.start')];
+  await ack(sa, 'mm.join', { gameType: 'caro', mode: 'normal' });
+  await ack(sb, 'mm.join', { gameType: 'caro', mode: 'normal' });
+  const [first] = await Promise.all(started);
+  const matchId = first.matchId;
+  const socketById = { [a.profile.id]: sa, [b.profile.id]: sb };
+  const seats = (await ack(sa, 'game.sync', { matchId })).state.view.players.map((p) => p.id);
+
+  // Chưa xong trận thì chưa rủ đấu lại được.
+  assert.equal((await ack(sa, 'match.rematch', { matchId })).error, 'MATCH_NOT_FOUND');
+
+  assert.equal(await playCaroToWin(matchId, socketById), true);
+  await new Promise((r) => setTimeout(r, 400));
+
+  // Một người rủ: lời rủ treo lại và người kia được báo.
+  const heard = waitFor(sb, 'match.rematch');
+  const asked = await ack(sa, 'match.rematch', { matchId });
+  assert.equal(asked.ok, true);
+  assert.deepEqual(asked.asked, [a.profile.id]);
+  assert.deepEqual((await heard).asked, [a.profile.id]);
+  // Người ngoài trận không xen vào được.
+  assert.equal((await ack(sa, 'match.rematch.state', { matchId: 'khong-co-that' })).error, 'MATCH_NOT_FOUND');
+  assert.deepEqual((await ack(sb, 'match.rematch.state', { matchId })).asked, [a.profile.id]);
+
+  // Người kia gật: ván mới mở ra cho cả hai.
+  const nextStarts = [waitFor(sa, 'match.start'), waitFor(sb, 'match.start')];
+  const done = await ack(sb, 'match.rematch', { matchId });
+  assert.equal(done.ok, true);
+  const [na, nb] = await Promise.all(nextStarts);
+  assert.equal(na.matchId, done.matchId);
+  assert.equal(nb.matchId, done.matchId);
+  assert.equal(na.rematchOf, matchId, 'client cần biết đây là ván đấu lại của trận nào');
+  assert.equal(na.gameType, 'caro');
+
+  const after = await ack(sa, 'game.sync', { matchId: done.matchId });
+  const newSeats = after.state.view.players.map((p) => p.id);
+  assert.deepEqual(newSeats, [seats[1], seats[0]], 'lượt đi trước phải đổi sang người kia');
+  assert.equal(after.state.finished, false);
+});
+
+test('đấu lại: từ chối thì xoá lời rủ, trận trong giải thì không rủ được', async () => {
+  const a = (await post('/api/auth/register', { username: 'nope1', password: 'secret123' })).json;
+  const b = (await post('/api/auth/register', { username: 'nope2', password: 'secret123' })).json;
+  const sa = io(API, { auth: { token: a.token }, transports: ['websocket'] });
+  const sb = io(API, { auth: { token: b.token }, transports: ['websocket'] });
+  sockets.push(sa, sb);
+  await Promise.all([waitFor(sa, 'connect'), waitFor(sb, 'connect')]);
+
+  const started = [waitFor(sa, 'match.start'), waitFor(sb, 'match.start')];
+  await ack(sa, 'mm.join', { gameType: 'caro', mode: 'normal' });
+  await ack(sb, 'mm.join', { gameType: 'caro', mode: 'normal' });
+  const [first] = await Promise.all(started);
+  const matchId = first.matchId;
+
+  assert.equal(await playCaroToWin(matchId, { [a.profile.id]: sa, [b.profile.id]: sb }), true);
+  await new Promise((r) => setTimeout(r, 400));
+
+  await ack(sa, 'match.rematch', { matchId });
+  const told = waitFor(sa, 'match.rematch');
+  await ack(sb, 'match.rematch', { matchId, accept: false });
+  const msg = await told;
+  assert.equal(msg.declinedBy, b.profile.id);
+  assert.deepEqual(msg.asked, [], 'từ chối thì lời rủ xoá hẳn, không treo chờ hết giờ');
+  assert.deepEqual((await ack(sa, 'match.rematch.state', { matchId })).asked, []);
+
+  // Trận trong nhánh giải đấu: kết quả đã đẩy người thắng đi tiếp, không đấu lại.
+  const t = (await post('/api/tournaments', { name: 'Cúp Không Đấu Lại', gameType: 'caro', size: 4 }, await asAdmin()))
+    .json.tournament;
+  const cast = [];
+  for (const n of ['norm1', 'norm2', 'norm3', 'norm4']) {
+    cast.push((await post('/api/auth/register', { username: n, password: 'secret123' })).json);
+  }
+  const conns = cast.map((u) => io(API, { auth: { token: u.token }, transports: ['websocket'] }));
+  sockets.push(...conns);
+  await Promise.all(conns.map((c) => waitFor(c, 'connect')));
+  const starts = conns.map((c) => waitFor(c, 'match.start', 20000));
+  for (const u of cast) await post(`/api/tournaments/${t.id}/join`, {}, u.token);
+  const evts = await Promise.all(starts);
+
+  const tid = evts[0].matchId;
+  const inMatch = (await ack(conns[0], 'game.sync', { matchId: tid })).state.view.players.map((p) => p.id);
+  const tsock = (uid) => conns[cast.findIndex((u) => u.profile.id === uid)];
+  assert.equal(await playCaroToWin(tid, Object.fromEntries(inMatch.map((id) => [id, tsock(id)]))), true);
+  await new Promise((r) => setTimeout(r, 600));
+  assert.equal((await ack(tsock(inMatch[0]), 'match.rematch', { matchId: tid })).error, 'TOURNAMENT_MATCH');
 });

@@ -21,6 +21,7 @@ import * as Rooms from './rooms';
 import * as MM from './matchmaking';
 import { bindTournamentRunner, reportMatch } from '../services/tournaments';
 import { SpectateError, joinSpectate, leaveSpectate, liveMatchesFor, spectatingMatch } from '../services/spectate';
+import { askedFor, declineRematch, isTournamentMatch, offerRematch } from './rematch';
 import {
   applyAction,
   bindMatchHooks,
@@ -354,6 +355,69 @@ export function initGateway(server: HttpServer): Server {
           deadline: engine.deadline(match.state),
         },
       });
+    });
+
+    /**
+     * Đấu lại ngay sau trận. Ai cũng bấm đồng ý thì mở ván mới với đúng game,
+     * đúng chế độ và đúng tuỳ chọn cũ — **chỗ ngồi xoay đi một nhịp** để lượt
+     * đi trước không rơi mãi vào một người.
+     */
+    socket.on('match.rematch', (p: any, ack?: (r: any) => void) => {
+      const match = p?.matchId ? getMatch(String(p.matchId)) : undefined;
+      if (!match || !match.finished) return ack?.({ ok: false, error: 'MATCH_NOT_FOUND' });
+      if (!match.players.some((x) => x.id === userId)) return ack?.({ ok: false, error: 'NOT_A_PLAYER' });
+      if (match.players.length < 2) return ack?.({ ok: false, error: 'SOLO_MATCH' });
+      if (isTournamentMatch(match.id)) return ack?.({ ok: false, error: 'TOURNAMENT_MATCH' });
+
+      const others = match.players.filter((x) => x.id !== userId);
+      if (p?.accept === false) {
+        declineRematch(match.id);
+        others.forEach((x) => emitToUser(x.id, 'match.rematch', { matchId: match.id, asked: [], declinedBy: userId }));
+        return ack?.({ ok: true, asked: [] });
+      }
+
+      // Người kia thoát app hoặc đã vào ván khác thì rủ cũng vô ích, nói luôn
+      // thay vì để lời rủ treo đến hết cửa sổ 5 phút.
+      if (others.some((x) => !isUserOnline(x.id))) return ack?.({ ok: false, error: 'OPPONENT_LEFT' });
+      if (match.players.some((x) => matchOfUser(x.id))) return ack?.({ ok: false, error: 'ALREADY_IN_MATCH' });
+
+      const out = offerRematch(match.id, userId, match.players.map((x) => x.id));
+      if (out.kind === 'waiting') {
+        match.players.forEach((x) => emitToUser(x.id, 'match.rematch', { matchId: match.id, asked: out.asked }));
+        return ack?.({ ok: true, asked: out.asked });
+      }
+
+      const seated = match.players.slice().sort((a, b) => a.seat - b.seat);
+      const rotated: EnginePlayer[] = seated
+        .slice(1)
+        .concat(seated[0])
+        .map((x, seat) => ({ ...x, seat }));
+      const next = createMatch({
+        roomId: null,
+        gameType: match.gameType,
+        mode: match.mode,
+        players: rotated,
+        config: match.config,
+      });
+      rotated.forEach((x) =>
+        emitToUser(x.id, 'match.start', {
+          matchId: next.id,
+          gameType: next.gameType,
+          mode: next.mode,
+          roomId: null,
+          rematchOf: match.id,
+        }),
+      );
+      pushMatchState(next);
+      ack?.({ ok: true, matchId: next.id });
+    });
+
+    /** Ai vừa vào lại màn kết quả cũng thấy được lời rủ đang treo. */
+    socket.on('match.rematch.state', (p: any, ack?: (r: any) => void) => {
+      const id = String(p?.matchId ?? '');
+      const match = getMatch(id);
+      if (!match || !match.players.some((x) => x.id === userId)) return ack?.({ ok: false, error: 'MATCH_NOT_FOUND' });
+      ack?.({ ok: true, asked: askedFor(id) });
     });
 
     /* ----------------------------- spectate ----------------------------- */

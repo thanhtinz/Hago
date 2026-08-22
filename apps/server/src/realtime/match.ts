@@ -21,6 +21,7 @@ import { progressGuildQuests } from '../services/guildQuests';
 import { recordRankedMatch } from '../services/season';
 import { notify } from '../services/notifications';
 import { INITIAL_FRAME_GAP_MS, recordFrame } from '../services/replays';
+import { REMATCH_WINDOW_MS, forgetRematch } from './rematch';
 
 export interface MatchRuntime {
   id: string;
@@ -28,6 +29,8 @@ export interface MatchRuntime {
   gameType: GameType;
   mode: GameMode;
   players: EnginePlayer[];
+  /** Tuỳ chọn lúc mở trận — giữ lại để đấu lại dựng đúng ván cũ. */
+  config: Record<string, unknown>;
   state: any;
   rng: Rng;
   version: number;
@@ -89,6 +92,7 @@ export function createMatch(opts: {
     gameType: opts.gameType,
     mode: opts.mode,
     players: opts.players,
+    config: opts.config ?? {},
     state,
     rng,
     version: 1,
@@ -390,8 +394,11 @@ function finishMatch(match: MatchRuntime): void {
   recordFrame(match, true);
   const summary = settleMatch(match);
   onFinish(match, summary);
-  // Giữ lại 5 phút để client xem kết quả / rematch rồi mới dọn.
-  setTimeout(() => matches.delete(match.id), 5 * 60_000).unref?.();
+  // Giữ lại 5 phút để client xem kết quả và rủ đấu lại rồi mới dọn.
+  setTimeout(() => {
+    matches.delete(match.id);
+    forgetRematch(match.id);
+  }, REMATCH_WINDOW_MS).unref?.();
 }
 
 export function matchHistory(userId: string, limit = 20) {
