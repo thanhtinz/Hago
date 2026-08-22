@@ -62,7 +62,9 @@ export function TournamentCall() {
 
   const secs = Math.max(0, Math.round((call.deadline - now) / 1000));
   const clock = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
-  const urgent = secs <= 30;
+  // Cả hai đã có mặt thì hết hạn cũng không ai thua nữa, đừng doạ bằng màu đỏ.
+  const bothIn = call.iAmReady && call.rivalReady;
+  const urgent = !call.iAmReady && secs <= 30;
 
   const enter = async () => {
     setBusy(true);
@@ -101,10 +103,15 @@ export function TournamentCall() {
         <GameIcon name={call.gameType as GameIconName} size={26} tint={urgent ? C.danger : '#9A6B00'} />
         <Pressable style={{ flex: 1 }} onPress={() => router.push('/guild')}>
           <Txt size={13} weight="bold" color={urgent ? C.danger : '#7A5A00'} numberOfLines={1}>
-            {call.iAmReady ? `Chờ ${call.opponentName} vào trận` : `Tới lượt: gặp ${call.opponentName}`}
+            {bothIn
+              ? 'Đang mở trận...'
+              : call.iAmReady
+                ? `Chờ ${call.opponentName} vào trận`
+                : `Tới lượt: gặp ${call.opponentName}`}
           </Txt>
           <Txt size={11} color={urgent ? C.danger : '#9A6B00'} numberOfLines={1}>
-            {call.name} · còn {clock}
+            {call.name}
+            {bothIn ? '' : ` · còn ${clock}`}
           </Txt>
         </Pressable>
         {call.iAmReady ? (

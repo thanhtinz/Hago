@@ -4,6 +4,15 @@ import { Card, Empty, Pill } from '../ui';
 
 const DAY = 86_400_000;
 
+/** Chỉ game đúng 2 người mới mở giải loại trực tiếp được — server cũng chặn. */
+const DUO_GAMES = ['caro', 'battleship', 'oanquan', 'sheep', 'chess'];
+
+const CUP_STATUS: Record<string, string> = {
+  open: 'Đang nhận đăng ký',
+  running: 'Đang thi đấu',
+  finished: 'Đã kết thúc',
+};
+
 export default function LiveOps({ toast }: { toast: (t: string) => void }) {
   const [quests, setQuests] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
@@ -12,11 +21,22 @@ export default function LiveOps({ toast }: { toast: (t: string) => void }) {
   const [quest, setQuest] = useState({ title: '', type: 'daily', metric: 'play_match', target: 3, rewardCoin: 100, rewardXp: 60, rewardDiamond: 0, gameType: '', eventId: '' });
   const [event, setEvent] = useState({ title: '', description: '', kind: 'seasonal', days: 7, banner: '#7C6BFF' });
   const [announce, setAnnounce] = useState({ title: '', body: '' });
+  const [cups, setCups] = useState<any[]>([]);
+  const [cup, setCup] = useState({
+    name: '',
+    gameType: 'caro',
+    size: 8,
+    entryCoin: 0,
+    basePrize: 0,
+    delayMins: 0,
+    noShowMins: 0,
+  });
 
   const load = () => {
     api('/api/admin/quests').then((r: any) => setQuests(r.quests));
     api('/api/admin/events').then((r: any) => setEvents(r.events));
     api('/api/admin/guild-quests').then((r: any) => setGuildQuests(r.quests));
+    api('/api/admin/tournaments').then((r: any) => setCups(r.tournaments));
   };
   useEffect(load, []);
 
@@ -173,6 +193,145 @@ export default function LiveOps({ toast }: { toast: (t: string) => void }) {
             >
               Gửi thông báo
             </button>
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid two">
+        <Card title="Mở giải đấu chung">
+          <div className="stack">
+            <label className="field">
+              Tên giải
+              <input value={cup.name} onChange={(e) => setCup({ ...cup, name: e.target.value })} placeholder="VD: Cúp Caro Cuối Tuần" />
+            </label>
+            <div className="row">
+              <label className="field" style={{ flex: 1 }}>
+                Bộ môn
+                {/* Chỉ game đúng 2 người mới chia được nhánh loại trực tiếp. */}
+                <select value={cup.gameType} onChange={(e) => setCup({ ...cup, gameType: e.target.value })}>
+                  {DUO_GAMES.map((g) => (
+                    <option key={g} value={g}>
+                      {GAME_NAMES[g]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field" style={{ width: 110 }}>
+                Số suất
+                <select value={cup.size} onChange={(e) => setCup({ ...cup, size: Number(e.target.value) })}>
+                  {[4, 8, 16].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="row">
+              <label className="field" style={{ flex: 1 }}>
+                Lệ phí mỗi người
+                <input type="number" value={cup.entryCoin} onChange={(e) => setCup({ ...cup, entryCoin: Number(e.target.value) })} />
+              </label>
+              <label className="field" style={{ flex: 1 }}>
+                Tiền treo giải
+                <input type="number" value={cup.basePrize} onChange={(e) => setCup({ ...cup, basePrize: Number(e.target.value) })} />
+              </label>
+            </div>
+            <div className="row">
+              <label className="field" style={{ flex: 1 }}>
+                Khai mạc sau (phút)
+                <input type="number" min={0} value={cup.delayMins} onChange={(e) => setCup({ ...cup, delayMins: Number(e.target.value) })} />
+              </label>
+              <label className="field" style={{ flex: 1 }}>
+                Chờ có mặt (phút)
+                <input type="number" min={0} max={30} value={cup.noShowMins} onChange={(e) => setCup({ ...cup, noShowMins: Number(e.target.value) })} />
+              </label>
+            </div>
+            <div className="muted">
+              {cup.delayMins > 0
+                ? 'Tới giờ mới khai mạc, kể cả đã đủ suất. Không đủ hai người thì giải tự huỷ và hoàn tiền.'
+                : 'Để 0 phút thì đủ suất là khai mạc luôn.'}{' '}
+              {cup.noShowMins > 0
+                ? `Tới lượt, hai bên có ${cup.noShowMins} phút để bấm vào trận, ai vắng bị xử thua.`
+                : 'Chờ 0 phút nghĩa là tới lượt vào trận thẳng, không cần xác nhận.'}
+            </div>
+            <button
+              className="btn"
+              onClick={async () => {
+                if (!cup.name) return toast('Nhập tên giải');
+                try {
+                  await api('/api/admin/tournaments', {
+                    method: 'POST',
+                    body: {
+                      name: cup.name,
+                      gameType: cup.gameType,
+                      size: cup.size,
+                      entryCoin: cup.entryCoin,
+                      basePrize: cup.basePrize,
+                      startAt: cup.delayMins > 0 ? Date.now() + cup.delayMins * 60_000 : null,
+                      noShowMs: cup.noShowMins * 60_000,
+                    },
+                  });
+                } catch (e: any) {
+                  return toast(`Không mở được giải: ${e?.message ?? 'lỗi'}`);
+                }
+                toast('Đã mở giải');
+                setCup({ ...cup, name: '' });
+                load();
+              }}
+            >
+              Mở giải
+            </button>
+          </div>
+        </Card>
+
+        <Card title={`Giải đấu (${cups.length})`}>
+          <div className="table-wrap" style={{ maxHeight: 340, overflowY: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Tên giải</th>
+                  <th>Bộ môn</th>
+                  <th>Người</th>
+                  <th>Trạng thái</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {cups.map((t) => (
+                  <tr key={t.id}>
+                    <td style={{ fontWeight: 700 }}>
+                      {t.name}
+                      {/* Giải của bang chỉ hiện để nắm tình hình, admin không đụng vào. */}
+                      {t.guildName ? <div className="muted">Bang {t.guildName}</div> : null}
+                      {t.startAt ? <div className="muted">Khai mạc {fmtDate(t.startAt)}</div> : null}
+                    </td>
+                    <td>{GAME_NAMES[t.gameType] ?? t.gameType}</td>
+                    <td>
+                      {t.players}/{t.size}
+                    </td>
+                    <td>
+                      <Pill tone={t.status === 'open' ? 'ok' : t.status === 'running' ? 'warn' : 'muted'}>{CUP_STATUS[t.status] ?? t.status}</Pill>
+                    </td>
+                    <td>
+                      {!t.guildName && t.status === 'open' ? (
+                        <button
+                          className="btn ghost"
+                          onClick={async () => {
+                            const r: any = await api(`/api/admin/tournaments/${t.id}/cancel`, { method: 'POST' });
+                            toast(`Đã huỷ giải, hoàn lệ phí cho ${r.refunded} người`);
+                            load();
+                          }}
+                        >
+                          Huỷ
+                        </button>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {cups.length ? null : <Empty text="Chưa có giải nào" />}
           </div>
         </Card>
       </div>

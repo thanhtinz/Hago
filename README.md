@@ -99,6 +99,10 @@ hình — riêng Ma Sói giữ lại vì lời dẫn đêm/ngày chính là nộ
 |---|---|
 | ![](docs/screenshots/35-admin-liveops.png) | ![](docs/screenshots/36-admin-moderation.png) |
 
+| Mở và theo dõi giải đấu từ trang quản trị |
+|---|
+| ![](docs/screenshots/91-admin-tournaments.png) |
+
 Toàn bộ ảnh nằm trong [`docs/screenshots/`](docs/screenshots).
 
 ---
@@ -282,6 +286,11 @@ giờ. Hết giờ mà chỉ một người có mặt thì người đó thắng
 cả hai vắng thì hạt giống cao hơn đi tiếp. Không có luật này thì cả nhánh đứng chờ
 một người đã đi ngủ, mà giải loại trực tiếp thì một cặp treo là cả bảng treo.
 
+Trận giải **không cướp người đang đánh dở ván khác**: nếu một trong hai đang bận, cặp
+đó nằm chờ và được thử lại mỗi nhịp quét cho tới khi cả hai rảnh. Mở bừa thì client
+kéo họ sang trận mới, ván đang đánh bị bỏ rơi và thua theo luật. Đổi lại, ai đã bấm
+có mặt thì không bao giờ bị xử vắng mặt dù cửa sổ chờ đã hết.
+
 Lời gọi vào trận **nổi trên mọi màn**, không nằm yên trong trang bang: cửa sổ chỉ vài
 phút và hết giờ là thua, nên nó phải đi theo người chơi chứ không chờ người ta tự mở
 đúng tab ra xem. Thanh gọi đổi sang màu đỏ khi còn dưới 30 giây, và tự ẩn khi đang
@@ -362,7 +371,9 @@ nhiệm vụ vào sự kiện ngay trong LiveOps, và nhiệm vụ tự mượn 
 sinh ra nó — quên đặt ngày kết thúc là nhiệm vụ sống dai hơn cả sự kiện.
 
 **Admin** — dashboard KPI, quản lý user, theo dõi phòng/trận live, CRUD vật phẩm và
-nhiệm vụ/sự kiện (gắn được nhiệm vụ vào sự kiện), xử lý báo cáo, audit log, phễu analytics.
+nhiệm vụ/sự kiện (gắn được nhiệm vụ vào sự kiện), mở giải đấu chung kèm hẹn giờ và
+thời gian chờ có mặt, xử lý báo cáo, audit log, phễu analytics. Bảng giải đấu liệt kê
+cả giải của bang để nắm tình hình nhưng không huỷ được chúng — đó là việc chủ bang.
 
 ---
 

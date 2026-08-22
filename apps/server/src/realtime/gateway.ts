@@ -140,6 +140,11 @@ export function initGateway(server: HttpServer): Server {
   bindTournamentAnnouncer((userId, call) => emitToUser(userId, 'tournament.call', { call }));
 
   bindTournamentRunner((gameType, a, b, tournamentId) => {
+    // Ai đang dở một trận khác thì chưa mở trận giải cho họ: client nhảy thẳng
+    // vào trận mới sẽ bỏ rơi trận đang đánh và bị xử thua bên đó. Trả null,
+    // nhịp quét của giải sẽ thử lại khi họ đánh xong.
+    if (matchOfUser(a) || matchOfUser(b)) return null;
+
     const players: EnginePlayer[] = [a, b].map((id, seat) => ({
       id,
       name: findUser(id)?.display_name ?? 'Player',

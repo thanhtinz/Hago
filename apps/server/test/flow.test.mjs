@@ -1334,3 +1334,84 @@ test('giải bang: lời gọi vào trận tra được từ mọi màn và tắ
   assert.equal((await get('/api/tournaments/pending', owner.token)).json.call, null, 'trận mở rồi thì tắt lời gọi');
   assert.equal((await get('/api/tournaments/pending', mate.token)).json.call, null);
 });
+
+test('giải bang: đang dở trận khác thì chưa bị kéo vào trận giải, xong là mở', async () => {
+  const a = (await post('/api/auth/register', { username: 'busy1', password: 'secret123' })).json;
+  const b = (await post('/api/auth/register', { username: 'busy2', password: 'secret123' })).json;
+  const gid = (await post('/api/guilds', { name: 'Bang Ban Ron', tag: 'BR' }, a.token)).json.guild.id;
+  await post(`/api/guilds/${gid}/join`, {}, b.token);
+
+  const sa = io(API, { auth: { token: a.token }, transports: ['websocket'] });
+  const sb = io(API, { auth: { token: b.token }, transports: ['websocket'] });
+  sockets.push(sa, sb);
+  await Promise.all([waitFor(sa, 'connect'), waitFor(sb, 'connect')]);
+
+  // Hai người đang đánh dở một trận thường.
+  const started = [waitFor(sa, 'match.start'), waitFor(sb, 'match.start')];
+  await ack(sa, 'mm.join', { gameType: 'caro', mode: 'normal' });
+  await ack(sb, 'mm.join', { gameType: 'caro', mode: 'normal' });
+  const [live] = await Promise.all(started);
+
+  // Giữa lúc đó, giải của bang khai mạc với chế độ vào trận thẳng.
+  const t = (
+    await post(`/api/guilds/${gid}/tournaments`, { gameType: 'caro', size: 4, noShowMinutes: 0 }, a.token)
+  ).json.tournament;
+  await post(`/api/tournaments/${t.id}/join`, {}, a.token);
+  await post(`/api/tournaments/${t.id}/join`, {}, b.token);
+  await post(`/api/tournaments/${t.id}/start`, {}, a.token);
+  await new Promise((r) => setTimeout(r, 1500));
+
+  const pending = (await get(`/api/tournaments/${t.id}`, a.token)).json.tournament;
+  const pair = pending.bracket.find((m) => m.p1 && m.p2);
+  assert.equal(pair.matchId, null, 'đang dở trận khác thì chưa mở trận giải');
+  // Trận đang đánh vẫn còn nguyên, không bị bỏ rơi.
+  assert.equal((await ack(sa, 'game.sync', { matchId: live.matchId })).state.finished, false);
+
+  // Đánh xong trận thường, nhịp quét mở trận giải cho cả hai.
+  assert.equal(await playCaroToWin(live.matchId, { [a.profile.id]: sa, [b.profile.id]: sb }), true);
+  await new Promise((r) => setTimeout(r, 2500));
+
+  const opened = (await get(`/api/tournaments/${t.id}`, a.token)).json.tournament;
+  const now = opened.bracket.find((m) => m.p1 && m.p2);
+  assert.ok(now.matchId, 'rảnh rồi thì trận giải phải được mở');
+  assert.notEqual(now.matchId, live.matchId);
+});
+
+test('quản trị: mở và huỷ giải chung qua trang admin', async () => {
+  const token = await asAdmin();
+  assert.equal((await get('/api/admin/tournaments', users.alpha.token)).status, 403, 'người thường không xem được');
+
+  const made = await post(
+    '/api/admin/tournaments',
+    { name: 'Cúp Quản Trị', gameType: 'caro', size: 4, entryCoin: 25, noShowMs: 60_000 },
+    token,
+  );
+  assert.equal(made.status, 200);
+  const id = made.json.tournament.id;
+
+  const listed = (await get('/api/admin/tournaments', token)).json.tournaments.find((t) => t.id === id);
+  assert.equal(listed.name, 'Cúp Quản Trị');
+  assert.equal(listed.players, 0);
+  assert.equal(listed.noShowMs, 60_000);
+  assert.equal(listed.guildName, null, 'giải chung không thuộc bang nào');
+
+  const joiner = (await post('/api/auth/register', { username: 'adminjoin', password: 'secret123' })).json;
+  assert.equal((await post(`/api/tournaments/${id}/join`, {}, joiner.token)).json.balance.coin, 475);
+
+  const cancelled = await post(`/api/admin/tournaments/${id}/cancel`, {}, token);
+  assert.equal(cancelled.json.refunded, 1);
+  assert.equal((await get('/api/users/me', joiner.token)).json.profile.coin, 500, 'huỷ thì hoàn lệ phí');
+  assert.equal((await get(`/api/tournaments/${id}`, token)).status, 404);
+});
+
+test('quản trị: không đụng được vào giải của bang', async () => {
+  const token = await asAdmin();
+  const owner = (await post('/api/auth/register', { username: 'shieldowner', password: 'secret123' })).json;
+  const gid = (await post('/api/guilds', { name: 'Bang Rieng', tag: 'RG' }, owner.token)).json.guild.id;
+  const t = (await post(`/api/guilds/${gid}/tournaments`, { gameType: 'caro', size: 4 }, owner.token)).json.tournament;
+
+  const listed = (await get('/api/admin/tournaments', token)).json.tournaments.find((x) => x.id === t.id);
+  assert.equal(listed.guildName, 'Bang Rieng', 'giải bang vẫn hiện để nắm tình hình');
+  assert.equal((await post(`/api/admin/tournaments/${t.id}/cancel`, {}, token)).json.error, 'GUILD_TOURNAMENT');
+  assert.equal((await get(`/api/tournaments/${t.id}`, token)).status, 200, 'giải bang vẫn còn nguyên');
+});

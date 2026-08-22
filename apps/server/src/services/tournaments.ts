@@ -572,12 +572,15 @@ function resolveNoShows(now: number): void {
 
     const p1Ready = m.ready_p1 != null;
     const p2Ready = m.ready_p2 != null;
+    // Cả hai đã có mặt thì tuyệt đối không xử vắng mặt, kể cả khi trận chưa mở
+    // được vì ai đó đang dở ván khác: họ đã làm đúng phần của mình, cứ để
+    // `retryPendingPairs` mở khi rảnh.
     if (p1Ready && p2Ready) {
-      // Cả hai đã sẵn sàng mà trận chưa mở được (gateway trả null) — thử lại.
-      if (launchPair(t, m)) continue;
+      launchPair(t, m);
+      continue;
     }
 
-    const winner = p1Ready && !p2Ready ? m.p1 : p2Ready && !p1Ready ? m.p2 : seedWinner(m);
+    const winner = p1Ready ? m.p1 : p2Ready ? m.p2 : seedWinner(m);
     if (!winner) continue;
     const loser = winner === m.p1 ? m.p2 : m.p1;
 
@@ -605,6 +608,25 @@ function seedWinner(m: any): string | null {
  * Nhịp quét của giải: tới giờ thì khai mạc, hết cửa sổ chờ thì xử vắng mặt.
  * Gọi từ vòng lặp chính của gateway.
  */
+/**
+ * Mở lại những cặp đã đủ điều kiện đánh mà chưa có trận thật.
+ *
+ * Gateway từ chối mở trận khi một trong hai người đang dở trận khác — không thì
+ * họ bị kéo ra khỏi ván đang đánh và thua bên đó. Cặp ấy nằm chờ ở đây cho tới
+ * lúc cả hai rảnh; không có vòng thử lại này thì nhánh treo vĩnh viễn.
+ */
+function retryPendingPairs(): void {
+  const pairs = db
+    .prepare(
+      `SELECT tm.* FROM tournament_matches tm JOIN tournaments t ON t.id = tm.tournament_id
+       WHERE t.status = 'running' AND tm.match_id IS NULL AND tm.winner_id IS NULL
+         AND tm.p1 IS NOT NULL AND tm.p2 IS NOT NULL
+         AND (tm.ready_deadline IS NULL OR (tm.ready_p1 IS NOT NULL AND tm.ready_p2 IS NOT NULL))`,
+    )
+    .all() as any[];
+  for (const m of pairs) launchPair(row(m.tournament_id), m);
+}
+
 export function tickTournaments(now: number): void {
   const dueStart = db
     .prepare("SELECT * FROM tournaments WHERE status = 'open' AND start_at IS NOT NULL AND start_at <= ?")
@@ -629,6 +651,7 @@ export function tickTournaments(now: number): void {
   }
 
   resolveNoShows(now);
+  retryPendingPairs();
 }
 
 /**

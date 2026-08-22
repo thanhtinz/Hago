@@ -80,8 +80,13 @@ nằm trong thẻ sự kiện của `GET /events`.
 
 `GET /dashboard` · `GET /users` · `POST /users/:id/status` · `POST /users/:id/mute` ·
 `POST /users/:id/currency` · `GET /reports` · `POST /reports/:id/resolve` ·
-`GET|POST /items` · `GET|POST /quests` · `GET|POST /events` · `POST /announce` ·
+`GET|POST /items` · `GET|POST /quests` · `GET|POST /guild-quests` · `GET|POST /events` ·
+`POST /announce` · `GET|POST /tournaments` · `POST /tournaments/:id/cancel` ·
 `GET /matches` · `GET /transactions` · `GET /audit` · `GET /analytics?days=`
+
+`GET /tournaments` liệt kê cả giải của bang (kèm `guildName`) để quản trị nắm tình
+hình, nhưng `POST /tournaments/:id/cancel` từ chối chúng bằng `GUILD_TOURNAMENT` —
+huỷ giải của bang là việc chủ bang, không phải việc quản trị.
 
 ### Avatar
 
@@ -175,7 +180,7 @@ nhịp** để lượt đi trước không rơi mãi vào một người. `accep
 |---|---|---|
 | GET | `/api/tournaments` | Giải chung đang mở, đang chạy và vừa kết thúc |
 | GET | `/api/tournaments/:id` | Một giải kèm danh sách người và nhánh đấu |
-| POST | `/api/tournaments` | Tạo giải chung (admin) — `{name, gameType, size, entryCoin?, basePrize?}` |
+| POST | `/api/tournaments` | Tạo giải chung (admin) — `{name, gameType, size, entryCoin?, basePrize?, startAt?, noShowMs?}` |
 | POST | `/api/tournaments/:id/join` | Đăng ký, trừ lệ phí; đủ suất là tự khai mạc |
 | POST | `/api/tournaments/:id/leave` | Rút tên trước khai mạc, hoàn lệ phí |
 | POST | `/api/tournaments/:id/start` | Chủ giải khai mạc sớm (từ 2 người) |
@@ -193,6 +198,12 @@ miễn vào thẳng vòng sau, không mở trận thật (`matchId` để trốn
 
 `prizePool` = tiền treo giải + lệ phí **đã thu thật**, nên trước khi đủ suất con số
 hiện ra vẫn đúng với số tiền đang có.
+
+Cặp đã đủ điều kiện đánh mà một trong hai người **đang dở trận khác** thì trận giải
+chưa mở: mở ra là client kéo họ sang trận mới và bỏ rơi ván đang đánh, thua luôn bên
+đó. Cặp ấy nằm chờ và được thử lại mỗi nhịp quét cho tới khi cả hai rảnh. Nếu cả hai
+đã bấm có mặt thì **không bao giờ bị xử vắng mặt** dù cửa sổ chờ đã hết — họ đã làm
+đúng phần của mình.
 
 **Hẹn giờ khai mạc.** `startAt` (mốc epoch ms) khiến giải chỉ chạy đúng giờ, kể cả
 đã đủ suất — không thì người đăng ký sớm bị gọi vào trận lúc chưa sẵn sàng. Chỉ hẹn

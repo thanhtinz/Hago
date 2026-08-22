@@ -10,6 +10,7 @@ import { allRooms, toRoomView } from '../realtime/rooms';
 import { queueSizes } from '../realtime/matchmaking';
 import { toPublicUser } from '../services/users';
 import { upsertGuildQuest } from '../services/guildQuests';
+import { TOURNAMENT_SIZES, createTournament } from '../services/tournaments';
 
 export const adminRouter = Router();
 adminRouter.use(requireAdmin);
@@ -238,6 +239,67 @@ adminRouter.post('/events', (req, res) => {
   ).run(id, b.title, b.description ?? '', b.banner ?? '', b.kind ?? 'seasonal', Number(b.startAt ?? nowMs()), Number(b.endAt ?? nowMs() + 7 * DAY), b.active === false ? 0 : 1);
   audit(req.auth!.sub, 'event_upsert', id, b);
   res.json({ ok: true, id });
+});
+
+/* ------------------------------- giải đấu ------------------------------- */
+
+/**
+ * Giải chung do admin mở. Trả về cả giải của bang để còn nhìn thấy chúng, nhưng
+ * đánh dấu rõ — quản trị không mở hay huỷ giải của bang, đó là việc chủ bang.
+ */
+adminRouter.get('/tournaments', (_req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT t.*, g.name AS guild_name,
+              (SELECT COUNT(*) FROM tournament_players tp WHERE tp.tournament_id = t.id) AS players
+       FROM tournaments t LEFT JOIN guilds g ON g.id = t.guild_id
+       ORDER BY t.created_at DESC LIMIT 40`,
+    )
+    .all() as any[];
+  res.json({
+    sizes: TOURNAMENT_SIZES,
+    tournaments: rows.map((t) => ({
+      id: t.id,
+      name: t.name,
+      gameType: t.game_type,
+      size: t.size,
+      players: t.players,
+      entryCoin: t.entry_coin,
+      basePrize: t.base_prize,
+      status: t.status,
+      startAt: t.start_at,
+      noShowMs: t.no_show_ms,
+      createdAt: t.created_at,
+      guildName: t.guild_name ?? null,
+    })),
+  });
+});
+
+adminRouter.post('/tournaments', (req, res) => {
+  try {
+    const t = createTournament(req.body ?? {});
+    audit(req.auth!.sub, 'tournament_create', t.id, req.body ?? {});
+    res.json({ ok: true, tournament: t });
+  } catch (e: any) {
+    res.status(400).json({ error: e.message ?? 'BAD_REQUEST' });
+  }
+});
+
+/** Huỷ giải chung khi chưa khai mạc; hoàn lệ phí cho người đã đăng ký. */
+adminRouter.post('/tournaments/:id/cancel', (req, res) => {
+  const t = db.prepare('SELECT * FROM tournaments WHERE id = ?').get(req.params.id) as any;
+  if (!t) return res.status(404).json({ error: 'TOURNAMENT_NOT_FOUND' });
+  if (t.guild_id) return res.status(400).json({ error: 'GUILD_TOURNAMENT' });
+  if (t.status !== 'open') return res.status(400).json({ error: 'TOURNAMENT_STARTED' });
+
+  const players = db.prepare('SELECT user_id FROM tournament_players WHERE tournament_id = ?').all(t.id) as any[];
+  for (const p of players) {
+    if (t.entry_coin > 0) mutateCurrency(p.user_id, 'coin', t.entry_coin, 'tournament_refund', t.id);
+    notify(p.user_id, 'event', 'Giải đấu bị huỷ', `${t.name} đã huỷ, lệ phí đã hoàn lại`, {});
+  }
+  db.prepare('DELETE FROM tournaments WHERE id = ?').run(t.id);
+  audit(req.auth!.sub, 'tournament_cancel', t.id, { refunded: players.length });
+  res.json({ ok: true, refunded: players.length });
 });
 
 adminRouter.post('/announce', (req, res) => {
