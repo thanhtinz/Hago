@@ -66,13 +66,18 @@ interface BtnProps {
   accessibilityLabel?: string;
 }
 
-const TONES: Record<string, { bg: string; shadow: string; text: string }> = {
+/**
+ * `border` chỉ dành cho tone nhạt. Nút ghost nền trắng đặt trên thẻ cũng trắng
+ * thì chỉ còn cái bóng đổ phía dưới, nhìn như một mảng bị cắt cụt chứ không ra
+ * cái nút — phải có nền hơi ngả và viền mới đọc được là bấm được.
+ */
+const TONES: Record<string, { bg: string; shadow: string; text: string; border?: string }> = {
   primary: { bg: C.primary, shadow: '#C94E30', text: '#FFFFFF' },
   secondary: { bg: C.secondary, shadow: '#4B3BC0', text: '#FFFFFF' },
   mint: { bg: C.mint, shadow: '#249B60', text: '#FFFFFF' },
   sun: { bg: C.sun, shadow: '#D69C13', text: '#5A4200' },
   danger: { bg: C.danger, shadow: '#BF3F3F', text: '#FFFFFF' },
-  ghost: { bg: C.surface, shadow: C.shadow, text: C.ink },
+  ghost: { bg: C.surfaceAlt, shadow: C.shadow, text: C.inkSoft, border: '#E7D6C6' },
 };
 
 export function Btn({ label, onPress, tone = 'primary', size = 'md', icon, trailingIcon, disabled, loading, full, style, accessibilityLabel }: BtnProps) {
@@ -90,8 +95,12 @@ export function Btn({ label, onPress, tone = 'primary', size = 'md', icon, trail
       style={({ pressed }) => [
         {
           backgroundColor: disabled ? C.line : t.bg,
-          paddingVertical: pad,
-          paddingHorizontal: pad * 1.7,
+          borderWidth: t.border ? 2 : 0,
+          borderColor: t.border,
+          // Viền tính vào bề ngang ở RN nên bù lại phần padding đã mất, không
+          // thì nút ghost hẹp hơn nút đặc cùng cỡ.
+          paddingVertical: t.border ? pad - 2 : pad,
+          paddingHorizontal: t.border ? pad * 1.7 - 2 : pad * 1.7,
           minHeight,
           borderRadius: R.pill,
           alignItems: 'center',

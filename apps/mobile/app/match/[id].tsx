@@ -369,30 +369,53 @@ export default function MatchScreen() {
                       })}
                   </View>
 
-                  {/* Đấu lại: chỉ có ở trận nhiều người, và chỉ trong lúc trận
-                      cũ còn sống trên máy chủ (5 phút sau khi kết thúc). */}
-                  {!solo ? (
-                    <RematchRow
-                      asked={rematch}
-                      meId={profile?.id}
-                      busy={rematchBusy}
-                      onAsk={async (accept) => {
-                        setRematchBusy(true);
-                        const res: any = await emitAck('match.rematch', { matchId: id, accept });
-                        setRematchBusy(false);
-                        if (!res?.ok) return showToast(friendlyError(res?.error ?? 'NETWORK'), 'warn');
-                        setRematch(res.asked ?? []);
-                      }}
-                    />
-                  ) : null}
+                  {/*
+                    Bốn việc làm tiếp không ngang hàng nhau nên không xếp thành
+                    một dãy nút giống hệt: việc hay chọn nhất nằm trên cùng và
+                    chiếm hết bề ngang, hai việc phụ chia đôi hàng dưới, còn lối
+                    thoát để nhạt nhất ở cuối.
+                  */}
+                  <View style={{ width: '100%', gap: S.sm, marginTop: S.sm }}>
+                    {/* Đấu lại: chỉ có ở trận nhiều người, và chỉ trong lúc trận
+                        cũ còn sống trên máy chủ (5 phút sau khi kết thúc). */}
+                    {!solo ? (
+                      <RematchRow
+                        asked={rematch}
+                        meId={profile?.id}
+                        busy={rematchBusy}
+                        onAsk={async (accept) => {
+                          setRematchBusy(true);
+                          const res: any = await emitAck('match.rematch', { matchId: id, accept });
+                          setRematchBusy(false);
+                          if (!res?.ok) return showToast(friendlyError(res?.error ?? 'NETWORK'), 'warn');
+                          setRematch(res.asked ?? []);
+                        }}
+                      />
+                    ) : null}
 
-                  {/* Ba nút không vừa một hàng trên máy hẹp — cho xuống dòng
-                      thay vì để nút đầu bị đè mất chữ. */}
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: S.sm, marginTop: 6 }}>
-                    <Btn label="Về trang chủ" size="sm" tone="ghost" onPress={() => router.replace('/')} />
-                    {/* Khung phát lại được ghi ngay trong lúc đấu nên xem lại được liền. */}
-                    <Btn label="Xem lại" size="sm" icon="play" tone="secondary" onPress={() => router.replace(`/replay/${id}`)} />
-                    <Btn label="Chơi tiếp" size="sm" icon="refresh" onPress={() => router.replace('/quickplay')} />
+                    <View style={{ flexDirection: 'row', gap: S.sm }}>
+                      {/* Khung phát lại được ghi ngay trong lúc đấu nên xem lại được liền. */}
+                      <Btn
+                        label="Xem lại"
+                        icon="play"
+                        tone="ghost"
+                        style={{ flex: 1 }}
+                        onPress={() => router.replace(`/replay/${id}`)}
+                      />
+                      <Btn
+                        label="Chơi tiếp"
+                        icon="refresh"
+                        tone={solo ? 'primary' : 'secondary'}
+                        style={{ flex: 1 }}
+                        onPress={() => router.replace('/quickplay')}
+                      />
+                    </View>
+
+                    <Pressable onPress={() => router.replace('/')} hitSlop={8} style={{ paddingVertical: 8 }}>
+                      <Txt size={13} weight="bold" color={C.inkFaint} center>
+                        Về trang chủ
+                      </Txt>
+                    </Pressable>
                   </View>
                 </>
               );
@@ -428,16 +451,19 @@ function RematchRow({
         style={{
           flexDirection: 'row',
           alignItems: 'center',
+          justifyContent: 'center',
           gap: 8,
           backgroundColor: C.surfaceAlt,
           borderRadius: R.pill,
+          borderWidth: 2,
+          borderColor: '#E7D6C6',
           paddingHorizontal: 14,
-          paddingVertical: 9,
+          minHeight: 46,
         }}
       >
         <Icon name="refresh" size={16} color={C.inkFaint} strokeWidth={2.2} />
-        <Txt size={12} color={C.inkSoft}>
-          Đã rủ đấu lại, chờ đối thủ đồng ý...
+        <Txt size={13} weight="bold" color={C.inkSoft}>
+          Đang chờ đối thủ đồng ý...
         </Txt>
       </View>
     );
@@ -445,30 +471,32 @@ function RematchRow({
 
   if (theyAsked) {
     return (
-      <View style={{ alignItems: 'center', gap: 8 }}>
-        <Txt size={13} weight="bold" color={C.secondary}>
-          Đối thủ muốn đấu lại!
-        </Txt>
+      <View style={{ gap: S.sm }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            backgroundColor: C.secondarySoft,
+            borderRadius: R.pill,
+            paddingVertical: 7,
+          }}
+        >
+          <Icon name="refresh" size={15} color={C.secondary} strokeWidth={2.4} />
+          <Txt size={13} weight="bold" color={C.secondary}>
+            Đối thủ muốn đấu lại!
+          </Txt>
+        </View>
         <View style={{ flexDirection: 'row', gap: S.sm }}>
-          <Btn label="Để lần khác" size="sm" tone="ghost" disabled={busy} onPress={() => onAsk(false)} />
-          <Btn label="Vào luôn" size="sm" tone="mint" icon="refresh" disabled={busy} onPress={() => onAsk(true)} />
+          <Btn label="Để lần khác" tone="ghost" disabled={busy} style={{ flex: 1 }} onPress={() => onAsk(false)} />
+          <Btn label="Vào luôn" tone="mint" icon="refresh" disabled={busy} style={{ flex: 1 }} onPress={() => onAsk(true)} />
         </View>
       </View>
     );
   }
 
-  // Btn mặc định `alignSelf: 'flex-start'`, không ép thì nút lệch hẳn về trái
-  // dù thẻ kết quả căn giữa.
-  return (
-    <Btn
-      label="Đấu lại"
-      icon="refresh"
-      tone="secondary"
-      disabled={busy}
-      style={{ alignSelf: 'center' }}
-      onPress={() => onAsk(true)}
-    />
-  );
+  return <Btn label="Đấu lại" icon="refresh" tone="primary" full disabled={busy} onPress={() => onAsk(true)} />;
 }
 
 function Reward({ icon, label, value, color }: { icon: IconName; label: string; value: string; color: string }) {
