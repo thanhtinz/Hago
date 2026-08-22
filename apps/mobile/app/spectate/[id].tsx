@@ -10,7 +10,7 @@ import { GameIcon, GameIconName } from '../../src/components/GameIcon';
 import { DotPattern } from '../../src/components/decor';
 import { C, GAME_GRADIENT, R, S } from '../../src/theme';
 import { BOARDS, GAME_NAMES } from '../../src/games';
-import { spectatorView } from '../../src/games/shared';
+import { SpectateProvider, activeSeatName, spectatorView } from '../../src/games/shared';
 import { friendlyError } from '../../src/lib/api';
 import { emitAck } from '../../src/lib/socket';
 import { useStore } from '../../src/state/store';
@@ -104,6 +104,12 @@ function SpectateBoard({
   const Board = BOARDS[state.gameType];
   const grad = (GAME_GRADIENT[state.gameType] ?? ['#FF8A65', '#FF5E7D']) as [string, string];
   const normalized = useMemo(() => spectatorView(state.view), [state.view]);
+  // Khán giả không ngồi ghế nào: tắt hết nhãn "Bạn"/"Đối thủ" và đổi băng-rôn
+  // lượt đi sang tên người đang đi.
+  const spectate = useMemo(
+    () => ({ spectating: true, activeName: activeSeatName(state.view) }),
+    [state.view],
+  );
   const HUD = 46;
   const space = { width: width - 12, height: height - insets.top - insets.bottom - HUD - 12 };
 
@@ -166,13 +172,15 @@ function SpectateBoard({
         showsVerticalScrollIndicator={false}
       >
         {Board ? (
-          <Board
-            view={normalized.view}
-            mySeat={normalized.seat}
-            send={() => showToast('Bạn đang xem trận — không thao tác được', 'warn')}
-            deadline={state.deadline}
-            space={space}
-          />
+          <SpectateProvider value={spectate}>
+            <Board
+              view={normalized.view}
+              mySeat={normalized.seat}
+              send={() => showToast('Bạn đang xem trận — không thao tác được', 'warn')}
+              deadline={state.deadline}
+              space={space}
+            />
+          </SpectateProvider>
         ) : (
           <Txt center>Game chưa hỗ trợ xem trực tiếp</Txt>
         )}

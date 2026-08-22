@@ -130,6 +130,7 @@ function CheckinCard({ checkin, onCheckin }: { checkin: any; onCheckin: () => vo
                   alignItems: 'center',
                   gap: 3,
                   paddingVertical: 8,
+                  paddingTop: 14,
                   borderRadius: R.sm,
                   backgroundColor: done ? C.mintSoft : isToday ? C.sunSoft : C.surfaceAlt,
                   borderWidth: 2,
@@ -145,11 +146,30 @@ function CheckinCard({ checkin, onCheckin }: { checkin: any; onCheckin: () => vo
               {done ? (
                 <Icon name="check" size={14} color="#1F7A50" strokeWidth={2.6} />
               ) : (
-                <Icon name={r.diamond ? 'gem' : 'coin'} size={14} color={r.diamond ? '#1A73B8' : '#9A6B00'} strokeWidth={2.2} />
+                <Icon name="coin" size={14} color="#9A6B00" strokeWidth={2.2} />
               )}
+              {/* Luôn hiện số Coin: mốc có Diamond mà chỉ hiện Diamond thì mốc 3
+                  ("1") trông như kém mốc 2 ("150"). Diamond gắn thêm ở góc. */}
               <Txt size={9} weight="bold" color={C.inkSoft}>
-                {r.diamond ? `${r.diamond}` : `${r.coin}`}
+                {r.coin}
               </Txt>
+              {r.diamond ? (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 3,
+                    right: 3,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 1,
+                  }}
+                >
+                  <Icon name="gem" size={9} color="#1A73B8" strokeWidth={2.4} />
+                  <Txt size={8} weight="bold" color="#1A73B8">
+                    {r.diamond}
+                  </Txt>
+                </View>
+              ) : null}
             </View>
           );
         })}

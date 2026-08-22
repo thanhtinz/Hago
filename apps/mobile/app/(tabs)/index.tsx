@@ -259,7 +259,7 @@ export default function HomeScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.md, paddingHorizontal: S.lg }}>
             {data.live.map((m: any) => (
               <Pressable key={m.matchId} onPress={() => router.push(`/spectate/${m.matchId}`)}>
-                <Card style={{ width: 200, gap: 8 }}>
+                <Card style={{ width: 250, gap: 8 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Txt size={13} weight="heading" numberOfLines={1} style={{ flex: 1 }}>
                       {games.find((g) => g.id === m.gameType)?.name ?? m.gameType}

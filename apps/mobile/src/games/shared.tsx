@@ -1,10 +1,30 @@
-import React, { useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { Avatar, Bar, Chip, Txt } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { C, R, S, SEAT_COLORS, softShadow } from '../theme';
 import { useBoardTheme } from '../components/Cosmetic';
+
+/**
+ * Ngữ cảnh "không phải trận của tôi": màn khán đài và màn xem lại dùng lại
+ * nguyên bàn chơi, mà bàn chơi lại được viết theo góc nhìn người trong trận —
+ * để nguyên thì nó gọi khán giả là "Bạn" và giục "Tới lượt bạn — đánh đi!".
+ *
+ * - `spectating`: người đang xem **không** ngồi ghế nào trong trận này, nên bỏ
+ *   hết nhãn "Bạn" / "Đối thủ" / "(bạn)".
+ * - `activeName`: tên người đang tới lượt. Có giá trị thì băng-rôn lượt đi nói
+ *   thẳng tên người đó thay vì câu giục. Để `null` khi ván đã xong hoặc không
+ *   xác định được — lúc ấy giữ nguyên câu của bàn chơi ("Ván đã kết thúc").
+ */
+export interface SpectateInfo {
+  spectating: boolean;
+  activeName?: string | null;
+}
+
+const SpectateCtx = createContext<SpectateInfo>({ spectating: false });
+export const SpectateProvider = SpectateCtx.Provider;
+export const useSpectate = () => useContext(SpectateCtx);
 
 export interface BoardProps {
   view: any;
@@ -51,6 +71,7 @@ export function PlayerStrip({
   mySeat: number;
   extra?: (seat: number) => React.ReactNode;
 }) {
+  const { spectating } = useSpectate();
   return (
     <View style={{ flex: 1, flexDirection: 'row', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
       {players.map((p: any, i: number) => {
@@ -73,7 +94,7 @@ export function PlayerStrip({
             <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: SEAT_COLORS[i] }} />
             <Txt size={11} weight={active ? 'bold' : 'medium'} color={active ? C.ink : C.inkSoft} numberOfLines={1}>
               {p.name}
-              {i === mySeat ? ' (bạn)' : ''}
+              {i === mySeat && !spectating ? ' (bạn)' : ''}
             </Txt>
             {extra?.(i)}
           </View>
@@ -97,18 +118,22 @@ export function GameLog({ log }: { log: string[] }) {
 }
 
 export function TurnBanner({ yourTurn, text }: { yourTurn: boolean; text: string }) {
+  const { activeName } = useSpectate();
+  // Ngoài trận thì không giục ai cả, chỉ nói đang tới lượt ai.
+  const label = activeName ? `Tới lượt ${activeName}` : text;
+  const mine = yourTurn && !activeName;
   return (
     <View
       style={{
-        backgroundColor: yourTurn ? C.mintSoft : C.surfaceAlt,
+        backgroundColor: mine ? C.mintSoft : C.surfaceAlt,
         borderRadius: R.pill,
         paddingVertical: 8,
         paddingHorizontal: 16,
         alignSelf: 'center',
       }}
     >
-      <Txt size={13} weight="bold" color={yourTurn ? '#1F7A50' : C.inkSoft}>
-        {text}
+      <Txt size={13} weight="bold" color={mine ? '#1F7A50' : C.inkSoft}>
+        {label}
       </Txt>
     </View>
   );
@@ -263,6 +288,7 @@ function Side({
   mine?: boolean;
   label?: string;
 }) {
+  const { spectating } = useSpectate();
   const tone = SEAT_COLORS[seat];
   return (
     <View
@@ -288,7 +314,9 @@ function Side({
           {player?.name ?? '—'}
         </Txt>
         <Txt size={10} weight="medium" color={tone}>
-          {label ?? (mine ? 'Bạn' : 'Đối thủ')}
+          {/* Ngoài trận thì không ai là "Bạn" cả; giữ một khoảng trắng để hai
+              bên vẫn cao bằng nhau. */}
+          {label ?? (spectating ? ' ' : mine ? 'Bạn' : 'Đối thủ')}
         </Txt>
       </View>
     </View>
@@ -302,8 +330,8 @@ function Side({
  * góc nhìn: khán giả xem trận như đang ngồi cạnh người chơi ghế 0, còn thông
  * tin ẩn thì vẫn giấu vì server đã lọc từ trước.
  */
-export function spectatorView(view: any): { view: any; seat: number } {
-  if (!view) return { view, seat: 0 };
+export function spectatorView(view: any, fallbackSeat = 0): { view: any; seat: number } {
+  if (!view) return { view, seat: fallbackSeat };
   // Game giấu bài trả `sides[]` cho người ngoài. Lấy ghế 0 làm góc nhìn — dữ
   // liệu trong đó đã bị server lọc rồi, nên không lộ thêm gì.
   if (Array.isArray(view.sides) && !view.me) {
@@ -311,7 +339,20 @@ export function spectatorView(view: any): { view: any; seat: number } {
   }
   // Engine nào có khai `mySeat` thì tin nó, kể cả khi là -1 (không ngồi ghế
   // nào) — bàn chơi sẽ tự tắt hết nút thao tác. Engine không khai (Caro, Ô Ăn
-  // Quan…) thì mọi thứ đều công khai, xem từ ghế 0 là được.
-  const seat = typeof view.mySeat === 'number' ? view.mySeat : 0;
+  // Quan…) thì mọi thứ đều công khai, ghế nào cũng ra cùng một bàn.
+  const seat = typeof view.mySeat === 'number' ? view.mySeat : fallbackSeat;
   return { view, seat };
+}
+
+/**
+ * Tên người đang tới lượt, hoặc null khi ván đã xong / game không theo lượt.
+ * `selfSeat` là ghế của chính người đang xem — trùng thì trả "bạn", vì băng-rôn
+ * xưng tên chính mình đọc rất kỳ.
+ */
+export function activeSeatName(view: any, selfSeat = -1): string | null {
+  if (!view || view.over) return null;
+  const seat = typeof view.turnSeat === 'number' ? view.turnSeat : null;
+  if (seat === null) return null;
+  if (seat === selfSeat) return 'bạn';
+  return view.players?.[seat]?.name ?? null;
 }

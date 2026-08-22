@@ -40,6 +40,14 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/07-quests.png) | ![](docs/screenshots/08-leaderboard.png) | ![](docs/screenshots/09-notifications.png) |
 
+| Sự kiện & điểm danh | Đã điểm danh | Trang chủ có dải điểm danh |
+|---|---|---|
+| ![](docs/screenshots/61-events.png) | ![](docs/screenshots/62-events-checked.png) | ![](docs/screenshots/60-home-checkin.png) |
+
+| Trận đang thi đấu | Khán đài | Xem lại trận |
+|---|---|---|
+| ![](docs/screenshots/63-spectate-list.png) | ![](docs/screenshots/64-spectate-match.png) | ![](docs/screenshots/66-replay-end.png) |
+
 ### 7 mini game
 
 | Cờ Caro | Bắn Tàu | Ô Ăn Quan |
@@ -266,6 +274,14 @@ Khung giữ 14 ngày.
 
 Vào từ: nút *Xem lại* ngay trong bảng kết quả trận, dòng trận trong *Trận gần đây* ở
 trang chủ, và lịch sử đấu trong hồ sơ (dòng nào còn bản xem lại thì có dấu ▶).
+
+Khán đài và màn xem lại **dùng lại nguyên bàn chơi** của màn đấu, mà bàn chơi vốn được
+viết theo góc nhìn người trong trận — để nguyên thì nó gọi khán giả là "Bạn" và giục
+"Tới lượt bạn — đánh đi!". Nên có một ngữ cảnh `SpectateProvider`: người xem không ngồi
+ghế nào thì bỏ hết nhãn *Bạn* / *Đối thủ* / *(bạn)*, và băng-rôn lượt đi nói thẳng tên
+người đang đi ("Tới lượt Minh Caro") thay vì câu giục. Ghế của người xem trong bản xem
+lại được tra từ danh sách người chơi của trận, không đoán theo ghế 0 — Caro và Ô Ăn Quan
+không khai `mySeat` trong view vì chúng chẳng giấu gì cả.
 
 **Xem trực tiếp** — vào khán đài trận đang diễn ra của bạn bè hoặc người cùng bang,
 nhận state realtime qua đúng luồng của người chơi. Khán giả nhận **một bản chung** đã

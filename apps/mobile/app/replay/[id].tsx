@@ -10,7 +10,7 @@ import { GameIcon, GameIconName } from '../../src/components/GameIcon';
 import { DotPattern } from '../../src/components/decor';
 import { C, GAME_GRADIENT, R, S, SEAT_COLORS, softShadow } from '../../src/theme';
 import { BOARDS, GAME_NAMES } from '../../src/games';
-import { spectatorView } from '../../src/games/shared';
+import { SpectateProvider, activeSeatName, spectatorView } from '../../src/games/shared';
 import { api } from '../../src/lib/api';
 import { useStore } from '../../src/state/store';
 
@@ -80,7 +80,19 @@ export default function ReplayScreen() {
   );
 
   const frame = frames[idx];
-  const normalized = useMemo(() => spectatorView(frame?.view), [frame]);
+  /**
+   * Ghế của chính người đang xem trong trận đó. Caro và Ô Ăn Quan không khai
+   * `mySeat` trong view (mọi thứ đều công khai) nên phải tra từ danh sách người
+   * chơi — không thì màn xem lại mặc định lấy ghế 0 và gọi nhầm người khác là
+   * "Bạn".
+   */
+  const mySeat: number = replay?.players?.find((p: any) => p.id === profile?.id)?.seat ?? -1;
+  const normalized = useMemo(() => spectatorView(frame?.view, Math.max(0, mySeat)), [frame, mySeat]);
+  // Xem lại thì chẳng tới lượt ai cả: luôn nói tên người đang đi thay vì giục.
+  const spectate = useMemo(
+    () => ({ spectating: mySeat < 0, activeName: activeSeatName(frame?.view, mySeat) }),
+    [frame, mySeat],
+  );
 
   if (error || (replay && !frames.length)) {
     return (
@@ -182,16 +194,18 @@ export default function ReplayScreen() {
         showsVerticalScrollIndicator={false}
       >
         {Board ? (
-          <Board
-            view={normalized.view}
-            mySeat={normalized.seat}
-            // Xem lại thì không gửi được nước đi nào; báo nhẹ thay vì im lặng.
-            send={() => showToast('Đang xem lại — không thao tác được', 'warn')}
-            // Deadline trong khung là mốc tuyệt đối của ngày hôm đó, hiện lại chỉ
-            // ra một đồng hồ đếm ngược sai bét. Xem lại thì bỏ hẳn.
-            deadline={null}
-            space={space}
-          />
+          <SpectateProvider value={spectate}>
+            <Board
+              view={normalized.view}
+              mySeat={normalized.seat}
+              // Xem lại thì không gửi được nước đi nào; báo nhẹ thay vì im lặng.
+              send={() => showToast('Đang xem lại — không thao tác được', 'warn')}
+              // Deadline trong khung là mốc tuyệt đối của ngày hôm đó, hiện lại chỉ
+              // ra một đồng hồ đếm ngược sai bét. Xem lại thì bỏ hẳn.
+              deadline={null}
+              space={space}
+            />
+          </SpectateProvider>
         ) : (
           <Txt center>Game chưa hỗ trợ xem lại</Txt>
         )}
@@ -308,7 +322,7 @@ export default function ReplayScreen() {
                   </View>
                 );
               })}
-            {mine ? <Chip label={`${mine.ratingDelta > 0 ? '+' : ''}${mine.ratingDelta} rank`} icon="medal" color={mine.ratingDelta >= 0 ? C.mint : C.danger} soft={C.surfaceAlt} size={10} /> : null}
+            {mine ? <Chip label={`${mine.ratingDelta > 0 ? '+' : ''}${mine.ratingDelta} rank`} icon="trend" color={mine.ratingDelta >= 0 ? C.mint : C.danger} soft={C.surfaceAlt} size={10} /> : null}
           </View>
         ) : null}
       </View>
