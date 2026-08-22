@@ -80,6 +80,26 @@ after(() => {
 
 const users = {};
 
+/**
+ * Token admin, đăng nhập một lần rồi dùng lại. Gọi `/api/auth/login` nhiều lần
+ * trong một lượt chạy sẽ đụng bộ đếm chống dò mật khẩu và trả về 401.
+ */
+let adminToken = null;
+async function asAdmin() {
+  if (!adminToken) {
+    const r = await post('/api/auth/login', { login: 'admin', password: 'admin123' });
+    assert.equal(r.status, 200, 'đăng nhập admin');
+    adminToken = r.json.token;
+  }
+  return adminToken;
+}
+
+/** Nạp thêm coin cho một tài khoản test qua đường admin. */
+async function grantCoin(userId, amount) {
+  const r = await post(`/api/admin/users/${userId}/currency`, { currency: 'coin', amount }, await asAdmin());
+  assert.equal(r.status, 200, 'nạp coin cho tài khoản test');
+}
+
 test('đăng ký tài khoản mới và nhận tiền khởi đầu', async () => {
   for (const name of ['alpha', 'beta']) {
     const { status, json } = await post('/api/auth/register', { username: name, password: 'secret123' });
@@ -908,4 +928,122 @@ test('chat: từ chối file không phải ảnh và ảnh quá nặng', async (
   );
   assert.equal(tooBig.status, 400);
   assert.equal(tooBig.json.error, 'IMAGE_TOO_LARGE');
+});
+
+test('giải bang: chỉ chủ bang mở được, người ngoài bang không đăng ký được', async () => {
+  const owner = (await post('/api/auth/register', { username: 'cuponer', password: 'secret123' })).json;
+  const mate = (await post('/api/auth/register', { username: 'cupmate', password: 'secret123' })).json;
+  const outsider = (await post('/api/auth/register', { username: 'cupout', password: 'secret123' })).json;
+  const gid = (await post('/api/guilds', { name: 'Bang Cup', tag: 'CUP' }, owner.token)).json.guild.id;
+  await post(`/api/guilds/${gid}/join`, {}, mate.token);
+  // Lập bang đã ngốn hết 500 coin khởi đầu, nạp lại để còn treo giải.
+  await grantCoin(owner.profile.id, 500);
+
+  // Thành viên thường không mở được giải, chỉ chủ bang.
+  assert.equal(
+    (await post(`/api/guilds/${gid}/tournaments`, { gameType: 'caro', size: 4 }, mate.token)).json.error,
+    'NOT_ALLOWED',
+  );
+  assert.equal(
+    (await post(`/api/guilds/${gid}/tournaments`, { gameType: 'werewolf', size: 4 }, owner.token)).json.error,
+    'GAME_NOT_ELIGIBLE',
+  );
+
+  const made = await post(
+    `/api/guilds/${gid}/tournaments`,
+    { name: 'Cúp Bang', gameType: 'caro', size: 4, entryCoin: 20, basePrize: 100 },
+    owner.token,
+  );
+  assert.equal(made.status, 200);
+  const t = made.json.tournament;
+  assert.equal(t.guildId, gid);
+  assert.equal(t.isHost, true);
+  assert.equal(made.json.balance.coin, 400, 'tiền treo giải trừ thẳng vào ví chủ giải');
+
+  // Mỗi bang một giải đang chạy.
+  assert.equal(
+    (await post(`/api/guilds/${gid}/tournaments`, { gameType: 'caro', size: 4 }, owner.token)).json.error,
+    'TOURNAMENT_ONGOING',
+  );
+
+  // Giải bang không lẫn vào danh sách giải chung.
+  const publicList = (await get('/api/tournaments', outsider.token)).json.tournaments;
+  assert.ok(!publicList.some((x) => x.id === t.id), 'giải bang không hiện ở danh sách chung');
+
+  // Người ngoài bang biết id cũng không vào được, và không xem được danh sách.
+  assert.equal((await post(`/api/tournaments/${t.id}/join`, {}, outsider.token)).json.error, 'NOT_IN_GUILD');
+  assert.equal((await get(`/api/guilds/${gid}/tournaments`, outsider.token)).status, 403);
+
+  // Thành viên đăng ký được và thấy giải trong trang bang.
+  assert.equal((await post(`/api/tournaments/${t.id}/join`, {}, mate.token)).json.balance.coin, 480);
+  const inGuild = (await get('/api/guilds/me', mate.token)).json;
+  assert.equal(inGuild.tournaments.length, 1);
+  assert.equal(inGuild.tournaments[0].joined, true);
+  assert.equal(inGuild.tournaments[0].isHost, false, 'thành viên thường không phải chủ giải');
+  assert.equal(inGuild.tournaments[0].prizePool, 120, 'giải thưởng tính theo lệ phí đã thu thật');
+});
+
+test('giải bang: huỷ giải hoàn cả lệ phí lẫn tiền treo', async () => {
+  const owner = (await post('/api/auth/register', { username: 'cancelowner', password: 'secret123' })).json;
+  const mate = (await post('/api/auth/register', { username: 'cancelmate', password: 'secret123' })).json;
+  const gid = (await post('/api/guilds', { name: 'Bang Huy', tag: 'HUY' }, owner.token)).json.guild.id;
+  await post(`/api/guilds/${gid}/join`, {}, mate.token);
+  await grantCoin(owner.profile.id, 500);
+
+  const t = (
+    await post(`/api/guilds/${gid}/tournaments`, { gameType: 'caro', size: 4, entryCoin: 30, basePrize: 60 }, owner.token)
+  ).json.tournament;
+  await post(`/api/tournaments/${t.id}/join`, {}, mate.token);
+
+  // Người không phải chủ giải thì không huỷ được.
+  assert.equal((await post(`/api/tournaments/${t.id}/cancel`, {}, mate.token)).json.error, 'NOT_ALLOWED');
+  assert.equal((await post(`/api/tournaments/${t.id}/cancel`, {}, owner.token)).status, 200);
+
+  assert.equal((await get('/api/users/me', mate.token)).json.profile.coin, 500, 'lệ phí hoàn cho người đăng ký');
+  // 500 - 500 (lập bang) + 500 (nạp lại) - 60 + 60 hoàn tiền treo = 500.
+  assert.equal((await get('/api/users/me', owner.token)).json.profile.coin, 500, 'tiền treo hoàn cho chủ giải');
+  assert.equal((await get('/api/guilds/me', owner.token)).json.tournaments.length, 0);
+});
+
+test('giải bang: khai mạc sớm thì bảng thu nhỏ và người dư suất được miễn vòng đầu', async () => {
+  const owner = (await post('/api/auth/register', { username: 'byeowner', password: 'secret123' })).json;
+  const gid = (await post('/api/guilds', { name: 'Bang Bye', tag: 'BYE' }, owner.token)).json.guild.id;
+  const mates = [];
+  for (const n of ['bye1', 'bye2']) {
+    const u = (await post('/api/auth/register', { username: n, password: 'secret123' })).json;
+    await post(`/api/guilds/${gid}/join`, {}, u.token);
+    mates.push(u);
+  }
+
+  // Sức chứa 8 nhưng chỉ có 3 người ghi tên.
+  const t = (await post(`/api/guilds/${gid}/tournaments`, { gameType: 'caro', size: 8 }, owner.token)).json.tournament;
+  assert.equal((await post(`/api/tournaments/${t.id}/start`, {}, owner.token)).json.error, 'NOT_ENOUGH_PLAYERS');
+
+  await post(`/api/tournaments/${t.id}/join`, {}, owner.token);
+  await post(`/api/tournaments/${t.id}/join`, {}, mates[0].token);
+  await post(`/api/tournaments/${t.id}/join`, {}, mates[1].token);
+
+  // Thành viên thường không khai mạc được.
+  assert.equal((await post(`/api/tournaments/${t.id}/start`, {}, mates[0].token)).json.error, 'NOT_ALLOWED');
+
+  const started = (await post(`/api/tournaments/${t.id}/start`, {}, owner.token)).json.tournament;
+  assert.equal(started.status, 'running');
+  assert.equal(started.bracketSize, 4, '3 người thì bảng là 4 nhánh, không phải 8');
+  assert.equal(started.rounds, 2);
+
+  const r1 = started.bracket.filter((m) => m.round === 1);
+  assert.equal(r1.length, 2);
+  const bye = r1.find((m) => !m.p1 || !m.p2);
+  const real = r1.find((m) => m.p1 && m.p2);
+  assert.ok(bye, 'phải có đúng một cặp lẻ');
+  assert.ok(real, 'phải có đúng một cặp đá thật');
+  assert.equal(bye.winnerId, bye.p1 ?? bye.p2, 'người lẻ đi tiếp luôn');
+  assert.ok(!bye.matchId, 'suất miễn vòng đầu không mở trận thật');
+  assert.ok(real.matchId, 'cặp đủ người phải mở trận thật');
+
+  // Người được miễn đã đứng sẵn ở chung kết, chờ bên kia đá xong.
+  const finalMatch = started.bracket.find((m) => m.round === 2);
+  assert.equal(finalMatch.p1, bye.winnerId);
+  assert.equal(finalMatch.p2, null);
+  assert.ok(!finalMatch.matchId, 'chung kết chưa mở khi mới có một người');
 });

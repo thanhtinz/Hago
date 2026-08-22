@@ -504,12 +504,23 @@ for (const [table, column, type] of [
   ['guilds', 'notice', "TEXT NOT NULL DEFAULT ''"],
   ['guilds', 'notice_by', 'TEXT'],
   ['guilds', 'notice_at', 'INTEGER'],
+  // Giải đấu của bang: `guild_id` khác NULL thì giải chỉ thuộc về bang đó.
+  ['tournaments', 'guild_id', 'TEXT'],
+  ['tournaments', 'host_id', 'TEXT'],
+  // Số nhánh thật lúc khai mạc — có thể nhỏ hơn `size` nếu chủ giải bấm bắt
+  // đầu sớm, khi ấy bảng được thu về luỹ thừa 2 gần nhất và ai dư suất thì
+  // được miễn vòng đầu.
+  ['tournaments', 'bracket_size', 'INTEGER'],
 ] as const) {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
   if (!cols.some((c) => c.name === column)) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
   }
 }
+
+// Đặt sau vòng migrate vì cột `guild_id` do ALTER thêm vào, lúc chạy khối
+// schema ở trên nó chưa tồn tại.
+db.exec('CREATE INDEX IF NOT EXISTS tournaments_by_guild ON tournaments(guild_id)');
 
 export function nowMs(): number {
   return Date.now();

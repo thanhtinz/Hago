@@ -5,6 +5,8 @@ import { Avatar, Bar, Btn, Card, Chip, Empty, Field, SectionTitle, Txt } from '.
 import { ScreenHeader } from '../src/components/ScreenHeader';
 import { Icon, IconName } from '../src/components/Icon';
 import { Art, ArtName } from '../src/components/Art';
+import { Bracket } from '../src/components/Bracket';
+import { GameIcon, GameIconName } from '../src/components/GameIcon';
 import { C, R, S, softShadow } from '../src/theme';
 import { api, friendlyError } from '../src/lib/api';
 import { useStore } from '../src/state/store';
@@ -33,7 +35,10 @@ export default function GuildScreen() {
   const { showToast, profile } = useStore();
   const [data, setData] = useState<any>(null);
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState<'members' | 'quests' | 'logs' | 'requests'>('members');
+  const [tab, setTab] = useState<'members' | 'quests' | 'cups' | 'logs' | 'requests'>('members');
+  /** Id giải đang mở nhánh đấu; chỉ mở một cái để trang khỏi dài lê thê. */
+  const [openCup, setOpenCup] = useState<string | null>(null);
+  const [creatingCup, setCreatingCup] = useState(false);
   /** Đang sửa thông báo ghim; null là không sửa. */
   const [noticeDraft, setNoticeDraft] = useState<string | null>(null);
 
@@ -170,6 +175,7 @@ export default function GuildScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
           <TabBtn label="Thành viên" count={data.members.length} on={tab === 'members'} onPress={() => setTab('members')} />
           <TabBtn label="Nhiệm vụ bang" count={data.quests?.length ?? 0} on={tab === 'quests'} onPress={() => setTab('quests')} />
+          <TabBtn label="Giải đấu" count={data.tournaments?.length ?? 0} on={tab === 'cups'} onPress={() => setTab('cups')} />
           <TabBtn label="Nhật ký" on={tab === 'logs'} onPress={() => setTab('logs')} />
           {canManage ? (
             <TabBtn label="Đơn xin vào" count={data.requests.length} on={tab === 'requests'} onPress={() => setTab('requests')} />
@@ -194,6 +200,19 @@ export default function GuildScreen() {
           ) : (
             <Empty icon="list" title="Chưa có nhiệm vụ bang" />
           )
+        ) : null}
+
+        {tab === 'cups' ? (
+          <GuildCups
+            data={data}
+            meId={profile?.id}
+            isOwner={me === 'owner'}
+            openId={openCup}
+            creating={creatingCup}
+            onToggle={(id) => setOpenCup(openCup === id ? null : id)}
+            onCreating={setCreatingCup}
+            onAct={act}
+          />
         ) : null}
 
         {tab === 'logs' ? (
@@ -585,6 +604,7 @@ const LOG_ICON: Record<string, IconName> = {
   quest: 'trophy',
   level: 'trend',
   create: 'crown',
+  tournament: 'trophy',
 };
 
 function logText(l: any): string {
@@ -607,6 +627,10 @@ function logText(l: any): string {
       return `Bang hoàn thành nhiệm vụ "${l.detail}"`;
     case 'create':
       return `${who} lập bang`;
+    case 'tournament':
+      // Log giải ghi sẵn cả hành động lẫn tên giải trong `detail`; người vô địch
+      // nằm ở `targetName` còn người mở giải ở `actorName`.
+      return l.actorName ? `${who} ${l.detail}` : `${target} ${l.detail}`;
     default:
       return l.detail || 'Có thay đổi trong bang';
   }
@@ -726,6 +750,338 @@ function GuildQuestCard({ state, color, onClaim }: { state: any; color: string; 
           {state.claimedBy} thành viên đã nhận phần của mình
         </Txt>
       ) : null}
+    </Card>
+  );
+}
+
+/* --------------------------- giải đấu của bang --------------------------- */
+
+const CUP_STATUS: Record<string, { label: string; color: string; soft: string }> = {
+  open: { label: 'Đang nhận đăng ký', color: '#1F7A50', soft: '#DFF6EA' },
+  running: { label: 'Đang thi đấu', color: '#B8892B', soft: '#FFF1CF' },
+  finished: { label: 'Đã kết thúc', color: '#6B6480', soft: '#EFEDF4' },
+};
+
+/**
+ * Giải đấu nội bộ bang.
+ *
+ * Chủ bang mở giải, cả bang đăng ký, đủ suất là tự khai mạc — chủ bang cũng bấm
+ * khai mạc sớm được, khi ấy bảng thu về vừa số người đã ghi tên và ai dư suất
+ * thì được miễn vòng đầu, nên không phải ngồi chờ cho đủ 8 hay 16 người.
+ */
+function GuildCups({
+  data,
+  meId,
+  isOwner,
+  openId,
+  creating,
+  onToggle,
+  onCreating,
+  onAct,
+}: {
+  data: any;
+  meId?: string;
+  isOwner: boolean;
+  openId: string | null;
+  creating: boolean;
+  onToggle: (id: string) => void;
+  onCreating: (v: boolean) => void;
+  onAct: (fn: () => Promise<any>) => Promise<void>;
+}) {
+  const list: any[] = data.tournaments ?? [];
+  const hasOpen = list.some((t) => t.status !== 'finished');
+
+  return (
+    <>
+      {isOwner ? (
+        creating ? (
+          <CupForm
+            sizes={data.tournamentSizes ?? [4, 8, 16]}
+            guildId={data.guild.id}
+            onCancel={() => onCreating(false)}
+            onDone={async (fn) => {
+              await onAct(fn);
+              onCreating(false);
+            }}
+          />
+        ) : (
+          <Btn
+            label="Mở giải cho bang"
+            icon="trophy"
+            full
+            disabled={hasOpen}
+            onPress={() => onCreating(true)}
+          />
+        )
+      ) : null}
+      {isOwner && hasOpen && !creating ? (
+        <Txt size={11} color={C.inkFaint} center>
+          Xong giải đang chạy mới mở được giải mới
+        </Txt>
+      ) : null}
+
+      {list.length ? (
+        list.map((t) => {
+          const st = CUP_STATUS[t.status] ?? CUP_STATUS.open;
+          const expanded = openId === t.id;
+          return (
+            <Card key={t.id} style={{ gap: S.sm }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }}>
+                {/* GameIcon mặc định tô trắng cho thẻ gradient — nền sáng phải chỉ định tint */}
+                <GameIcon name={t.gameType as GameIconName} size={30} tint={C.secondary} />
+                <View style={{ flex: 1 }}>
+                  <Txt size={15} weight="display" numberOfLines={1}>
+                    {t.name}
+                  </Txt>
+                  <Txt size={11} color={C.inkFaint}>
+                    {t.players.length}/{t.size} người · thưởng {t.prizePool} coin
+                  </Txt>
+                </View>
+                <Chip label={st.label} color={st.color} soft={st.soft} size={10} />
+              </View>
+
+              {t.status === 'finished' && t.winnerId ? (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                    backgroundColor: C.sunSoft,
+                    borderRadius: R.md,
+                    padding: S.sm,
+                  }}
+                >
+                  <Art name="win" size={22} color="#B8892B" glyph />
+                  <Txt size={12} weight="bold" color="#7A5A00">
+                    Vô địch: {t.players.find((p: any) => p.user.id === t.winnerId)?.user.displayName ?? '—'}
+                  </Txt>
+                </View>
+              ) : null}
+
+              {t.status === 'open' && t.players.length ? (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {t.players.map((p: any) => (
+                    <View
+                      key={p.user.id}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 5,
+                        backgroundColor: p.user.id === meId ? C.primarySoft : C.surfaceAlt,
+                        borderRadius: R.pill,
+                        paddingRight: 10,
+                        paddingLeft: 3,
+                        paddingVertical: 3,
+                      }}
+                    >
+                      <Avatar seed={p.user.avatarSeed} styleName={p.user.avatarStyle} size={22} />
+                      <Txt size={11} weight="bold">
+                        {p.user.displayName}
+                      </Txt>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm, flexWrap: 'wrap' }}>
+                {t.entryCoin > 0 ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Icon name="coin" size={14} color={C.sun} />
+                    <Txt size={12} color={C.inkSoft}>
+                      Lệ phí {t.entryCoin}
+                    </Txt>
+                  </View>
+                ) : (
+                  <Txt size={12} color={C.mint}>
+                    Miễn phí
+                  </Txt>
+                )}
+                <View style={{ flex: 1 }} />
+                {t.status === 'open' ? (
+                  <>
+                    {t.isHost ? (
+                      <>
+                        <Btn
+                          label="Huỷ giải"
+                          size="sm"
+                          tone="ghost"
+                          onPress={() => onAct(() => api(`/api/tournaments/${t.id}/cancel`, { method: 'POST' }))}
+                        />
+                        <Btn
+                          label="Khai mạc"
+                          size="sm"
+                          tone="mint"
+                          disabled={t.players.length < 2}
+                          onPress={() => onAct(() => api(`/api/tournaments/${t.id}/start`, { method: 'POST' }))}
+                        />
+                      </>
+                    ) : null}
+                    <Btn
+                      label={t.joined ? 'Rút tên' : 'Đăng ký'}
+                      size="sm"
+                      tone={t.joined ? 'ghost' : 'primary'}
+                      onPress={() =>
+                        onAct(() =>
+                          api(`/api/tournaments/${t.id}/${t.joined ? 'leave' : 'join'}`, { method: 'POST' }),
+                        )
+                      }
+                    />
+                  </>
+                ) : (
+                  <Btn
+                    label={expanded ? 'Ẩn nhánh' : 'Xem nhánh'}
+                    size="sm"
+                    tone="ghost"
+                    onPress={() => onToggle(t.id)}
+                  />
+                )}
+              </View>
+
+              {expanded ? <Bracket t={t} meId={meId} /> : null}
+            </Card>
+          );
+        })
+      ) : (
+        <Empty
+          icon="trophy"
+          title="Bang chưa có giải nào"
+          hint={isOwner ? 'Mở một giải để cả bang có cớ tụ tập' : 'Chờ chủ bang mở giải nhé'}
+        />
+      )}
+    </>
+  );
+}
+
+/**
+ * Form mở giải. Chỉ liệt kê game 2 người vì nhánh loại trực tiếp cần mỗi cặp ra
+ * đúng một người thắng — server cũng chặn, đây chỉ là chặn sớm cho đỡ bực.
+ */
+function CupForm({
+  sizes,
+  guildId,
+  onCancel,
+  onDone,
+}: {
+  sizes: number[];
+  guildId: string;
+  onCancel: () => void;
+  onDone: (fn: () => Promise<any>) => Promise<void>;
+}) {
+  const [games, setGames] = useState<any[]>([]);
+  const [name, setName] = useState('');
+  const [gameType, setGameType] = useState<string>('');
+  const [size, setSize] = useState<number>(sizes[0] ?? 4);
+  const [entryCoin, setEntryCoin] = useState('0');
+  const [basePrize, setBasePrize] = useState('0');
+
+  React.useEffect(() => {
+    api<{ games: any[] }>('/api/games').then((r) => {
+      const duo = r.games.filter((g: any) => g.minPlayers === 2 && g.maxPlayers === 2);
+      setGames(duo);
+      setGameType((cur) => cur || duo[0]?.id || '');
+    });
+  }, []);
+
+  const num = (v: string) => Math.max(0, Math.floor(Number(v.replace(/[^0-9]/g, '')) || 0));
+
+  return (
+    <Card style={{ gap: S.md }}>
+      <SectionTitle title="Mở giải cho bang" />
+      <Field label="Tên giải" value={name} onChangeText={setName} placeholder="Cúp mùa hè của bang" maxLength={40} />
+
+      <View style={{ gap: 6 }}>
+        <Txt size={12} weight="bold" color={C.inkSoft}>
+          Bộ môn
+        </Txt>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
+          {games.map((g) => (
+            <Pressable
+              key={g.id}
+              onPress={() => setGameType(g.id)}
+              style={{
+                alignItems: 'center',
+                gap: 4,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: R.md,
+                borderWidth: 2,
+                borderColor: gameType === g.id ? C.primary : C.line,
+                backgroundColor: gameType === g.id ? C.primarySoft : C.surface,
+              }}
+            >
+              <GameIcon name={g.id as GameIconName} size={26} tint={gameType === g.id ? C.primary : C.inkSoft} />
+              <Txt size={11} weight="bold">
+                {g.name}
+              </Txt>
+            </Pressable>
+          ))}
+        </ScrollView>
+      </View>
+
+      <View style={{ gap: 6 }}>
+        <Txt size={12} weight="bold" color={C.inkSoft}>
+          Số suất
+        </Txt>
+        <View style={{ flexDirection: 'row', gap: S.sm }}>
+          {sizes.map((n) => (
+            <Pressable
+              key={n}
+              onPress={() => setSize(n)}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                paddingVertical: 10,
+                borderRadius: R.md,
+                borderWidth: 2,
+                borderColor: size === n ? C.primary : C.line,
+                backgroundColor: size === n ? C.primarySoft : C.surface,
+              }}
+            >
+              <Txt size={14} weight="bold">
+                {n}
+              </Txt>
+            </Pressable>
+          ))}
+        </View>
+        <Txt size={11} color={C.inkFaint}>
+          Đủ suất là tự khai mạc. Chưa đủ thì bạn bấm khai mạc sớm, ai dư suất được miễn vòng đầu.
+        </Txt>
+      </View>
+
+      <View style={{ flexDirection: 'row', gap: S.sm }}>
+        <View style={{ flex: 1 }}>
+          <Field label="Lệ phí mỗi người" value={entryCoin} onChangeText={setEntryCoin} keyboardType="number-pad" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Field label="Tiền treo giải" value={basePrize} onChangeText={setBasePrize} keyboardType="number-pad" />
+        </View>
+      </View>
+      <Txt size={11} color={C.inkFaint}>
+        Tiền treo giải trừ vào ví bạn ngay khi mở. Huỷ giải thì hoàn lại đủ.
+      </Txt>
+
+      <View style={{ flexDirection: 'row', gap: S.sm }}>
+        <Btn label="Thôi" tone="ghost" onPress={onCancel} style={{ flex: 1 }} />
+        <Btn
+          label="Mở giải"
+          disabled={!gameType}
+          style={{ flex: 1 }}
+          onPress={() =>
+            onDone(() =>
+              api(`/api/guilds/${guildId}/tournaments`, {
+                method: 'POST',
+                body: {
+                  name: name.trim(),
+                  gameType,
+                  size,
+                  entryCoin: num(entryCoin),
+                  basePrize: num(basePrize),
+                },
+              }),
+            )
+          }
+        />
+      </View>
     </Card>
   );
 }

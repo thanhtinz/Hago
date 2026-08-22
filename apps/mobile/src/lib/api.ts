@@ -117,6 +117,7 @@ export const ERROR_TEXT: Record<string, string> = {
   NOT_JOINED: 'Bạn chưa đăng ký giải này',
   GAME_NOT_ELIGIBLE: 'Game này không mở giải đấu được',
   BAD_SIZE: 'Số suất phải là 4, 8 hoặc 16',
+  TOURNAMENT_ONGOING: 'Bang đang có một giải chưa xong',
 };
 
 export function friendlyError(code: string): string {

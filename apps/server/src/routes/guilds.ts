@@ -22,6 +22,7 @@ import {
 } from '../services/guilds';
 import { guildLogs } from '../services/guildLog';
 import { claimGuildQuest, guildQuestStates } from '../services/guildQuests';
+import { TOURNAMENT_SIZES, createGuildTournament, listGuildTournaments } from '../services/tournaments';
 import { db } from '../db';
 import { track } from '../services/analytics';
 
@@ -51,6 +52,8 @@ guildsRouter.get('/me', requireAuth, (req, res) => {
     quests: guildQuestStates(mine.id, req.auth!.sub),
     logs: guildLogs(mine.id, 30),
     checkin: guildCheckinState(req.auth!.sub),
+    tournaments: listGuildTournaments(mine.id, req.auth!.sub),
+    tournamentSizes: TOURNAMENT_SIZES,
     cost: GUILD_COST,
     balance: balanceOf(req.auth!.sub),
   });
@@ -60,6 +63,27 @@ guildsRouter.get('/me', requireAuth, (req, res) => {
 guildsRouter.put('/:id/notice', requireAuth, (req, res) => {
   try {
     res.json({ guild: setNotice(req.auth!.sub, req.params.id, String(req.body?.notice ?? '')) });
+  } catch (e: any) {
+    fail(res, e);
+  }
+});
+
+/* ---------------------------- giải đấu của bang --------------------------- */
+
+guildsRouter.get('/:id/tournaments', requireAuth, (req, res) => {
+  // Nhánh đấu của bang chỉ người trong bang xem — id bang là thứ ai cũng thấy.
+  const m = db
+    .prepare('SELECT 1 AS x FROM guild_members WHERE guild_id = ? AND user_id = ?')
+    .get(req.params.id, req.auth!.sub);
+  if (!m) return res.status(403).json({ error: 'NOT_IN_GUILD' });
+  res.json({ tournaments: listGuildTournaments(req.params.id, req.auth!.sub), sizes: TOURNAMENT_SIZES });
+});
+
+guildsRouter.post('/:id/tournaments', requireAuth, (req, res) => {
+  try {
+    const tournament = createGuildTournament(req.auth!.sub, req.params.id, req.body ?? {});
+    track(req.auth!.sub, 'guild_tournament_create', { guildId: req.params.id, gameType: tournament.gameType });
+    res.json({ tournament, balance: balanceOf(req.auth!.sub) });
   } catch (e: any) {
     fail(res, e);
   }

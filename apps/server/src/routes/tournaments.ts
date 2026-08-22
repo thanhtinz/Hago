@@ -3,10 +3,12 @@ import { requireAuth } from '../auth';
 import { balanceOf } from '../services/economy';
 import {
   TOURNAMENT_SIZES,
+  cancelTournament,
   createTournament,
   joinTournament,
   leaveTournament,
   listTournaments,
+  startTournament,
   toTournamentView,
 } from '../services/tournaments';
 import { db } from '../db';
@@ -41,7 +43,24 @@ tournamentsRouter.post('/:id/leave', requireAuth, (req, res) => {
   }
 });
 
-/** Tạo giải là việc của admin — người chơi chỉ đăng ký. */
+/** Chủ giải bang bấm khai mạc sớm, không phải chờ đủ suất. */
+tournamentsRouter.post('/:id/start', requireAuth, (req, res) => {
+  try {
+    res.json({ tournament: startTournament(req.auth!.sub, req.params.id) });
+  } catch (e: any) {
+    fail(res, e);
+  }
+});
+
+tournamentsRouter.post('/:id/cancel', requireAuth, (req, res) => {
+  try {
+    res.json(cancelTournament(req.auth!.sub, req.params.id));
+  } catch (e: any) {
+    fail(res, e);
+  }
+});
+
+/** Tạo giải chung là việc của admin; giải bang đi qua route của bang. */
 tournamentsRouter.post('/', requireAuth, (req, res) => {
   if (!req.auth!.admin) return res.status(403).json({ error: 'FORBIDDEN' });
   try {

@@ -161,11 +161,24 @@ tài khoản bị khoá.
 
 | Method | Endpoint | Mô tả |
 |---|---|---|
-| GET | `/api/tournaments` | Giải đang mở, đang chạy và vừa kết thúc |
+| GET | `/api/tournaments` | Giải chung đang mở, đang chạy và vừa kết thúc |
 | GET | `/api/tournaments/:id` | Một giải kèm danh sách người và nhánh đấu |
-| POST | `/api/tournaments` | Tạo giải (admin) — `{name, gameType, size, entryCoin?, basePrize?}` |
+| POST | `/api/tournaments` | Tạo giải chung (admin) — `{name, gameType, size, entryCoin?, basePrize?}` |
 | POST | `/api/tournaments/:id/join` | Đăng ký, trừ lệ phí; đủ suất là tự khai mạc |
 | POST | `/api/tournaments/:id/leave` | Rút tên trước khai mạc, hoàn lệ phí |
+| POST | `/api/tournaments/:id/start` | Chủ giải khai mạc sớm (từ 2 người) |
+| POST | `/api/tournaments/:id/cancel` | Chủ giải huỷ khi chưa khai mạc, hoàn hết tiền |
+
+Chỉ nhận game đúng 2 người. Sức chứa là 4, 8 hoặc 16; đủ suất thì tự khai mạc.
+
+Khai mạc sớm thì bảng **thu về luỹ thừa 2 vừa đủ** số người đã ghi tên (`bracketSize`,
+có thể nhỏ hơn `size`) chứ không để nửa bảng rỗng. Hạt giống xếp theo rating rồi
+ghép 1-N, 2-(N-1)…, nên chỗ trống rơi đúng vào đối thủ của các hạt giống đầu:
+**miễn vòng đầu chỉ có ở vòng 1** và mỗi cặp nhiều nhất một suất trống. Người được
+miễn vào thẳng vòng sau, không mở trận thật (`matchId` để trống).
+
+`prizePool` = tiền treo giải + lệ phí **đã thu thật**, nên trước khi đủ suất con số
+hiện ra vẫn đúng với số tiền đang có.
 
 ### Bang hội
 
@@ -186,10 +199,19 @@ tài khoản bị khoá.
 | GET | `/api/guilds/:id/logs?limit=` | Nhật ký bang |
 | POST | `/api/guilds/checkin` | Điểm danh bang, mỗi ngày một lần |
 | POST | `/api/guilds/quests/:questId/claim` | Nhận phần của mình khi bang xong nhiệm vụ |
+| GET | `/api/guilds/:id/tournaments` | Giải của bang (chỉ thành viên xem được) |
+| POST | `/api/guilds/:id/tournaments` | Chủ bang mở giải — `{name?, gameType, size, entryCoin?, basePrize?}` |
 
-`GET /api/guilds/me` nay trả thêm `quests` (nhiệm vụ bang tuần này), `logs` và
-`checkin`. Nhiệm vụ bang có tiến độ **chung của cả bang** theo tuần ISO; xong thì
+`GET /api/guilds/me` nay trả thêm `quests` (nhiệm vụ bang tuần này), `logs`,
+`checkin` và `tournaments` (giải của bang). Nhiệm vụ bang có tiến độ **chung của cả bang** theo tuần ISO; xong thì
 mỗi thành viên tự vào nhận phần riêng, một lần một người một tuần.
+
+**Giải đấu của bang.** Chỉ chủ bang mở được, và mỗi bang chỉ một giải chưa kết thúc
+tại một thời điểm — mở chồng nhau thì một người bị gọi vào hai trận cùng lúc. Giải
+bang không hiện ở `GET /api/tournaments`, và người ngoài bang biết id cũng không
+đăng ký được. Tiền treo giải trừ thẳng vào ví người mở (huỷ giải thì hoàn đủ), lệ
+phí vẫn thu của người đăng ký như giải chung. Khai mạc, huỷ, đăng ký và rút tên
+đều đi qua các route `/api/tournaments/:id/...` ở trên.
 
 Chat bang dùng chung `chat.send` / `chat.history` với `channelId = "guild:<id>"`.
 Cả hai chỉ nhận `channelId` mà người gọi là thành viên của kênh.

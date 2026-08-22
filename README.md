@@ -32,6 +32,10 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/50-guild-find.png) | ![](docs/screenshots/52-guild-home.png) | ![](docs/screenshots/53-guild-chat.png) |
 
+| Mở giải cho bang | Giải bang đang nhận đăng ký | Nhánh bang có suất miễn vòng |
+|---|---|---|
+| ![](docs/screenshots/77-guild-cup-form.png) | ![](docs/screenshots/79-guild-cup-joined.png) | ![](docs/screenshots/82-guild-cup-bye.png) |
+
 | Hồ sơ | Menu ba vạch | Túi đồ |
 |---|---|---|
 | ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/06b-profile-menu.png) | ![](docs/screenshots/05-inventory.png) |
@@ -239,6 +243,19 @@ rating rồi ghép 1–N, 2–(N‑1)… để hai người mạnh nhất chỉ 
 cặp trong nhánh là một trận thật** chạy qua đúng hệ trận đấu sẵn có — cùng luật, cùng
 tính giờ, cùng reconnect — giải chỉ nối các trận lại và biết ai đi tiếp. Lệ phí gộp
 vào giải thưởng, vô địch 70% và á quân 30%; rút tên trước khai mạc thì hoàn tiền.
+
+**Giải đấu của bang** — chủ bang tự mở giải cho bang mình, đi qua đúng bộ máy nhánh
+đấu ở trên nên không có nhánh nào chạy song song hai kiểu. Khác giải chung ở ba chỗ.
+Một, giải bang là sân riêng: không hiện ở danh sách giải chung và người ngoài bang
+biết id cũng không đăng ký được. Hai, tiền treo giải trừ thẳng vào ví người mở chứ
+không sinh từ hư không — không thì ai cũng gõ được một con số to rồi tự đăng ký lấy
+về; huỷ giải khi chưa khai mạc thì hoàn đủ cho cả chủ giải lẫn người đã ghi tên. Ba,
+chủ giải **bấm khai mạc sớm** được thay vì ngồi chờ đủ 8 hay 16 người: bảng khi ấy
+thu về luỹ thừa 2 vừa đủ số người đã ghi tên, và vì vẫn ghép 1–N nên chỗ trống rơi
+đúng vào đối thủ của các hạt giống đầu — **miễn vòng đầu chỉ có ở vòng 1**, mỗi cặp
+nhiều nhất một suất trống, nhánh vẫn cân. Mỗi bang chỉ một giải chưa kết thúc tại
+một thời điểm, vì mở chồng nhau thì một người bị gọi vào hai trận cùng lúc mà nhánh
+nào cũng cần họ đánh xong mới đi tiếp.
 
 **Cosmetic & tiền tệ** — 19 cosmetic và **cả 8 loại đều có tác dụng thật**: khung
 avatar, danh hiệu dưới tên, nền hồ sơ, bong bóng chat, theme mặt bàn cờ, hiệu ứng ăn

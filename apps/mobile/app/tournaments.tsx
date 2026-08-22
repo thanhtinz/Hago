@@ -6,16 +6,16 @@ import { ScreenHeader } from '../src/components/ScreenHeader';
 import { Icon } from '../src/components/Icon';
 import { GameIcon, GameIconName } from '../src/components/GameIcon';
 import { Art } from '../src/components/Art';
-import { C, R, S, softShadow } from '../src/theme';
+import { Bracket } from '../src/components/Bracket';
+import { C, R, S } from '../src/theme';
 import { api, friendlyError } from '../src/lib/api';
 import { useStore } from '../src/state/store';
 
 /**
  * Giải đấu loại trực tiếp.
  *
- * Nhánh đấu vẽ thành các cột: cột đầu là vòng ngoài, cột cuối là chung kết.
- * Cuộn ngang vì bảng 16 người có 4 vòng, nhét vừa bề ngang điện thoại thì chữ
- * bé đến mức không đọc được.
+ * Danh sách giải chung do admin mở. Giải riêng của bang nằm trong trang bang.
+ * Nhánh đấu dùng chung component `Bracket`.
  */
 const STATUS: Record<string, { label: string; color: string; soft: string }> = {
   open: { label: 'Đang nhận đăng ký', color: '#1F7A50', soft: '#DFF6EA' },
@@ -165,64 +165,5 @@ export default function TournamentsScreen() {
         )}
       </ScrollView>
     </View>
-  );
-}
-
-/** Nhánh đấu: mỗi vòng một cột, cuộn ngang. */
-function Bracket({ t, meId }: { t: any; meId?: string }) {
-  const name = (id: string | null) =>
-    id ? t.players.find((p: any) => p.user.id === id)?.user.displayName ?? '—' : 'Chờ';
-  const rounds = Array.from({ length: t.rounds }, (_, i) =>
-    t.bracket.filter((m: any) => m.round === i + 1).sort((a: any, b: any) => a.slot - b.slot),
-  );
-  const roundLabel = (i: number) =>
-    i === t.rounds - 1 ? 'Chung kết' : i === t.rounds - 2 ? 'Bán kết' : `Vòng ${i + 1}`;
-
-  return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingVertical: 4 }}>
-      {rounds.map((ms, i) => (
-        <View key={i} style={{ gap: 8, justifyContent: 'space-around' }}>
-          <Txt size={10} weight="bold" color={C.inkFaint} center>
-            {roundLabel(i)}
-          </Txt>
-          {ms.map((m: any) => (
-            <View
-              key={m.slot}
-              style={[
-                { width: 132, borderRadius: R.md, borderWidth: 2, borderColor: C.line, overflow: 'hidden' },
-                m.winnerId ? null : softShadow(0.1, 6, 2),
-              ]}
-            >
-              {[m.p1, m.p2].map((pid: string | null, k: number) => {
-                const won = !!m.winnerId && m.winnerId === pid;
-                const lost = !!m.winnerId && !!pid && m.winnerId !== pid;
-                return (
-                  <View
-                    key={k}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 5,
-                      paddingHorizontal: 8,
-                      paddingVertical: 6,
-                      backgroundColor: won ? C.mintSoft : C.surface,
-                      borderTopWidth: k ? 1 : 0,
-                      borderColor: C.line,
-                      opacity: lost ? 0.55 : 1,
-                    }}
-                  >
-                    {/* Người thắng có dấu tích, không chỉ đổi màu nền */}
-                    {won ? <Icon name="check" size={12} color="#1F7A50" strokeWidth={3} /> : null}
-                    <Txt size={11} weight={won ? 'bold' : 'medium'} numberOfLines={1} style={{ flex: 1 }} color={pid === meId ? C.primary : C.ink}>
-                      {name(pid)}
-                    </Txt>
-                  </View>
-                );
-              })}
-            </View>
-          ))}
-        </View>
-      ))}
-    </ScrollView>
   );
 }

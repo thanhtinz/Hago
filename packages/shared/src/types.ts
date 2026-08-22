@@ -322,7 +322,8 @@ export type GuildLogKind =
   | 'notice'
   | 'quest'
   | 'level'
-  | 'create';
+  | 'create'
+  | 'tournament';
 
 export interface GuildLogRow {
   id: string;
