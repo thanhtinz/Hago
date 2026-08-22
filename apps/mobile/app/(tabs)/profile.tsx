@@ -3,12 +3,13 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Avatar, Bar, Btn, Card, Chip, Empty, SectionTitle, Txt } from '../../src/components/ui';
+import { Avatar, Bar, Card, Chip, Empty, SectionTitle, Txt } from '../../src/components/ui';
 import { Icon, IconName } from '../../src/components/Icon';
 import { GameIcon, GameIconName } from '../../src/components/GameIcon';
 import { Bubbles, DotPattern } from '../../src/components/decor';
 import { C, HERO_GRADIENT, R, S, softShadow } from '../../src/theme';
 import { PlayerTitle, useBackgroundColors } from '../../src/components/Cosmetic';
+import { MenuButton, MenuItem, MenuSheet } from '../../src/components/MenuSheet';
 import { api } from '../../src/lib/api';
 import { useStore } from '../../src/state/store';
 import { rankArt } from '../../src/lib/rank';
@@ -24,8 +25,20 @@ const GAME_NAMES: Record<string, string> = {
 };
 const LEVEL_CURVE = (level: number) => Math.round(60 * (level - 1) + 12 * Math.pow(level - 1, 2));
 
+/** Mọi lối đi khác từ hồ sơ, gom vào menu ba vạch thay vì rải nút ra trang. */
+const MENU: MenuItem[] = [
+  { label: 'Túi đồ', icon: 'gift', route: '/inventory' },
+  { label: 'Nhiệm vụ', icon: 'list', route: '/quests' },
+  { label: 'Giải đấu', icon: 'trophy', route: '/tournaments' },
+  { label: 'Bang hội', icon: 'shield', route: '/guild' },
+  { label: 'Bảng xếp hạng', icon: 'trend', route: '/leaderboard' },
+  { label: 'Thông báo', icon: 'bell', route: '/notifications' },
+  { label: 'Cài đặt', icon: 'settings', route: '/settings' },
+];
+
 export default function ProfileScreen() {
-  const { profile, logout, refresh } = useStore();
+  const { profile, logout, refresh, unread } = useStore();
+  const [menu, setMenu] = useState(false);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [achievements, setAchievements] = useState<any[]>([]);
@@ -68,6 +81,7 @@ export default function ProfileScreen() {
   const unlocked = achievements.filter((a) => a.unlockedAt);
 
   return (
+    <>
     <ScrollView
       style={{ flex: 1, backgroundColor: C.bg }}
       contentContainerStyle={{ paddingBottom: 40 }}
@@ -88,6 +102,9 @@ export default function ProfileScreen() {
         }}
       >
         <DotPattern rows={4} cols={9} />
+        <View style={{ position: 'absolute', right: S.lg, top: Math.max(insets.top, 12) + 6 }}>
+          <MenuButton onPress={() => setMenu(true)} badge={unread} />
+        </View>
         <Bubbles spec={[{ size: 150, right: -50, top: -60, alpha: 0.14 }, { size: 90, left: -34, bottom: -30, alpha: 0.12 }]} />
         <Avatar seed={profile.avatarSeed} styleName={profile.avatarStyle} frameId={profile.frameId} size={96} ring="rgba(255,255,255,0.45)" />
         <Txt size={24} weight="display" color="#fff">
@@ -126,19 +143,7 @@ export default function ProfileScreen() {
         <Stat label="Tỉ lệ" value={`${winRate}%`} icon="trend" tone={C.secondary} />
       </View>
 
-      <View style={{ padding: S.lg, gap: S.md }}>
-        <View style={{ flexDirection: 'row', gap: S.sm, flexWrap: 'wrap' }}>
-          <Btn label="Túi đồ" icon="gift" tone="ghost" size="sm" onPress={() => router.push('/inventory')} />
-          <Btn label="Nhiệm vụ" icon="list" tone="ghost" size="sm" onPress={() => router.push('/quests')} />
-          <Btn label="Giải đấu" icon="trophy" tone="ghost" size="sm" onPress={() => router.push('/tournaments')} />
-          <Btn label="Bang hội" icon="shield" tone="ghost" size="sm" onPress={() => router.push('/guild')} />
-          <Btn label="BXH" icon="trophy" tone="ghost" size="sm" onPress={() => router.push('/leaderboard')} />
-          <Btn label="Thông báo" icon="bell" tone="ghost" size="sm" onPress={() => router.push('/notifications')} />
-          <Btn label="Cài đặt" icon="settings" tone="ghost" size="sm" onPress={() => router.push('/settings')} />
-        </View>
-      </View>
-
-      <View style={{ paddingHorizontal: S.lg, gap: S.md }}>
+      <View style={{ paddingHorizontal: S.lg, paddingTop: S.lg, gap: S.md }}>
         <SectionTitle title="Thành tựu" icon="medal" action={<Txt size={12} weight="bold" color={C.inkFaint}>{unlocked.length}/{achievements.length}</Txt>} />
         <Card style={{ gap: S.md }}>
           {achievements.length ? (
@@ -212,10 +217,23 @@ export default function ProfileScreen() {
         </Card>
       </View>
 
-      <View style={{ padding: S.lg }}>
-        <Btn label="Đăng xuất" icon="logout" tone="danger" full onPress={logout} />
-      </View>
     </ScrollView>
+
+      <MenuSheet
+        visible={menu}
+        items={MENU}
+        onClose={() => setMenu(false)}
+        onPick={(route) => {
+          // Đóng trước rồi mới đi, không thì menu còn nằm đè lên màn mới.
+          setMenu(false);
+          router.push(route as any);
+        }}
+        onLogout={() => {
+          setMenu(false);
+          logout();
+        }}
+      />
+    </>
   );
 }
 

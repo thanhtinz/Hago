@@ -32,13 +32,13 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/50-guild-find.png) | ![](docs/screenshots/52-guild-home.png) | ![](docs/screenshots/53-guild-chat.png) |
 
-| Hồ sơ | Nhiệm vụ | Túi đồ |
+| Hồ sơ | Menu ba vạch | Túi đồ |
 |---|---|---|
-| ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/07-quests.png) | ![](docs/screenshots/05-inventory.png) |
+| ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/06b-profile-menu.png) | ![](docs/screenshots/05-inventory.png) |
 
-| Bảng xếp hạng | Thông báo | Cài đặt |
+| Nhiệm vụ | Bảng xếp hạng | Thông báo |
 |---|---|---|
-| ![](docs/screenshots/08-leaderboard.png) | ![](docs/screenshots/09-notifications.png) | ![](docs/screenshots/10-settings.png) |
+| ![](docs/screenshots/07-quests.png) | ![](docs/screenshots/08-leaderboard.png) | ![](docs/screenshots/09-notifications.png) |
 
 ### 7 mini game
 

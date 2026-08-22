@@ -36,6 +36,7 @@ export type IconName =
   | 'shield'
   | 'trend'
   | 'list'
+  | 'menu'
   | 'grid'
   | 'door'
   | 'key'
@@ -247,6 +248,15 @@ function render(name: IconName, p: any, color: string) {
         <>
           <Polyline points="4 16 9.5 10.5 13 14 20 7" {...p} />
           <Polyline points="15 7 20 7 20 12" {...p} />
+        </>
+      );
+    case 'menu':
+      // Ba vạch ngang, vạch giữa ngắn hơn cho ra dáng nút menu chứ không lẫn với 'list'.
+      return (
+        <>
+          <Path d="M4 7h16" {...p} />
+          <Path d="M4 12h11" {...p} />
+          <Path d="M4 17h16" {...p} />
         </>
       );
     case 'list':
