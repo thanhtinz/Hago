@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Avatar, Bar, Btn, Card, Chip, Empty, Field, SectionTitle, Txt } from '../src/components/ui';
@@ -56,6 +56,18 @@ export default function GuildScreen() {
       load();
     }, [load]),
   );
+
+  /**
+   * Giải chưa xong thì phải tự làm mới: chủ giải bấm khai mạc, giờ hẹn tới, đối
+   * thủ bấm vào trận hay cửa sổ chờ hết hạn — đều xảy ra ở máy chủ chứ không do
+   * người đang xem bấm gì. Giải đã kết thúc hết thì thôi, không nã vô ích.
+   */
+  const waiting = (data?.tournaments ?? []).some((t: any) => t.status !== 'finished');
+  useEffect(() => {
+    if (!waiting) return;
+    const timer = setInterval(load, 5000);
+    return () => clearInterval(timer);
+  }, [waiting, load]);
 
   const act = async (fn: () => Promise<any>) => {
     try {
@@ -756,6 +768,18 @@ function GuildQuestCard({ state, color, onClaim }: { state: any; color: string; 
 
 /* --------------------------- giải đấu của bang --------------------------- */
 
+/** Mốc hẹn khai mạc, tính bằng phút kể từ lúc bấm mở giải. */
+const DELAYS = [
+  { mins: 0, label: 'Khi đủ suất' },
+  { mins: 15, label: 'Sau 15 phút' },
+  { mins: 30, label: 'Sau 30 phút' },
+  { mins: 60, label: 'Sau 1 giờ' },
+  { mins: 180, label: 'Sau 3 giờ' },
+];
+
+/** Cửa sổ chờ có mặt của mỗi cặp, tính bằng phút. */
+const WAITS = [0, 3, 5, 10, 15];
+
 const CUP_STATUS: Record<string, { label: string; color: string; soft: string }> = {
   open: { label: 'Đang nhận đăng ký', color: '#1F7A50', soft: '#DFF6EA' },
   running: { label: 'Đang thi đấu', color: '#B8892B', soft: '#FFF1CF' },
@@ -839,6 +863,17 @@ function GuildCups({
                 </View>
                 <Chip label={st.label} color={st.color} soft={st.soft} size={10} />
               </View>
+
+              {t.status === 'open' && t.startAt ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Icon name="clock" size={14} color={C.inkFaint} strokeWidth={2.2} />
+                  <Txt size={12} color={C.inkSoft}>
+                    Khai mạc {whenText(t.startAt)}
+                  </Txt>
+                </View>
+              ) : null}
+
+              {t.call ? <CupCall call={t.call} players={t.players} onReady={() => onAct(() => api(`/api/tournaments/${t.id}/ready`, { method: 'POST' }))} /> : null}
 
               {t.status === 'finished' && t.winnerId ? (
                 <View
@@ -973,6 +1008,9 @@ function CupForm({
   const [size, setSize] = useState<number>(sizes[0] ?? 4);
   const [entryCoin, setEntryCoin] = useState('0');
   const [basePrize, setBasePrize] = useState('0');
+  /** Phút kể từ bây giờ, 0 là khai mạc ngay khi đủ suất. */
+  const [delay, setDelay] = useState(0);
+  const [wait, setWait] = useState(5);
 
   React.useEffect(() => {
     api<{ games: any[] }>('/api/games').then((r) => {
@@ -1048,6 +1086,38 @@ function CupForm({
         </Txt>
       </View>
 
+      <View style={{ gap: 6 }}>
+        <Txt size={12} weight="bold" color={C.inkSoft}>
+          Giờ khai mạc
+        </Txt>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.sm }}>
+          {DELAYS.map((d) => (
+            <PickChip key={d.mins} label={d.label} on={delay === d.mins} onPress={() => setDelay(d.mins)} />
+          ))}
+        </View>
+        <Txt size={11} color={C.inkFaint}>
+          {delay === 0
+            ? 'Đủ suất là khai mạc luôn; chưa đủ thì bạn bấm khai mạc sớm.'
+            : `Tới giờ mới khai mạc, kể cả đã đủ suất — ${whenText(Date.now() + delay * 60_000)}. Không đủ hai người thì giải tự huỷ và hoàn tiền.`}
+        </Txt>
+      </View>
+
+      <View style={{ gap: 6 }}>
+        <Txt size={12} weight="bold" color={C.inkSoft}>
+          Thời gian chờ có mặt mỗi trận
+        </Txt>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.sm }}>
+          {WAITS.map((w) => (
+            <PickChip key={w} label={w === 0 ? 'Vào thẳng' : `${w} phút`} on={wait === w} onPress={() => setWait(w)} />
+          ))}
+        </View>
+        <Txt size={11} color={C.inkFaint}>
+          {wait === 0
+            ? 'Tới lượt là vào trận ngay, không cần xác nhận.'
+            : `Tới lượt, hai bên có ${wait} phút để bấm vào trận. Hết giờ mà chỉ một người có mặt thì người kia bị xử thua.`}
+        </Txt>
+      </View>
+
       <View style={{ flexDirection: 'row', gap: S.sm }}>
         <View style={{ flex: 1 }}>
           <Field label="Lệ phí mỗi người" value={entryCoin} onChangeText={setEntryCoin} keyboardType="number-pad" />
@@ -1076,6 +1146,10 @@ function CupForm({
                   size,
                   entryCoin: num(entryCoin),
                   basePrize: num(basePrize),
+                  // Gửi mốc tuyệt đối chứ không gửi "sau bao nhiêu phút": máy
+                  // chủ nhận trễ vài giây thì giờ hẹn vẫn đúng cái người ta thấy.
+                  startAt: delay ? Date.now() + delay * 60_000 : null,
+                  noShowMinutes: wait,
                 },
               }),
             )
@@ -1084,4 +1158,81 @@ function CupForm({
       </View>
     </Card>
   );
+}
+
+/**
+ * Lời gọi vào trận. Người chơi có đúng một cửa sổ vài phút để bấm; hết giờ mà
+ * chỉ một bên có mặt thì bên kia bị xử thua, nên đồng hồ phải đếm ngược thật
+ * chứ không chỉ ghi "còn vài phút".
+ */
+function CupCall({ call, players, onReady }: { call: any; players: any[]; onReady: () => void }) {
+  const [left, setLeft] = useState(() => call.deadline - Date.now());
+  useEffect(() => {
+    setLeft(call.deadline - Date.now());
+    const t = setInterval(() => setLeft(call.deadline - Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [call.deadline]);
+
+  const rival = players.find((p: any) => p.user.id === call.opponentId)?.user.displayName ?? 'đối thủ';
+  const secs = Math.max(0, Math.round(left / 1000));
+  const clock = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+
+  return (
+    <View style={{ backgroundColor: C.sunSoft, borderRadius: R.md, padding: S.md, gap: S.sm }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Icon name="clock" size={18} color="#9A6B00" strokeWidth={2.3} />
+        <Txt size={13} weight="bold" color="#7A5A00" style={{ flex: 1 }}>
+          Tới lượt bạn gặp {rival}
+        </Txt>
+        <Txt size={16} weight="display" color="#7A5A00">
+          {clock}
+        </Txt>
+      </View>
+      {call.iAmReady ? (
+        <Txt size={12} color="#7A5A00">
+          Bạn đã sẵn sàng. {call.rivalReady ? 'Đang mở trận...' : `Chờ ${rival} vào, hết giờ là bạn thắng.`}
+        </Txt>
+      ) : (
+        <>
+          <Txt size={12} color="#7A5A00">
+            Không bấm trước khi hết giờ thì bị xử thua vắng mặt.
+          </Txt>
+          <Btn label="Vào trận" icon="bolt" tone="sun" full onPress={onReady} />
+        </>
+      )}
+    </View>
+  );
+}
+
+/** Viên thuốc chọn một giá trị trong dãy ngắn — dùng cho giờ hẹn và thời gian chờ. */
+function PickChip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        paddingHorizontal: 14,
+        paddingVertical: 9,
+        borderRadius: R.pill,
+        borderWidth: 2,
+        borderColor: on ? C.primary : C.line,
+        backgroundColor: on ? C.primarySoft : C.surface,
+      }}
+    >
+      <Txt size={12} weight="bold" color={on ? C.primary : C.inkSoft}>
+        {label}
+      </Txt>
+    </Pressable>
+  );
+}
+
+/** "20:30 hôm nay" / "09:00 ngày mai" / "09:00 12/8" — đủ để biết có kịp không. */
+function whenText(at: number): string {
+  const d = new Date(at);
+  const hhmm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const day = (x: Date) => `${x.getFullYear()}-${x.getMonth()}-${x.getDate()}`;
+  const now = new Date();
+  const tomorrow = new Date(now.getTime() + 86400_000);
+  if (day(d) === day(now)) return `${hhmm} hôm nay`;
+  if (day(d) === day(tomorrow)) return `${hhmm} ngày mai`;
+  return `${hhmm} ${d.getDate()}/${d.getMonth() + 1}`;
 }

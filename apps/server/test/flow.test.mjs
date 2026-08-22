@@ -1046,8 +1046,10 @@ test('giải bang: khai mạc sớm thì bảng thu nhỏ và người dư suấ
     mates.push(u);
   }
 
-  // Sức chứa 8 nhưng chỉ có 3 người ghi tên.
-  const t = (await post(`/api/guilds/${gid}/tournaments`, { gameType: 'caro', size: 8 }, owner.token)).json.tournament;
+  // Sức chứa 8 nhưng chỉ có 3 người ghi tên. `noShowMinutes: 0` để vào trận
+  // thẳng, phần chờ có mặt đã có test riêng.
+  const t = (await post(`/api/guilds/${gid}/tournaments`, { gameType: 'caro', size: 8, noShowMinutes: 0 }, owner.token))
+    .json.tournament;
   assert.equal((await post(`/api/tournaments/${t.id}/start`, {}, owner.token)).json.error, 'NOT_ENOUGH_PLAYERS');
 
   await post(`/api/tournaments/${t.id}/join`, {}, owner.token);
@@ -1172,4 +1174,126 @@ test('đấu lại: từ chối thì xoá lời rủ, trận trong giải thì k
   assert.equal(await playCaroToWin(tid, Object.fromEntries(inMatch.map((id) => [id, tsock(id)]))), true);
   await new Promise((r) => setTimeout(r, 600));
   assert.equal((await ack(tsock(inMatch[0]), 'match.rematch', { matchId: tid })).error, 'TOURNAMENT_MATCH');
+});
+
+test('giải bang: hẹn giờ thì đủ suất cũng chưa chạy, tới giờ mới khai mạc', async () => {
+  const owner = (await post('/api/auth/register', { username: 'clockowner', password: 'secret123' })).json;
+  const mate = (await post('/api/auth/register', { username: 'clockmate', password: 'secret123' })).json;
+  const gid = (await post('/api/guilds', { name: 'Bang Hen Gio', tag: 'HG' }, owner.token)).json.guild.id;
+  await post(`/api/guilds/${gid}/join`, {}, mate.token);
+
+  assert.equal(
+    (await post(`/api/guilds/${gid}/tournaments`, { gameType: 'caro', size: 4, startAt: Date.now() - 60_000 }, owner.token))
+      .json.error,
+    'BAD_START_TIME',
+  );
+  assert.equal(
+    (await post(
+      `/api/guilds/${gid}/tournaments`,
+      { gameType: 'caro', size: 4, startAt: Date.now() + 40 * 86400_000 },
+      owner.token,
+    )).json.error,
+    'SCHEDULE_TOO_FAR',
+  );
+
+  // Hẹn 4 giây nữa, bảng 2 suất để đăng ký xong là "đủ suất".
+  // Hẹn 3 giây nữa; nhịp quét 1 giây nên chờ 5 giây là chắc chắn đã tới lượt.
+  const startAt = Date.now() + 3000;
+  const t = (
+    await post(`/api/guilds/${gid}/tournaments`, { gameType: 'caro', size: 4, startAt, noShowMinutes: 0 }, owner.token)
+  ).json.tournament;
+  assert.equal(t.startAt, startAt);
+  assert.equal(t.noShowMs, 0);
+
+  await post(`/api/tournaments/${t.id}/join`, {}, owner.token);
+  await post(`/api/tournaments/${t.id}/join`, {}, mate.token);
+  assert.equal((await get(`/api/tournaments/${t.id}`, owner.token)).json.tournament.status, 'open', 'chưa tới giờ thì chưa chạy');
+
+  await new Promise((r) => setTimeout(r, 5000));
+  assert.equal((await get(`/api/tournaments/${t.id}`, owner.token)).json.tournament.status, 'running', 'tới giờ phải tự khai mạc');
+});
+
+test('giải bang: tới giờ mà không đủ người thì tự huỷ và hoàn tiền', async () => {
+  const owner = (await post('/api/auth/register', { username: 'lonelyowner', password: 'secret123' })).json;
+  const gid = (await post('/api/guilds', { name: 'Bang Vang', tag: 'VG' }, owner.token)).json.guild.id;
+  await grantCoin(owner.profile.id, 500);
+
+  const t = (
+    await post(
+      `/api/guilds/${gid}/tournaments`,
+      { gameType: 'caro', size: 4, entryCoin: 40, basePrize: 100, startAt: Date.now() + 3000 },
+      owner.token,
+    )
+  ).json.tournament;
+  await post(`/api/tournaments/${t.id}/join`, {}, owner.token);
+  assert.equal((await get('/api/users/me', owner.token)).json.profile.coin, 360, '500 - 100 treo giải - 40 lệ phí');
+
+  await new Promise((r) => setTimeout(r, 5000));
+  assert.equal((await get(`/api/tournaments/${t.id}`, owner.token)).status, 404, 'giải phải bị xoá');
+  assert.equal((await get('/api/users/me', owner.token)).json.profile.coin, 500, 'hoàn cả lệ phí lẫn tiền treo');
+  assert.equal((await get(`/api/guilds/${gid}/tournaments`, owner.token)).json.tournaments.length, 0);
+});
+
+test('giải bang: hết cửa sổ chờ, ai có mặt thì thắng và đi tiếp', async () => {
+  const owner = (await post('/api/auth/register', { username: 'showowner', password: 'secret123' })).json;
+  const mate = (await post('/api/auth/register', { username: 'showmate', password: 'secret123' })).json;
+  const gid = (await post('/api/guilds', { name: 'Bang Vang Mat', tag: 'VM' }, owner.token)).json.guild.id;
+  await post(`/api/guilds/${gid}/join`, {}, mate.token);
+
+  // Cửa sổ chờ 0.1 phút = 6 giây, đủ để test mà không phải đợi lâu.
+  const t = (
+    await post(`/api/guilds/${gid}/tournaments`, { gameType: 'caro', size: 4, noShowMinutes: 0.1 }, owner.token)
+  ).json.tournament;
+  assert.equal(t.noShowMs, 6000);
+
+  await post(`/api/tournaments/${t.id}/join`, {}, owner.token);
+  await post(`/api/tournaments/${t.id}/join`, {}, mate.token);
+  await post(`/api/tournaments/${t.id}/start`, {}, owner.token);
+
+  // Khai mạc xong là chờ xác nhận, chưa có trận thật nào.
+  const called = (await get(`/api/tournaments/${t.id}`, owner.token)).json.tournament;
+  const pair = called.bracket.find((m) => m.p1 && m.p2);
+  assert.ok(pair.readyDeadline, 'cặp đủ người phải mở cửa sổ chờ');
+  assert.equal(pair.matchId, null, 'chưa ai xác nhận thì chưa mở trận thật');
+  assert.ok(called.call, 'người trong cặp phải nhận được lời gọi vào trận');
+  assert.equal(called.call.iAmReady, false);
+
+  // Chỉ chủ bang bấm vào trận.
+  const afterReady = (await post(`/api/tournaments/${t.id}/ready`, {}, owner.token)).json.tournament;
+  assert.equal(afterReady.call.iAmReady, true);
+  assert.equal(afterReady.bracket.find((m) => m.p1 && m.p2).matchId, null, 'một mình thì vẫn chưa vào trận');
+  // Người ngoài cặp không xác nhận hộ được.
+  assert.equal((await post(`/api/tournaments/${t.id}/ready`, {}, users.alpha.token)).json.error, 'NO_PENDING_MATCH');
+
+  await new Promise((r) => setTimeout(r, 7500));
+  const done = (await get(`/api/tournaments/${t.id}`, owner.token)).json.tournament;
+  const settled = done.bracket.find((m) => m.round === 1 && m.p1 && m.p2);
+  assert.equal(settled.winnerId, owner.profile.id, 'người có mặt thắng do đối thủ vắng');
+  assert.equal(settled.matchId, null, 'xử vắng mặt thì không mở trận thật');
+  assert.equal(settled.readyDeadline, null, 'xử xong phải đóng cửa sổ chờ');
+  assert.equal(done.status, 'finished', 'bảng 2 nhánh nên thắng luôn là vô địch');
+  assert.equal(done.winnerId, owner.profile.id);
+});
+
+test('giải bang: cả hai xác nhận thì trận thật mở ngay, không đợi hết giờ', async () => {
+  const owner = (await post('/api/auth/register', { username: 'bothowner', password: 'secret123' })).json;
+  const mate = (await post('/api/auth/register', { username: 'bothmate', password: 'secret123' })).json;
+  const gid = (await post('/api/guilds', { name: 'Bang Du Mat', tag: 'DM' }, owner.token)).json.guild.id;
+  await post(`/api/guilds/${gid}/join`, {}, mate.token);
+
+  const t = (
+    await post(`/api/guilds/${gid}/tournaments`, { gameType: 'caro', size: 4, noShowMinutes: 10 }, owner.token)
+  ).json.tournament;
+  await post(`/api/tournaments/${t.id}/join`, {}, owner.token);
+  await post(`/api/tournaments/${t.id}/join`, {}, mate.token);
+  await post(`/api/tournaments/${t.id}/start`, {}, owner.token);
+
+  await post(`/api/tournaments/${t.id}/ready`, {}, owner.token);
+  const live = (await post(`/api/tournaments/${t.id}/ready`, {}, mate.token)).json.tournament;
+  const pair = live.bracket.find((m) => m.p1 && m.p2);
+  assert.ok(pair.matchId, 'đủ hai người xác nhận là mở trận thật ngay');
+  assert.equal(live.call, null, 'mở trận rồi thì hết lời gọi');
+
+  // Giải chưa khai mạc thì không có gì để xác nhận.
+  assert.equal((await post(`/api/tournaments/${t.id}/ready`, {}, owner.token)).json.error, 'NO_PENDING_MATCH');
 });

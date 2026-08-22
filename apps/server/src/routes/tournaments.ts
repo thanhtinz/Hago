@@ -8,6 +8,7 @@ import {
   joinTournament,
   leaveTournament,
   listTournaments,
+  markReady,
   startTournament,
   toTournamentView,
 } from '../services/tournaments';
@@ -55,6 +56,15 @@ tournamentsRouter.post('/:id/start', requireAuth, (req, res) => {
 tournamentsRouter.post('/:id/cancel', requireAuth, (req, res) => {
   try {
     res.json(cancelTournament(req.auth!.sub, req.params.id));
+  } catch (e: any) {
+    fail(res, e);
+  }
+});
+
+/** Xác nhận có mặt khi tới lượt; đủ hai người là trận mở ngay. */
+tournamentsRouter.post('/:id/ready', requireAuth, (req, res) => {
+  try {
+    res.json({ tournament: markReady(req.auth!.sub, req.params.id) });
   } catch (e: any) {
     fail(res, e);
   }

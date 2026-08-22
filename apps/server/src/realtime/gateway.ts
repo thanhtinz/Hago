@@ -19,7 +19,7 @@ import { bindNotificationEmitter, bindPresenceCheck, notify } from '../services/
 import { track } from '../services/analytics';
 import * as Rooms from './rooms';
 import * as MM from './matchmaking';
-import { bindTournamentRunner, reportMatch } from '../services/tournaments';
+import { bindTournamentRunner, reportMatch, tickTournaments } from '../services/tournaments';
 import { SpectateError, joinSpectate, leaveSpectate, liveMatchesFor, spectatingMatch } from '../services/spectate';
 import { askedFor, declineRematch, isTournamentMatch, offerRematch } from './rematch';
 import {
@@ -36,6 +36,14 @@ import {
 let io: Server;
 
 const socketsOfUser = new Map<string, Set<string>>();
+
+/**
+ * Nhịp quét lịch giải đấu. Quét cùng nhịp 200ms với engine thì chỉ tổ nện DB,
+ * nhưng thưa quá thì giờ khai mạc trễ đúng bằng khoảng cách hai nhịp — hẹn 20h
+ * mà 20:00:03 mới chạy thì người ta thấy ngay. Một giây là chỗ đứng vừa phải,
+ * mỗi nhịp chỉ có hai câu truy vấn đã đánh chỉ mục.
+ */
+const TOURNAMENT_TICK_MS = 1_000;
 const chatLimiter = new RateLimiter(CONFIG.chatRateLimit.windowMs, CONFIG.chatRateLimit.max);
 const actionLimiter = new RateLimiter(CONFIG.actionRateLimit.windowMs, CONFIG.actionRateLimit.max);
 
@@ -129,15 +137,17 @@ export function initGateway(server: HttpServer): Server {
    * Giải đấu mở trận qua đúng đường của trận thường: cùng createMatch, cùng
    * sự kiện match.start, nên client không cần biết trận này nằm trong nhánh.
    */
-  bindTournamentRunner((gameType, a, b) => {
+  bindTournamentRunner((gameType, a, b, tournamentId) => {
     const players: EnginePlayer[] = [a, b].map((id, seat) => ({
       id,
       name: findUser(id)?.display_name ?? 'Player',
       seat,
     }));
     const match = createMatch({ roomId: null, gameType, mode: 'ranked', players });
+    // Kèm `tournamentId` để client biết đây là trận của giải mà nhảy vào thẳng,
+    // dù người chơi đang đứng ở màn nào.
     players.forEach((p) =>
-      emitToUser(p.id, 'match.start', { matchId: match.id, gameType, mode: 'ranked', roomId: null }),
+      emitToUser(p.id, 'match.start', { matchId: match.id, gameType, mode: 'ranked', roomId: null, tournamentId }),
     );
     pushMatchState(match);
     return match.id;
@@ -544,6 +554,15 @@ export function initGateway(server: HttpServer): Server {
       console.error('[tick]', e);
     }
   }, CONFIG.tickMs);
+
+  // Giờ khai mạc và cửa sổ chờ có mặt.
+  setInterval(() => {
+    try {
+      tickTournaments(nowMs());
+    } catch (e) {
+      console.error('[tournament-tick]', e);
+    }
+  }, TOURNAMENT_TICK_MS);
 
   return io;
 }

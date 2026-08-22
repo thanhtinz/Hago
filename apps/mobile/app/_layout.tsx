@@ -21,7 +21,7 @@ import { Toast } from '../src/components/Toast';
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function Gate() {
-  const { ready, profile } = useStore();
+  const { ready, profile, socket } = useStore();
   const segments = useSegments();
   const router = useRouter();
 
@@ -32,6 +32,20 @@ function Gate() {
     if (!profile && !inAuth) router.replace('/login');
     if (profile && inAuth) router.replace('/');
   }, [ready, profile, segments, router]);
+
+  /**
+   * Trận của giải đấu đến lúc nào là vào lúc đó, người chơi có thể đang đứng ở
+   * bất cứ màn nào — nên bắt ở gốc chứ không bắt trong từng màn. Trận thường và
+   * trận đấu lại đã có màn của nó lo, ở đây bỏ qua.
+   */
+  useEffect(() => {
+    if (!socket) return;
+    const onStart = (m: any) => m?.tournamentId && router.replace(`/match/${m.matchId}`);
+    socket.on('match.start', onStart);
+    return () => {
+      socket.off('match.start', onStart);
+    };
+  }, [socket, router]);
 
   if (!ready) {
     return (

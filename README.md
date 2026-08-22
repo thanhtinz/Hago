@@ -36,6 +36,10 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/77-guild-cup-form.png) | ![](docs/screenshots/79-guild-cup-joined.png) | ![](docs/screenshots/82-guild-cup-bye.png) |
 
+| Hẹn giờ và thời gian chờ | Gọi vào trận, đếm ngược | Đối thủ cũng được gọi |
+|---|---|---|
+| ![](docs/screenshots/86-guild-cup-schedule.png) | ![](docs/screenshots/88-guild-cup-call.png) | ![](docs/screenshots/87-guild-cup-rival-call.png) |
+
 | Rủ đấu lại | Đối thủ rủ đấu lại | Ván mới, đổi lượt đi trước |
 |---|---|---|
 | ![](docs/screenshots/83-rematch-offer.png) | ![](docs/screenshots/84-rematch-asked.png) | ![](docs/screenshots/85-rematch-new-match.png) |
@@ -260,6 +264,22 @@ thu về luỹ thừa 2 vừa đủ số người đã ghi tên, và vì vẫn g
 nhiều nhất một suất trống, nhánh vẫn cân. Mỗi bang chỉ một giải chưa kết thúc tại
 một thời điểm, vì mở chồng nhau thì một người bị gọi vào hai trận cùng lúc mà nhánh
 nào cũng cần họ đánh xong mới đi tiếp.
+
+**Hẹn giờ và xử vắng mặt** — hai thứ khiến giải bang chạy được với người thật chứ
+không chỉ với người đang ngồi sẵn trong app. Chủ bang hẹn giờ khai mạc, và khi ấy đủ
+suất cũng chưa chạy: đủ suất mà chạy luôn thì người đăng ký từ sáng bị gọi vào trận
+lúc đang ăn cơm. Tới giờ mà không đủ hai người thì giải tự huỷ, hoàn cả lệ phí lẫn
+tiền treo, vì mỗi bang chỉ được một giải chưa kết thúc nên để nó nằm đó là chắn chỗ
+của giải sau.
+
+Tới lượt mỗi cặp, trận **chưa mở ngay**: hai bên có một cửa sổ vài phút (chủ bang
+đặt, 0–15 phút) để bấm *Vào trận*. Đủ hai người xác nhận là vào luôn, không đợi hết
+giờ. Hết giờ mà chỉ một người có mặt thì người đó thắng và đi tiếp không cần đánh;
+cả hai vắng thì hạt giống cao hơn đi tiếp. Không có luật này thì cả nhánh đứng chờ
+một người đã đi ngủ, mà giải loại trực tiếp thì một cặp treo là cả bảng treo.
+
+Trận của giải kéo người chơi vào thẳng dù họ đang ở màn nào — `match.start` mang theo
+`tournamentId` và được bắt ở gốc điều hướng, chứ không phải chỉ ở màn tìm trận.
 
 **Đấu lại** — hết trận, bảng kết quả có nút rủ đối thủ đánh ván nữa: một người bấm
 là thành lời rủ, người kia gật là vào luôn, không phải quay về sảnh tìm trận lại từ

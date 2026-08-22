@@ -19,12 +19,17 @@ import { toPublicUser } from './users';
  * Giải có hai loại. Giải chung do admin mở, ai cũng đăng ký được. Giải bang do
  * chủ bang mở (`guild_id` khác NULL), chỉ thành viên bang đó vào được và chỉ
  * hiện trong trang bang — hai danh sách không lẫn vào nhau.
+ *
+ * Giải hẹn giờ được: đặt `start_at` thì đủ suất cũng chưa chạy, phải tới giờ mới
+ * khai mạc. Và mỗi cặp có **cửa sổ xác nhận có mặt** (`no_show_ms`): tới lượt thì
+ * hai bên phải bấm vào trận, hết giờ mà chỉ một người có mặt thì người kia bị xử
+ * thua vắng mặt — không thì cả nhánh đứng chờ một người đã đi ngủ.
  */
 
 export const TOURNAMENT_SIZES = [4, 8, 16] as const;
 
 /** Gateway gắn hàm mở trận vào đây; service không gọi ngược lên tầng realtime. */
-type StartMatch = (gameType: GameType, a: string, b: string) => string | null;
+type StartMatch = (gameType: GameType, a: string, b: string, tournamentId: string) => string | null;
 let startMatch: StartMatch = () => null;
 export function bindTournamentRunner(fn: StartMatch): void {
   startMatch = fn;
@@ -56,6 +61,13 @@ export function bracketSizeFor(players: number): number {
 /** Cỡ bảng đang dùng — khai mạc rồi thì lấy cỡ đã chốt, chưa thì lấy sức chứa. */
 const sizeOf = (t: any): number => t.bracket_size || t.size;
 
+/** Cửa sổ xác nhận có mặt mặc định của giải bang. */
+export const DEFAULT_NO_SHOW_MS = 5 * 60_000;
+/** Chặn trên cho cửa sổ chờ: quá nửa tiếng thì cả bang ngồi không. */
+export const MAX_NO_SHOW_MS = 30 * 60_000;
+/** Hẹn giờ xa nhất: 7 ngày. Xa hơn thì người đăng ký quên mất là có giải. */
+export const MAX_SCHEDULE_MS = 7 * 86400_000;
+
 export function toTournamentView(t: any, viewerId?: string) {
   const players = db
     .prepare(
@@ -83,6 +95,8 @@ export function toTournamentView(t: any, viewerId?: string) {
     prizePool: prizePool(t),
     status: t.status,
     winnerId: t.winner_id,
+    startAt: t.start_at ?? null,
+    noShowMs: t.no_show_ms ?? 0,
     startedAt: t.started_at,
     endedAt: t.ended_at,
     joined: viewerId ? players.some((p) => p.id === viewerId) : false,
@@ -95,7 +109,29 @@ export function toTournamentView(t: any, viewerId?: string) {
       p2: m.p2,
       winnerId: m.winner_id,
       matchId: m.match_id,
+      readyDeadline: m.ready_deadline ?? null,
+      ready: [!!m.ready_p1, !!m.ready_p2],
     })),
+    // Lời gọi vào trận dành riêng cho người đang xem: client chỉ cần đọc chỗ này
+    // là biết có phải bấm gì không, khỏi tự dò cả nhánh.
+    call: viewerId ? callFor(matches, viewerId) : null,
+  };
+}
+
+/** Cặp đang chờ chính người này xác nhận có mặt, nếu có. */
+function callFor(matches: any[], viewerId: string) {
+  const m = matches.find(
+    (x) => x.ready_deadline && !x.winner_id && !x.match_id && (x.p1 === viewerId || x.p2 === viewerId),
+  );
+  if (!m) return null;
+  const mine = m.p1 === viewerId;
+  return {
+    round: m.round,
+    slot: m.slot,
+    deadline: m.ready_deadline,
+    opponentId: mine ? m.p2 : m.p1,
+    iAmReady: !!(mine ? m.ready_p1 : m.ready_p2),
+    rivalReady: !!(mine ? m.ready_p2 : m.ready_p1),
   };
 }
 
@@ -126,16 +162,30 @@ export function createTournament(input: {
   basePrize?: number;
   guildId?: string | null;
   hostId?: string | null;
+  /** Mốc thời gian khai mạc; bỏ trống thì đủ suất là chạy. */
+  startAt?: number | null;
+  /** Cửa sổ xác nhận có mặt của mỗi cặp, tính bằng mili giây. */
+  noShowMs?: number;
 }) {
   const meta = GAME_CATALOG[input.gameType];
   if (!meta) throw new Error('GAME_NOT_FOUND');
   if (meta.maxPlayers !== 2 || meta.minPlayers !== 2) throw new Error('GAME_NOT_ELIGIBLE');
   if (!TOURNAMENT_SIZES.includes(input.size as any)) throw new Error('BAD_SIZE');
 
+  const startAt = input.startAt ? Math.floor(Number(input.startAt)) : null;
+  if (startAt !== null) {
+    // Hẹn vào quá khứ thì giải khai mạc ngay ở nhịp quét sau, người đăng ký
+    // không kịp trở tay; hẹn quá xa thì tới hôm đó chẳng ai nhớ.
+    if (!Number.isFinite(startAt) || startAt < nowMs()) throw new Error('BAD_START_TIME');
+    if (startAt > nowMs() + MAX_SCHEDULE_MS) throw new Error('SCHEDULE_TOO_FAR');
+  }
+  const noShowMs = Math.min(MAX_NO_SHOW_MS, Math.max(0, Math.floor(Number(input.noShowMs ?? 0))));
+
   const id = nid();
   db.prepare(
-    `INSERT INTO tournaments (id, name, game_type, size, entry_coin, base_prize, status, created_at, guild_id, host_id)
-     VALUES (?,?,?,?,?,?,'open',?,?,?)`,
+    `INSERT INTO tournaments (id, name, game_type, size, entry_coin, base_prize, status, created_at, guild_id,
+                              host_id, start_at, no_show_ms)
+     VALUES (?,?,?,?,?,?,'open',?,?,?,?,?)`,
   ).run(
     id,
     String(input.name ?? '').trim().slice(0, 40) || `Giải ${meta.name}`,
@@ -146,6 +196,8 @@ export function createTournament(input: {
     nowMs(),
     input.guildId ?? null,
     input.hostId ?? null,
+    startAt,
+    noShowMs,
   );
   return toTournamentView(row(id), input.hostId ?? undefined);
 }
@@ -168,7 +220,15 @@ function guildRole(guildId: string, userId: string): string | null {
 export function createGuildTournament(
   userId: string,
   guildId: string,
-  input: { name?: string; gameType: GameType; size: number; entryCoin?: number; basePrize?: number },
+  input: {
+    name?: string;
+    gameType: GameType;
+    size: number;
+    entryCoin?: number;
+    basePrize?: number;
+    startAt?: number | null;
+    noShowMinutes?: number;
+  },
 ) {
   if (guildRole(guildId, userId) !== 'owner') throw new Error('NOT_ALLOWED');
   const open = db
@@ -181,9 +241,14 @@ export function createGuildTournament(
   const basePrize = Math.max(0, Math.floor(Number(input.basePrize ?? 0)));
   if (basePrize > 0) mutateCurrency(userId, 'coin', -basePrize, 'guild_tournament_prize', guildId);
 
+  // Giải bang mặc định có cửa sổ chờ: thành viên bang không ngồi sẵn trong app
+  // cả ngày như người đang bấm tìm trận, phải cho họ vài phút để vào.
+  const noShowMs =
+    input.noShowMinutes === undefined ? DEFAULT_NO_SHOW_MS : Math.round(Number(input.noShowMinutes) * 60_000);
+
   let t;
   try {
-    t = createTournament({ ...input, name: input.name ?? '', basePrize, guildId, hostId: userId });
+    t = createTournament({ ...input, name: input.name ?? '', basePrize, guildId, hostId: userId, noShowMs });
   } catch (e) {
     if (basePrize > 0) mutateCurrency(userId, 'coin', basePrize, 'guild_tournament_refund', guildId);
     throw e;
@@ -252,8 +317,9 @@ export function joinTournament(userId: string, id: string) {
     nowMs(),
   );
 
-  // Đủ suất là khai mạc luôn, không bắt ai phải bấm nút bắt đầu.
-  if (count + 1 >= t.size) start(id);
+  // Đủ suất là khai mạc luôn — trừ khi giải đã hẹn giờ, khi ấy phải đợi đúng
+  // giờ đã hẹn, không thì người đăng ký sớm bị gọi vào trận lúc chưa sẵn sàng.
+  if (count + 1 >= t.size && !t.start_at) start(id);
   return toTournamentView(row(id), userId);
 }
 
@@ -335,6 +401,9 @@ function resolveByes(id: string, round: number): void {
  * suất miễn vòng đầu đều đi qua đây.
  */
 function advance(id: string, round: number, slot: number, winner: string): void {
+  db.prepare(
+    'UPDATE tournament_matches SET ready_deadline = NULL WHERE tournament_id = ? AND round = ? AND slot = ?',
+  ).run(id, round, slot);
   db.prepare('UPDATE tournament_matches SET winner_id = ? WHERE tournament_id = ? AND round = ? AND slot = ?').run(
     winner,
     id,
@@ -356,20 +425,153 @@ function advance(id: string, round: number, slot: number, winner: string): void 
   openRound(id, round + 1);
 }
 
-/** Mở tất cả trận của một vòng đã đủ hai người. */
+/**
+ * Mở tất cả cặp đã đủ hai người của một vòng.
+ *
+ * Giải không đặt cửa sổ chờ thì vào trận thẳng như cũ. Có cửa sổ chờ thì chỉ
+ * gọi tên và bấm giờ; trận thật chỉ mở khi cả hai bấm vào trận, hoặc bị xử vắng
+ * mặt khi hết giờ (`resolveNoShows`).
+ */
 function openRound(id: string, round: number): void {
   const t = row(id);
   const pairs = db
-    .prepare('SELECT * FROM tournament_matches WHERE tournament_id = ? AND round = ? AND match_id IS NULL')
+    .prepare(
+      `SELECT * FROM tournament_matches WHERE tournament_id = ? AND round = ?
+       AND match_id IS NULL AND winner_id IS NULL AND ready_deadline IS NULL`,
+    )
     .all(id, round) as any[];
   for (const m of pairs) {
     if (!m.p1 || !m.p2) continue;
-    const matchId = startMatch(t.game_type as GameType, m.p1, m.p2);
-    if (!matchId) continue;
+    if (!t.no_show_ms) {
+      launchPair(t, m);
+      continue;
+    }
+    const deadline = nowMs() + t.no_show_ms;
     db.prepare(
-      'UPDATE tournament_matches SET match_id = ? WHERE tournament_id = ? AND round = ? AND slot = ?',
-    ).run(matchId, id, round, m.slot);
+      'UPDATE tournament_matches SET ready_deadline = ? WHERE tournament_id = ? AND round = ? AND slot = ?',
+    ).run(deadline, id, round, m.slot);
+    const mins = Math.round(t.no_show_ms / 60_000);
+    for (const uid of [m.p1, m.p2]) {
+      notify(uid, 'event', 'Tới lượt bạn thi đấu', `${t.name} — vào trận trong ${mins} phút, không thì xử thua`, {
+        tournamentId: id,
+      });
+    }
   }
+}
+
+/** Mở trận thật cho một cặp và ghi lại `match_id`. */
+function launchPair(t: any, m: any): boolean {
+  const matchId = startMatch(t.game_type as GameType, m.p1, m.p2, t.id);
+  if (!matchId) return false;
+  db.prepare('UPDATE tournament_matches SET match_id = ? WHERE tournament_id = ? AND round = ? AND slot = ?').run(
+    matchId,
+    t.id,
+    m.round,
+    m.slot,
+  );
+  return true;
+}
+
+/**
+ * Xác nhận có mặt. Cả hai bấm xong là trận mở ngay, không đợi hết cửa sổ —
+ * đúng giờ mà cả hai đã sẵn sàng thì bắt chờ thêm chẳng để làm gì.
+ */
+export function markReady(userId: string, tournamentId: string) {
+  const t = row(tournamentId);
+  if (!t) throw new Error('TOURNAMENT_NOT_FOUND');
+  if (t.status !== 'running') throw new Error('TOURNAMENT_NOT_RUNNING');
+  const m = db
+    .prepare(
+      `SELECT * FROM tournament_matches WHERE tournament_id = ? AND ready_deadline IS NOT NULL
+       AND winner_id IS NULL AND match_id IS NULL AND (p1 = ? OR p2 = ?)`,
+    )
+    .get(tournamentId, userId, userId) as any;
+  if (!m) throw new Error('NO_PENDING_MATCH');
+
+  const col = m.p1 === userId ? 'ready_p1' : 'ready_p2';
+  db.prepare(
+    `UPDATE tournament_matches SET ${col} = ? WHERE tournament_id = ? AND round = ? AND slot = ?`,
+  ).run(nowMs(), tournamentId, m.round, m.slot);
+
+  const both = (m.p1 === userId ? m.ready_p2 : m.ready_p1) != null;
+  if (both) launchPair(t, m);
+  return toTournamentView(row(tournamentId), userId);
+}
+
+/**
+ * Hết cửa sổ chờ mà chưa đủ mặt: ai có mặt thì đi tiếp, cả hai vắng thì hạt
+ * giống cao hơn đi tiếp — giải không được phép treo vì một người bỏ cuộc.
+ */
+function resolveNoShows(now: number): void {
+  const due = db
+    .prepare(
+      `SELECT * FROM tournament_matches WHERE ready_deadline IS NOT NULL AND ready_deadline <= ?
+       AND winner_id IS NULL AND match_id IS NULL`,
+    )
+    .all(now) as any[];
+
+  for (const m of due) {
+    const t = row(m.tournament_id);
+    if (!t || t.status !== 'running') continue;
+
+    const p1Ready = m.ready_p1 != null;
+    const p2Ready = m.ready_p2 != null;
+    if (p1Ready && p2Ready) {
+      // Cả hai đã sẵn sàng mà trận chưa mở được (gateway trả null) — thử lại.
+      if (launchPair(t, m)) continue;
+    }
+
+    const winner = p1Ready && !p2Ready ? m.p1 : p2Ready && !p1Ready ? m.p2 : seedWinner(m);
+    if (!winner) continue;
+    const loser = winner === m.p1 ? m.p2 : m.p1;
+
+    db.prepare('UPDATE tournament_matches SET ready_deadline = NULL WHERE tournament_id = ? AND round = ? AND slot = ?')
+      .run(m.tournament_id, m.round, m.slot);
+    notify(winner, 'event', 'Thắng do đối thủ vắng mặt', `${t.name} — bạn được đi tiếp`, { tournamentId: t.id });
+    if (loser) notify(loser, 'event', 'Bị xử thua vắng mặt', `${t.name} — bạn không vào trận kịp giờ`, { tournamentId: t.id });
+    advance(m.tournament_id, m.round, m.slot, winner);
+  }
+}
+
+/** Không ai có mặt thì lấy hạt giống cao hơn — dùng chung với luật hoà. */
+function seedWinner(m: any): string | null {
+  return (
+    (db
+      .prepare(
+        'SELECT user_id FROM tournament_players WHERE tournament_id = ? AND user_id IN (?,?) ORDER BY seed LIMIT 1',
+      )
+      .get(m.tournament_id, m.p1, m.p2) as any)?.user_id ?? null
+  );
+}
+
+/**
+ * Nhịp quét của giải: tới giờ thì khai mạc, hết cửa sổ chờ thì xử vắng mặt.
+ * Gọi từ vòng lặp chính của gateway.
+ */
+export function tickTournaments(now: number): void {
+  const dueStart = db
+    .prepare("SELECT * FROM tournaments WHERE status = 'open' AND start_at IS NOT NULL AND start_at <= ?")
+    .all(now) as any[];
+  for (const t of dueStart) {
+    if (playerCount(t.id) >= 2) {
+      start(t.id);
+      continue;
+    }
+    // Tới giờ mà không đủ hai người: huỷ và hoàn tiền thay vì để giải nằm đó
+    // chắn chỗ, vì mỗi bang chỉ được một giải chưa kết thúc.
+    for (const uid of playerIds(t.id)) {
+      if (t.entry_coin > 0) mutateCurrency(uid, 'coin', t.entry_coin, 'tournament_refund', t.id);
+      notify(uid, 'event', 'Giải không đủ người', `${t.name} đã huỷ, lệ phí đã hoàn lại`, {});
+    }
+    if (t.base_prize > 0 && t.host_id) {
+      mutateCurrency(t.host_id, 'coin', t.base_prize, 'guild_tournament_refund', t.id);
+      notify(t.host_id, 'event', 'Giải không đủ người', `${t.name} đã huỷ, tiền treo giải đã hoàn lại`, {});
+    }
+    if (t.guild_id) logGuild(t.guild_id, 'tournament', { detail: `giải ${t.name} huỷ vì không đủ người` });
+    db.prepare('DELETE FROM tournaments WHERE id = ?').run(t.id);
+  }
+
+  resolveNoShows(now);
 }
 
 /**
@@ -381,14 +583,7 @@ export function reportMatch(matchId: string, winnerId: string | null): void {
   if (!m || m.winner_id) return;
 
   // Hoà hoặc không ai thắng thì lấy hạt giống cao hơn đi tiếp, giải không thể treo.
-  const winner =
-    winnerId && (winnerId === m.p1 || winnerId === m.p2)
-      ? winnerId
-      : (db
-          .prepare(
-            'SELECT user_id FROM tournament_players WHERE tournament_id = ? AND user_id IN (?,?) ORDER BY seed LIMIT 1',
-          )
-          .get(m.tournament_id, m.p1, m.p2) as any)?.user_id;
+  const winner = winnerId && (winnerId === m.p1 || winnerId === m.p2) ? winnerId : seedWinner(m);
   if (!winner) return;
 
   db.prepare('UPDATE tournament_matches SET winner_id = ? WHERE tournament_id = ? AND round = ? AND slot = ?').run(

@@ -511,6 +511,13 @@ for (const [table, column, type] of [
   // đầu sớm, khi ấy bảng được thu về luỹ thừa 2 gần nhất và ai dư suất thì
   // được miễn vòng đầu.
   ['tournaments', 'bracket_size', 'INTEGER'],
+  // Giờ khai mạc hẹn trước; NULL nghĩa là đủ suất thì chạy luôn.
+  ['tournaments', 'start_at', 'INTEGER'],
+  // Cửa sổ chờ có mặt của mỗi cặp, 0 là vào trận ngay không cần xác nhận.
+  ['tournaments', 'no_show_ms', 'INTEGER NOT NULL DEFAULT 0'],
+  ['tournament_matches', 'ready_deadline', 'INTEGER'],
+  ['tournament_matches', 'ready_p1', 'INTEGER'],
+  ['tournament_matches', 'ready_p2', 'INTEGER'],
 ] as const) {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
   if (!cols.some((c) => c.name === column)) {

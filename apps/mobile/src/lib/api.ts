@@ -118,6 +118,10 @@ export const ERROR_TEXT: Record<string, string> = {
   GAME_NOT_ELIGIBLE: 'Game này không mở giải đấu được',
   BAD_SIZE: 'Số suất phải là 4, 8 hoặc 16',
   TOURNAMENT_ONGOING: 'Bang đang có một giải chưa xong',
+  TOURNAMENT_NOT_RUNNING: 'Giải chưa khai mạc',
+  NO_PENDING_MATCH: 'Bạn không có trận nào đang chờ',
+  BAD_START_TIME: 'Giờ khai mạc phải ở tương lai',
+  SCHEDULE_TOO_FAR: 'Chỉ hẹn được trong vòng 7 ngày',
 
   // Đấu lại
   MATCH_NOT_FOUND: 'Trận này đã đóng, không đấu lại được nữa',

@@ -126,7 +126,7 @@ tài khoản bị khoá.
 | `room.state` | `RoomView` đầy đủ |
 | `room.left` | `{roomId, kicked?}` |
 | `mm.found` | `{roomId, gameType, mode, waitMs}` |
-| `match.start` | `{matchId, gameType, mode, roomId, rematchOf?}` |
+| `match.start` | `{matchId, gameType, mode, roomId, rematchOf?, tournamentId?}` |
 | `match.rematch` | `{matchId, asked[], declinedBy?}` — lời rủ đấu lại của trận vừa xong |
 | `game.state` | `{matchId, gameType, version, view, finished, deadline, spectators, spectating?}` |
 | `game.event` | `{matchId, version, events[]}` — hiệu ứng: win, kick, bump, score, rent… |
@@ -178,6 +178,7 @@ nhịp** để lượt đi trước không rơi mãi vào một người. `accep
 | POST | `/api/tournaments/:id/join` | Đăng ký, trừ lệ phí; đủ suất là tự khai mạc |
 | POST | `/api/tournaments/:id/leave` | Rút tên trước khai mạc, hoàn lệ phí |
 | POST | `/api/tournaments/:id/start` | Chủ giải khai mạc sớm (từ 2 người) |
+| POST | `/api/tournaments/:id/ready` | Xác nhận có mặt khi tới lượt |
 | POST | `/api/tournaments/:id/cancel` | Chủ giải huỷ khi chưa khai mạc, hoàn hết tiền |
 
 Chỉ nhận game đúng 2 người. Sức chứa là 4, 8 hoặc 16; đủ suất thì tự khai mạc.
@@ -190,6 +191,25 @@ miễn vào thẳng vòng sau, không mở trận thật (`matchId` để trốn
 
 `prizePool` = tiền treo giải + lệ phí **đã thu thật**, nên trước khi đủ suất con số
 hiện ra vẫn đúng với số tiền đang có.
+
+**Hẹn giờ khai mạc.** `startAt` (mốc epoch ms) khiến giải chỉ chạy đúng giờ, kể cả
+đã đủ suất — không thì người đăng ký sớm bị gọi vào trận lúc chưa sẵn sàng. Chỉ hẹn
+được trong tương lai và trong vòng 7 ngày (`BAD_START_TIME`, `SCHEDULE_TOO_FAR`).
+Tới giờ mà chưa đủ hai người thì giải **tự huỷ và hoàn hết tiền**, vì mỗi bang chỉ
+được một giải chưa kết thúc nên để nó nằm đó là chắn chỗ. Máy chủ quét mỗi giây.
+
+**Cửa sổ chờ có mặt.** `noShowMs` khác 0 thì mỗi cặp tới lượt không vào trận ngay:
+`tournament_matches.ready_deadline` được đặt và cả hai bên phải gọi
+`POST /api/tournaments/:id/ready`. Đủ hai người xác nhận là trận thật mở ngay, không
+đợi hết giờ. Hết giờ mà chỉ một người có mặt thì người đó **thắng do đối thủ vắng
+mặt** và đi tiếp mà không cần đánh; cả hai vắng thì hạt giống cao hơn đi tiếp. Nhờ
+vậy nhánh không bao giờ đứng chờ một người đã bỏ cuộc.
+
+Trong view, mỗi ô `bracket` có thêm `readyDeadline` và `ready: [p1, p2]`, còn
+`tournament.call` là lời gọi dành riêng cho người đang xem —
+`{round, slot, deadline, opponentId, iAmReady, rivalReady}` hoặc `null`. Khi trận
+thật mở, `match.start` gửi kèm `tournamentId` để client nhảy vào thẳng dù đang ở màn
+nào.
 
 ### Bang hội
 
@@ -211,7 +231,7 @@ hiện ra vẫn đúng với số tiền đang có.
 | POST | `/api/guilds/checkin` | Điểm danh bang, mỗi ngày một lần |
 | POST | `/api/guilds/quests/:questId/claim` | Nhận phần của mình khi bang xong nhiệm vụ |
 | GET | `/api/guilds/:id/tournaments` | Giải của bang (chỉ thành viên xem được) |
-| POST | `/api/guilds/:id/tournaments` | Chủ bang mở giải — `{name?, gameType, size, entryCoin?, basePrize?}` |
+| POST | `/api/guilds/:id/tournaments` | Chủ bang mở giải — `{name?, gameType, size, entryCoin?, basePrize?, startAt?, noShowMinutes?}` |
 
 `GET /api/guilds/me` nay trả thêm `quests` (nhiệm vụ bang tuần này), `logs`,
 `checkin` và `tournaments` (giải của bang). Nhiệm vụ bang có tiến độ **chung của cả bang** theo tuần ISO; xong thì
