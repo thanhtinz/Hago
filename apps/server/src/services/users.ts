@@ -25,11 +25,17 @@ export interface UserRow {
   frame_id?: string | null;
   title_id?: string | null;
   background_id?: string | null;
+  bubble_id?: string | null;
+  board_id?: string | null;
+  victory_id?: string | null;
+  entry_id?: string | null;
+  emote_id?: string | null;
   bio?: string;
 }
 
 const SELECT_USER = `
-  SELECT u.*, p.avatar_seed, p.avatar_style, p.frame_id, p.title_id, p.background_id, p.bio
+  SELECT u.*, p.avatar_seed, p.avatar_style, p.frame_id, p.title_id, p.background_id,
+         p.bubble_id, p.board_id, p.victory_id, p.entry_id, p.emote_id, p.bio
   FROM users u LEFT JOIN profiles p ON p.user_id = u.id`;
 
 export function findUser(id: string): UserRow | undefined {
@@ -62,6 +68,10 @@ export function toPublicUser(row: UserRow): PublicUser {
     avatarStyle: row.avatar_style ?? 'adventurer',
     frameId: row.frame_id ?? null,
     titleId: row.title_id ?? null,
+    // Nền và bong bóng chat hiện ở chỗ người khác nhìn thấy nên nằm trong hồ sơ
+    // công khai; mấy món chỉ ảnh hưởng màn hình của chính chủ thì không.
+    backgroundId: row.background_id ?? null,
+    bubbleId: row.bubble_id ?? null,
     level: levelFromXp(row.xp).level,
     xp: row.xp,
     rating: row.rating,
@@ -91,6 +101,10 @@ export function toProfile(row: UserRow): UserProfile {
   return {
     ...toPublicUser(row),
     bio: row.bio ?? '',
+    boardId: row.board_id ?? null,
+    victoryId: row.victory_id ?? null,
+    entryId: row.entry_id ?? null,
+    emoteId: row.emote_id ?? null,
     coin: row.coin,
     diamond: row.diamond,
     seasonToken: row.season_token,

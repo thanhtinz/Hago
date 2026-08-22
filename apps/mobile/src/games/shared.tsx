@@ -4,6 +4,7 @@ import { Avatar, Bar, Chip, Txt } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { C, R, S, SEAT_COLORS, softShadow } from '../theme';
+import { useBoardTheme } from '../components/Cosmetic';
 
 export interface BoardProps {
   view: any;
@@ -131,7 +132,14 @@ export function BoardSurface({
   children: React.ReactNode;
   style?: any;
 }) {
-  const skin = BOARD_SKIN[tone];
+  /**
+   * Theme bàn cờ của người chơi đè lên tông mặc định. Chỉ đổi màu mặt bàn,
+   * khung và đường vân — không đụng gì tới kích thước ô hay luật chơi.
+   */
+  const themed = useBoardTheme();
+  const skin = themed
+    ? { frame: themed.line, base: themed.from, wash: [themed.from, themed.to] as [string, string], grain: 'rgba(255,255,255,0.08)' }
+    : BOARD_SKIN[tone];
   return (
     <View
       style={[

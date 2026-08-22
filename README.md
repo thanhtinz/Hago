@@ -232,9 +232,16 @@ cặp trong nhánh là một trận thật** chạy qua đúng hệ trận đấ
 tính giờ, cùng reconnect — giải chỉ nối các trận lại và biết ai đi tiếp. Lệ phí gộp
 vào giải thưởng, vô địch 70% và á quân 30%; rút tên trước khai mạc thì hoàn tiền.
 
-**Cosmetic & tiền tệ** — 19 cosmetic (khung, danh hiệu, nền, bong bóng chat, emote,
-hiệu ứng, theme bàn cờ). **Không có cửa hàng và không có nạp tiền**: cosmetic chỉ
-kiếm được qua **thành tựu**, nên không có giá. 19 thành tựu, mỗi cái tặng đúng một
+**Cosmetic & tiền tệ** — 19 cosmetic và **cả 8 loại đều có tác dụng thật**: khung
+avatar, danh hiệu dưới tên, nền hồ sơ, bong bóng chat, theme mặt bàn cờ, hiệu ứng ăn
+mừng khi thắng, hiệu ứng lúc vào phòng, gói emote nối thêm vào thanh sticker. Màu sắc
+đọc từ `payload` của món trên server chứ không giữ bảng hardcode ở client — thêm món
+mới chỉ cần sửa dữ liệu, không phải phát hành lại app. Bốn loại người khác nhìn thấy
+(khung, danh hiệu, nền, bong bóng) nằm trong hồ sơ công khai; bốn loại chỉ đổi màn
+hình của chính chủ thì không lộ ra.
+
+**Không có cửa hàng và không có nạp tiền**: cosmetic chỉ kiếm được qua **thành tựu**,
+nên không có giá. 19 thành tựu, mỗi cái tặng đúng một
 món, khó dần thì hiếm dần — đó là toàn bộ đường lấy cosmetic. Coin dùng làm phí lập
 bang và lệ phí giải đấu, chỉ đến từ trận đấu và nhiệm vụ; mọi thay đổi số dư vẫn ghi
 transaction bất biến trong SQL transaction.

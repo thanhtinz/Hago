@@ -198,15 +198,30 @@ export function ensureSeed(): void {
       nowMs(),
     );
     // Vài món cosmetic sẵn có cho demo.
-    ['frame_sakura', 'title_newbie', 'bubble_cloud'].forEach((itemId, i) =>
-      db.prepare('INSERT OR IGNORE INTO inventory (user_id, item_id, quantity, equipped, acquired_at) VALUES (?,?,1,?,?)').run(
+    [
+      'frame_sakura',
+      'title_newbie',
+      'bubble_candy',
+      'bg_beach',
+      'board_wood',
+      'fx_confetti',
+      'fx_entry_star',
+      'emote_pack_cute',
+      // Mỗi món một loại khác nhau nên trang bị được hết cùng lúc; cờ equipped
+      // ở đây phải khớp với các cột trên hồ sơ ngay bên dưới.
+    ].forEach((itemId) =>
+      db.prepare('INSERT OR IGNORE INTO inventory (user_id, item_id, quantity, equipped, acquired_at) VALUES (?,?,1,1,?)').run(
         demoId,
         itemId,
-        i === 0 ? 1 : 0,
         nowMs(),
       ),
     );
-    db.prepare("UPDATE profiles SET frame_id = 'frame_sakura' WHERE user_id = ?").run(demoId);
+    db.prepare(
+      `UPDATE profiles SET frame_id = 'frame_sakura', title_id = 'title_newbie',
+         background_id = 'bg_beach', bubble_id = 'bubble_candy', board_id = 'board_wood',
+         victory_id = 'fx_confetti', entry_id = 'fx_entry_star', emote_id = 'emote_pack_cute'
+       WHERE user_id = ?`,
+    ).run(demoId);
 
     // Hai giải mở sẵn để màn Giải đấu có cái mà xem ngay lần chạy đầu.
     [

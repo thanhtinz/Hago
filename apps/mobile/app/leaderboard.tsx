@@ -11,6 +11,7 @@ import { C, R, S } from '../src/theme';
 import { api } from '../src/lib/api';
 import { useStore } from '../src/state/store';
 import { Art } from '../src/components/Art';
+import { PlayerTitle } from '../src/components/Cosmetic';
 import { placeArt, rankArt } from '../src/lib/rank';
 
 export default function LeaderboardScreen() {
@@ -123,10 +124,11 @@ export default function LeaderboardScreen() {
                 {e.rank}
               </Txt>
               <Avatar seed={e.user.avatarSeed} styleName={e.user.avatarStyle} frameId={e.user.frameId} size={40} online={e.user.online} />
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, gap: 2 }}>
                 <Txt size={14} weight="bold">
                   {e.user.displayName}
                 </Txt>
+                <PlayerTitle titleId={e.user.titleId} size={10} />
                 <Txt size={11} color={C.inkFaint}>
                   {solo ? `Lv.${e.user.level} · ${e.matches} ván đã chơi` : `Lv.${e.user.level} · ${e.wins}/${e.matches} thắng`}
                 </Txt>

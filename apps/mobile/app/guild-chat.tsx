@@ -9,6 +9,7 @@ import { C, F, R, S } from '../src/theme';
 import { api, friendlyError } from '../src/lib/api';
 import { emitAck } from '../src/lib/socket';
 import { useStore } from '../src/state/store';
+import { useBubbleStyle, useEmotePack } from '../src/components/Cosmetic';
 
 /**
  * Kênh chat của bang. Khác chat 1-1 ở chỗ nhiều người nói nên tin của người
@@ -26,6 +27,13 @@ export default function GuildChatScreen() {
   const [members, setMembers] = useState<Record<string, any>>({});
   const [messages, setMessages] = useState<any[]>([]);
   const [draft, setDraft] = useState('');
+  // Gói emote đang dùng nối thêm vào cuối thanh sticker mặc định.
+  const pack = useEmotePack();
+  const stickers = React.useMemo(
+    () => [...STICKERS, ...pack.filter((x) => !STICKERS.includes(x as StickerName))] as StickerName[],
+    [pack],
+  );
+  const bubble = useBubbleStyle(profile?.bubbleId);
   const listRef = useRef<FlatList>(null);
   const channelId = `guild:${id}`;
 
@@ -110,7 +118,7 @@ export default function GuildChatScreen() {
                 ) : null}
                 <View
                   style={{
-                    backgroundColor: mine ? C.primary : C.surface,
+                    backgroundColor: mine ? bubble?.bg ?? C.primary : C.surface,
                     paddingHorizontal: 14,
                     paddingVertical: 9,
                     borderRadius: R.lg,
@@ -123,7 +131,7 @@ export default function GuildChatScreen() {
                   {/^:[a-z0-9-]+:$/.test(item.body) ? (
                     <StickerArt name={item.body.slice(1, -1) as StickerName} size={44} />
                   ) : (
-                    <Txt size={14} color={mine ? '#fff' : C.ink}>
+                    <Txt size={14} color={mine ? bubble?.text ?? '#fff' : C.ink}>
                       {item.body}
                     </Txt>
                   )}
@@ -143,7 +151,7 @@ export default function GuildChatScreen() {
         style={{ flexGrow: 0, height: 42 }}
         contentContainerStyle={{ paddingHorizontal: S.lg, gap: 10, alignItems: 'center' }}
       >
-        {STICKERS.map((s) => (
+        {stickers.map((s) => (
           <Pressable key={s} onPress={() => send(`:${s}:`, 'sticker')} accessibilityLabel={`Gửi sticker ${s}`}>
             <StickerArt name={s} size={30} />
           </Pressable>

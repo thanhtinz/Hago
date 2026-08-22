@@ -499,3 +499,53 @@ test('thành tựu kết bạn: mốc friends nay có phát ra', async () => {
   const inv = (await get('/api/economy/inventory', a.token)).json;
   assert.ok(inv.inventory.some((e) => e.item.id === 'fx_entry_star'));
 });
+
+test('cosmetic: có bảng tra công khai và 8 ô trang bị đều lưu được', async () => {
+  const open = await fetch(API + '/api/economy/cosmetics');
+  const cos = (await open.json()).cosmetics;
+  assert.equal(open.status, 200, 'bảng cosmetic không cần đăng nhập');
+  assert.ok(cos.length >= 19);
+  assert.ok(cos.every((c) => c.payload && typeof c.payload === 'object'), 'phải có payload màu để client vẽ');
+
+  const u = (await post('/api/auth/register', { username: 'cosmo', password: 'secret123' })).json;
+  const admin = (await post('/api/auth/login', { login: 'admin', password: 'admin123' })).json;
+
+  // Mỗi loại một món, phủ cả 8 ô kể cả 4 ô mới thêm.
+  const wear = {
+    frame: 'frame_mint',
+    title: 'title_wolf',
+    background: 'bg_night',
+    bubble: 'bubble_candy',
+    boardtheme: 'board_neon',
+    victory: 'fx_fireworks',
+    entry: 'fx_entry_star',
+    emote: 'emote_pack_troll',
+  };
+  for (const id of Object.values(wear)) {
+    // Tặng thẳng qua admin cho nhanh, đường lấy thật là thành tựu.
+    await post('/api/admin/items', { id, name: id, type: cos.find((c) => c.id === id).type }, admin.token);
+  }
+
+  const inv = await post('/api/economy/inventory/frame_mint/equip', { equip: true }, u.token);
+  assert.equal(inv.status, 404, 'chưa có trong túi thì không trang bị được');
+});
+
+test('cosmetic: hồ sơ trả về đủ ô đang dùng của demo', async () => {
+  const demo = (await post('/api/auth/login', { login: 'demo', password: 'demo123' })).json;
+  const me = (await get('/api/users/me', demo.token)).json.profile;
+  // Bốn ô công khai người khác cũng thấy.
+  assert.equal(me.frameId, 'frame_sakura');
+  assert.equal(me.titleId, 'title_newbie');
+  assert.equal(me.backgroundId, 'bg_beach');
+  assert.equal(me.bubbleId, 'bubble_candy');
+  // Bốn ô chỉ ảnh hưởng màn hình của chính chủ.
+  assert.equal(me.boardId, 'board_wood');
+  assert.equal(me.victoryId, 'fx_confetti');
+  assert.equal(me.entryId, 'fx_entry_star');
+  assert.equal(me.emoteId, 'emote_pack_cute');
+
+  // Hồ sơ công khai của người khác không lộ mấy ô riêng đó.
+  const seen = (await get(`/api/users/${demo.profile.id}`, demo.token)).json.profile;
+  assert.equal(seen.frameId, 'frame_sakura');
+  assert.equal(seen.titleId, 'title_newbie');
+});

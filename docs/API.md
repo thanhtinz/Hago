@@ -50,6 +50,7 @@ thành tựu, nên không có giá và không có đường mua.
 
 | Method | Path | Mô tả |
 |---|---|---|
+| GET | `/cosmetics` | Bảng cosmetic kèm payload màu (công khai, client tải một lần) |
 | GET | `/inventory` | Túi đồ |
 | POST | `/inventory/:itemId/equip` | `{equip: boolean}` — mỗi loại chỉ một món |
 | GET | `/transactions` | Lịch sử giao dịch tiền tệ của mình |

@@ -43,6 +43,13 @@ CREATE TABLE IF NOT EXISTS profiles (
   title_id     TEXT,
   background_id TEXT,
   bubble_id    TEXT,
+  -- Bốn ô còn lại của bộ cosmetic: nền bàn cờ, hiệu ứng thắng, hiệu ứng vào
+  -- phòng, gói emote. Chúng chỉ ảnh hưởng tới màn hình của chính chủ nên không
+  -- cần lộ ra hồ sơ công khai.
+  board_id     TEXT,
+  victory_id   TEXT,
+  entry_id     TEXT,
+  emote_id     TEXT,
   bio          TEXT NOT NULL DEFAULT ''
 );
 
@@ -402,6 +409,10 @@ CREATE TABLE IF NOT EXISTS daily_counters (
 for (const [table, column, type] of [
   ['achievements', 'art', "TEXT NOT NULL DEFAULT 'trophy'"],
   ['achievements', 'reward_item', 'TEXT'],
+  ['profiles', 'board_id', 'TEXT'],
+  ['profiles', 'victory_id', 'TEXT'],
+  ['profiles', 'entry_id', 'TEXT'],
+  ['profiles', 'emote_id', 'TEXT'],
   ['game_stats', 'best_score', 'INTEGER NOT NULL DEFAULT 0'],
 ] as const) {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];

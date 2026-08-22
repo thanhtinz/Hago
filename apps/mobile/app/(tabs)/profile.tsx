@@ -8,6 +8,7 @@ import { Icon, IconName } from '../../src/components/Icon';
 import { GameIcon, GameIconName } from '../../src/components/GameIcon';
 import { Bubbles, DotPattern } from '../../src/components/decor';
 import { C, HERO_GRADIENT, R, S, softShadow } from '../../src/theme';
+import { PlayerTitle, useBackgroundColors } from '../../src/components/Cosmetic';
 import { api } from '../../src/lib/api';
 import { useStore } from '../../src/state/store';
 import { rankArt } from '../../src/lib/rank';
@@ -31,6 +32,8 @@ export default function ProfileScreen() {
   const [history, setHistory] = useState<any[]>([]);
   /** Tình trạng định hạng mùa này — chưa đủ trận thì chưa có rank chính thức. */
   const [rank, setRank] = useState<any>(null);
+  // Nền hồ sơ theo cosmetic đang dùng, không có thì về gradient mặc định.
+  const bgColors = useBackgroundColors(profile?.backgroundId);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -58,6 +61,7 @@ export default function ProfileScreen() {
   );
 
   if (!profile) return null;
+  const heroColors = (bgColors ?? HERO_GRADIENT) as [string, string];
   const xpInto = profile.xp - LEVEL_CURVE(profile.level);
   const xpNeed = LEVEL_CURVE(profile.level + 1) - LEVEL_CURVE(profile.level);
   const winRate = profile.matches ? Math.round((profile.wins / profile.matches) * 100) : 0;
@@ -70,7 +74,7 @@ export default function ProfileScreen() {
       refreshControl={<RefreshControl refreshing={busy} onRefresh={load} tintColor={C.primary} />}
     >
       <LinearGradient
-        colors={HERO_GRADIENT}
+        colors={heroColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{
@@ -92,6 +96,7 @@ export default function ProfileScreen() {
         <Txt size={12} color="rgba(255,255,255,0.88)">
           @{profile.username}
         </Txt>
+        <PlayerTitle titleId={profile.titleId} size={12} center />
         <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
           <Chip label={`Lv.${profile.level}`} color="#fff" soft="rgba(255,255,255,0.24)" />
           {/* Chưa đá đủ trận định hạng thì chưa gọi tên rank, chỉ đếm tiến độ */}

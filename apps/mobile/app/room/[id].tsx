@@ -10,6 +10,7 @@ import { C, F, R, S } from '../../src/theme';
 import { api, friendlyError } from '../../src/lib/api';
 import { emitAck } from '../../src/lib/socket';
 import { useStore } from '../../src/state/store';
+import { EntryEffect } from '../../src/components/Cosmetic';
 
 export default function RoomScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -85,6 +86,8 @@ export default function RoomScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg, paddingTop: insets.top + S.md }}>
+      {/* Hiệu ứng vào phòng của cosmetic đang dùng — quét một vệt rồi tắt */}
+      <EntryEffect entryId={profile?.entryId} />
       <View style={{ paddingHorizontal: S.lg, flexDirection: 'row', alignItems: 'center', gap: S.md }}>
         <Pressable onPress={leave}>
           <Txt size={22} weight="heading" color={C.inkSoft}>

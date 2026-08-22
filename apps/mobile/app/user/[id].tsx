@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Btn, Card, Chip, Empty, SectionTitle, Txt } from '../../src/components/ui';
 import { Icon } from '../../src/components/Icon';
 import { C, R, S } from '../../src/theme';
+import { PlayerTitle, useBackgroundColors } from '../../src/components/Cosmetic';
 import { api, friendlyError } from '../../src/lib/api';
 import { emitAck } from '../../src/lib/socket';
 import { useStore } from '../../src/state/store';
@@ -41,9 +42,11 @@ export default function UserProfile() {
     showToast('Đã gửi báo cáo tới đội ngũ kiểm duyệt');
   };
 
+  const peerBg = useBackgroundColors(p?.backgroundId) as [string, string] | null;
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ paddingBottom: 40 }}>
-      <LinearGradient colors={['#DCF0FF', '#FFF6EE']} style={{ paddingTop: insets.top + S.md, paddingBottom: S.xl, alignItems: 'center', gap: 6 }}>
+      <LinearGradient colors={peerBg ?? ['#DCF0FF', '#FFF6EE']} style={{ paddingTop: insets.top + S.md, paddingBottom: S.xl, alignItems: 'center', gap: 6 }}>
         <Pressable onPress={() => router.back()} style={{ alignSelf: 'flex-start', paddingHorizontal: S.lg }}>
           <Txt size={20} weight="heading" color={C.inkSoft}>
             ‹ Quay lại
@@ -53,6 +56,7 @@ export default function UserProfile() {
         <Txt size={22} weight="display">
           {p.displayName}
         </Txt>
+        <PlayerTitle titleId={p.titleId} size={12} center />
         <Txt size={12} color={C.inkSoft}>
           @{p.username} · tham gia {new Date(p.createdAt).toLocaleDateString('vi-VN')}
         </Txt>

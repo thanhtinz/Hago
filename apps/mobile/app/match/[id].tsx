@@ -10,6 +10,7 @@ import { GameIcon, GameIconName } from '../../src/components/GameIcon';
 import { DotPattern } from '../../src/components/decor';
 import { StickerArt } from '../../src/components/Piece';
 import { Art } from '../../src/components/Art';
+import { VictoryEffect } from '../../src/components/Cosmetic';
 import { placeArt } from '../../src/lib/rank';
 
 import { C, GAME_GRADIENT, R, S, softShadow } from '../../src/theme';
@@ -293,6 +294,9 @@ export default function MatchScreen() {
               const solo = !!view?.solo;
               return (
                 <>
+                  {/* Hiệu ứng ăn mừng của cosmetic đang dùng, chỉ khi thắng */}
+                  {win && !solo ? <VictoryEffect victoryId={profile?.victoryId} /> : null}
+                  {solo && mine?.score ? <VictoryEffect victoryId={profile?.victoryId} /> : null}
                   {/* Mặt cảm xúc vẽ tay đọc rõ hơn icon nét ở cỡ lớn. */}
                   <StickerArt name={solo ? (mine?.score ? 'win' : 'sad') : win ? 'win' : draw ? 'draw' : 'sad'} size={72} />
                   <Txt size={26} weight="display" color={solo ? C.secondary : win ? C.mint : draw ? C.sun : C.inkSoft}>

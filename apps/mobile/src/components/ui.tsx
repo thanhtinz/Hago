@@ -15,6 +15,7 @@ import { C, F, R, S, softShadow, toyShadow } from '../theme';
 import { avatarUrl } from '../lib/api';
 import { Icon, IconName } from './Icon';
 import { Art, ArtName } from './Art';
+import { useStore } from '../state/store';
 
 /* --------------------------------- text --------------------------------- */
 
@@ -154,12 +155,16 @@ export function Card({
 
 /* -------------------------------- avatar -------------------------------- */
 
-const FRAME_COLORS: Record<string, [string, string]> = {
-  frame_sakura: ['#FFB7C5', '#FF6F91'],
-  frame_mint: ['#9BF6C5', '#3AC48A'],
-  frame_royal: ['#C86DFF', '#6C5CE7'],
-  frame_dragon: ['#FFD36E', '#FF8A3D'],
-};
+/**
+ * Màu khung lấy từ payload của cosmetic trên server, không giữ bảng hardcode ở
+ * client nữa — thêm khung mới chỉ cần sửa dữ liệu là app hiện đúng ngay.
+ */
+function useFrameColors(frameId?: string | null): [string, string] | null {
+  const { cosmetic } = useStore();
+  const item = cosmetic(frameId);
+  if (!item?.payload?.from || !item.payload.to) return null;
+  return [item.payload.from, item.payload.to];
+}
 
 export function Avatar({
   seed,
@@ -177,7 +182,7 @@ export function Avatar({
   ring?: string;
 }) {
   const border = Math.max(2, Math.round(size * 0.06));
-  const frame = frameId ? FRAME_COLORS[frameId] : null;
+  const frame = useFrameColors(frameId);
   const inner = (
     <Image
       source={{ uri: avatarUrl(styleName, seed, Math.round(size * 2)) }}

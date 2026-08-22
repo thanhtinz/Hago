@@ -25,6 +25,16 @@ function mapItem(r: any): CosmeticItem {
   };
 }
 
+/**
+ * Toàn bộ cosmetic kèm payload màu sắc. Client tải một lần rồi tra theo id để
+ * vẽ — nhờ vậy thêm món mới chỉ cần sửa dữ liệu, không phải sửa bảng màu
+ * hardcode trong app rồi phát hành lại.
+ */
+economyRouter.get('/cosmetics', (_req, res) => {
+  const rows = db.prepare("SELECT * FROM items WHERE status = 'active'").all() as any[];
+  res.json({ cosmetics: rows.map(mapItem) });
+});
+
 economyRouter.get('/inventory', requireAuth, (req, res) => {
   const rows = db
     .prepare('SELECT i.*, inv.quantity, inv.equipped, inv.acquired_at FROM inventory inv JOIN items i ON i.id = inv.item_id WHERE inv.user_id = ?')
@@ -38,12 +48,17 @@ economyRouter.get('/inventory', requireAuth, (req, res) => {
   res.json({ inventory: entries, balance: balanceOf(req.auth!.sub) });
 });
 
+/** Loại cosmetic -> cột lưu món đang dùng trên hồ sơ. */
 const SLOT_COLUMN: Record<string, string> = {
   avatar: 'avatar_seed',
   frame: 'frame_id',
   title: 'title_id',
   background: 'background_id',
   bubble: 'bubble_id',
+  boardtheme: 'board_id',
+  victory: 'victory_id',
+  entry: 'entry_id',
+  emote: 'emote_id',
 };
 
 economyRouter.post('/inventory/:itemId/equip', requireAuth, (req, res) => {

@@ -154,6 +154,8 @@ export interface PublicUser {
   avatarStyle: string;
   frameId: string | null;
   titleId: string | null;
+  backgroundId: string | null;
+  bubbleId: string | null;
   level: number;
   xp: number;
   rating: number;
@@ -165,6 +167,11 @@ export interface PublicUser {
 
 export interface UserProfile extends PublicUser {
   bio: string;
+  /** Cosmetic chỉ ảnh hưởng màn hình của chính chủ, nên chỉ có ở hồ sơ của mình. */
+  boardId: string | null;
+  victoryId: string | null;
+  entryId: string | null;
+  emoteId: string | null;
   coin: number;
   diamond: number;
   seasonToken: number;

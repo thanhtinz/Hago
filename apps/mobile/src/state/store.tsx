@@ -12,6 +12,12 @@ export interface Profile {
   avatarStyle: string;
   frameId: string | null;
   titleId: string | null;
+  backgroundId: string | null;
+  bubbleId: string | null;
+  boardId: string | null;
+  victoryId: string | null;
+  entryId: string | null;
+  emoteId: string | null;
   level: number;
   xp: number;
   rating: number;
@@ -28,8 +34,22 @@ export interface Profile {
   perGame: Record<string, { matches: number; wins: number; losses: number; rating: number }>;
 }
 
+/** Một món cosmetic kèm màu sắc, tra theo id. */
+export interface Cosmetic {
+  id: string;
+  name: string;
+  type: string;
+  rarity: string;
+  payload: Record<string, string>;
+}
+
 interface Ctx {
   ready: boolean;
+  /**
+   * Bảng cosmetic tải một lần lúc mở app. Client vẽ theo payload trong đây chứ
+   * không giữ bảng màu hardcode, nhờ vậy thêm món mới chỉ cần sửa dữ liệu.
+   */
+  cosmetic: (id: string | null | undefined) => Cosmetic | null;
   profile: Profile | null;
   socket: Socket | null;
   connected: boolean;
@@ -52,6 +72,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [connected, setConnected] = useState(false);
   const [unread, setUnread] = useState(0);
   const [toast, setToast] = useState<Ctx['toast']>(null);
+  const [cosmetics, setCosmetics] = useState<Record<string, Cosmetic>>({});
   const toastTimer = useRef<any>(null);
 
   const showToast = useCallback((text: string, tone: 'ok' | 'warn' = 'ok') => {
@@ -80,6 +101,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
     }
   }, []);
+
+  // Bảng cosmetic không cần đăng nhập và cả app dùng chung, tải một lần.
+  useEffect(() => {
+    api<{ cosmetics: Cosmetic[] }>('/api/economy/cosmetics', { auth: false })
+      .then((r) => setCosmetics(Object.fromEntries(r.cosmetics.map((c) => [c.id, c]))))
+      .catch(() => {
+        /* mất mạng thì thôi, giao diện tự lùi về màu mặc định */
+      });
+  }, []);
+
+  const cosmetic = useCallback(
+    (id: string | null | undefined) => (id ? cosmetics[id] ?? null : null),
+    [cosmetics],
+  );
 
   useEffect(() => {
     (async () => {
@@ -142,8 +177,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ ready, profile, socket, connected, unread, toast, showToast, login, register, logout, refresh, setUnread }),
-    [ready, profile, socket, connected, unread, toast, showToast, login, register, logout, refresh],
+    () => ({ ready, profile, socket, connected, unread, toast, showToast, login, register, logout, refresh, setUnread, cosmetic }),
+    [ready, profile, socket, connected, unread, toast, showToast, login, register, logout, refresh, cosmetic],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
