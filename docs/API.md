@@ -46,7 +46,7 @@ Xác thực: `Authorization: Bearer <token>` (JWT, mặc định hết hạn sau
 ### Túi đồ — `/api/economy`
 
 App **không có cửa hàng và không có nạp tiền**. Cosmetic chỉ kiếm được qua
-Battle Pass và thành tựu, nên không có giá và không có đường mua.
+thành tựu, nên không có giá và không có đường mua.
 
 | Method | Path | Mô tả |
 |---|---|---|
@@ -154,15 +154,6 @@ tài khoản bị khoá.
 | POST | `/api/tournaments` | Tạo giải (admin) — `{name, gameType, size, entryCoin?, basePrize?}` |
 | POST | `/api/tournaments/:id/join` | Đăng ký, trừ lệ phí; đủ suất là tự khai mạc |
 | POST | `/api/tournaments/:id/leave` | Rút tên trước khai mạc, hoàn lệ phí |
-
-### Battle Pass
-
-| Method | Endpoint | Mô tả |
-|---|---|---|
-| GET | `/api/season` | Mùa hiện tại: tiến độ, 30 mốc thưởng, mốc đã nhận |
-| POST | `/api/season/premium` | Mở nhánh cao cấp, trừ 250 kim cương |
-| POST | `/api/season/claim` | Nhận một mốc — `{tier, track}` với `track` là `free \| premium` |
-| POST | `/api/season/claim-all` | Nhận hết mốc đã mở mà chưa lấy |
 
 ### Bang hội
 

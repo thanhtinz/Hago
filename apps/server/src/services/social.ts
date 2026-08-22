@@ -3,6 +3,7 @@ import { db, nowMs } from '../db';
 import { filterProfanity, nid } from '../util';
 import { findUser, toPublicUser } from './users';
 import { notify } from './notifications';
+import { progressAchievements } from './quests';
 
 export function friendList(userId: string): FriendEdge[] {
   const rows = db
@@ -81,6 +82,10 @@ export function acceptFriend(userId: string, requesterId: string): void {
     ).run(userId, requesterId, nowMs());
   });
   tx();
+  // Mốc 'friends' của thành tựu trước giờ không ai phát ra nên mấy thành tựu
+  // kết bạn vĩnh viễn đứng yên — cộng cho cả hai bên ngay tại đây.
+  progressAchievements(userId, 'friends', 1);
+  progressAchievements(requesterId, 'friends', 1);
   const me = findUser(userId);
   notify(requesterId, 'friend_accepted', 'Đã là bạn bè', `${me?.display_name} đã chấp nhận lời mời`, {
     userId,

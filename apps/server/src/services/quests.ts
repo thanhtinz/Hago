@@ -1,7 +1,6 @@
 import { AchievementDef, QuestDef, UserAchievement, UserQuest } from '@hago/shared';
 import { db, isoWeek, nowMs, today } from '../db';
 import { mutateCurrency } from './economy';
-import { addSeasonXp } from './season';
 import { notify } from './notifications';
 
 function periodFor(type: string): string {
@@ -99,8 +98,6 @@ export function claimQuest(userId: string, questId: string): { coin: number; xp:
   if (quest.rewardCoin) mutateCurrency(userId, 'coin', quest.rewardCoin, 'quest_reward', questId);
   if (quest.rewardDiamond) mutateCurrency(userId, 'diamond', quest.rewardDiamond, 'quest_reward', questId);
   if (quest.rewardXp) db.prepare('UPDATE users SET xp = xp + ? WHERE id = ?').run(quest.rewardXp, userId);
-  // Nhiệm vụ cũng đẩy Battle Pass, nếu không thì mùa chỉ lên được bằng cày trận.
-  addSeasonXp(userId, quest.rewardXp);
   return { coin: quest.rewardCoin, xp: quest.rewardXp, diamond: quest.rewardDiamond };
 }
 

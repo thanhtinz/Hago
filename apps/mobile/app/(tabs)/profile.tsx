@@ -125,7 +125,6 @@ export default function ProfileScreen() {
         <View style={{ flexDirection: 'row', gap: S.sm, flexWrap: 'wrap' }}>
           <Btn label="Túi đồ" icon="gift" tone="ghost" size="sm" onPress={() => router.push('/inventory')} />
           <Btn label="Nhiệm vụ" icon="list" tone="ghost" size="sm" onPress={() => router.push('/quests')} />
-          <Btn label="Battle Pass" icon="star" tone="ghost" size="sm" onPress={() => router.push('/season')} />
           <Btn label="Giải đấu" icon="trophy" tone="ghost" size="sm" onPress={() => router.push('/tournaments')} />
           <Btn label="Bang hội" icon="shield" tone="ghost" size="sm" onPress={() => router.push('/guild')} />
           <Btn label="BXH" icon="trophy" tone="ghost" size="sm" onPress={() => router.push('/leaderboard')} />

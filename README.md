@@ -24,9 +24,9 @@ server-authoritative, economy có audit, admin panel và analytics.
 |---|---|---|
 | ![](docs/screenshots/41-room-find.png) | ![](docs/screenshots/40-room-create.png) | ![](docs/screenshots/12-quickplay.png) |
 
-| Battle Pass | Giải đấu | Nhánh đấu |
+| Giải đấu | Nhánh đấu | Túi đồ |
 |---|---|---|
-| ![](docs/screenshots/54-season.png) | ![](docs/screenshots/56-tournaments.png) | ![](docs/screenshots/57-tournament-bracket.png) |
+| ![](docs/screenshots/56-tournaments.png) | ![](docs/screenshots/57-tournament-bracket.png) | ![](docs/screenshots/05-inventory.png) |
 
 | Bang hội (tìm bang) | Trang bang | Chat bang |
 |---|---|---|
@@ -232,19 +232,17 @@ cặp trong nhánh là một trận thật** chạy qua đúng hệ trận đấ
 tính giờ, cùng reconnect — giải chỉ nối các trận lại và biết ai đi tiếp. Lệ phí gộp
 vào giải thưởng, vô địch 70% và á quân 30%; rút tên trước khai mạc thì hoàn tiền.
 
-**Battle Pass** — mùa dài 60 ngày, 30 mốc, hai nhánh miễn phí và cao cấp (250 kim
-cương, mở là nhận được cả mốc đã qua). XP mùa đi theo XP trận và nhiệm vụ chứ không
-có hệ đếm riêng, để tiến độ khớp với cảm nhận của người chơi. Mỗi mốc mỗi nhánh chỉ
-nhận một lần — chống nhận trùng bằng khoá chính của bảng `season_claims` chứ không
-bằng kiểm tra ở tầng code, nên bấm hai lần cùng lúc cũng chỉ ăn một. Mùa tự gối
-nhau: hết hạn thì lần gọi tiếp theo đóng mùa cũ và mở mùa mới, không cần cron.
-
 **Cosmetic & tiền tệ** — 19 cosmetic (khung, danh hiệu, nền, bong bóng chat, emote,
 hiệu ứng, theme bàn cờ). **Không có cửa hàng và không có nạp tiền**: cosmetic chỉ
-kiếm được qua Battle Pass và thành tựu, nên không có giá. Coin dùng làm phí lập bang
-và lệ phí giải đấu, Diamond dùng mở nhánh cao cấp Battle Pass; cả hai chỉ đến từ
-trận đấu, nhiệm vụ và phần thưởng mùa. Mọi thay đổi số dư vẫn ghi transaction bất
-biến trong SQL transaction.
+kiếm được qua **thành tựu**, nên không có giá. 19 thành tựu, mỗi cái tặng đúng một
+món, khó dần thì hiếm dần — đó là toàn bộ đường lấy cosmetic. Coin dùng làm phí lập
+bang và lệ phí giải đấu, chỉ đến từ trận đấu và nhiệm vụ; mọi thay đổi số dư vẫn ghi
+transaction bất biến trong SQL transaction.
+
+> **Hai loại tiền còn treo sau khi bỏ shop và Battle Pass.** Diamond vẫn được nhiệm
+> vụ thưởng nhưng không mua được gì nữa. Season Token thì mất cả nguồn lẫn chỗ tiêu —
+> Battle Pass là nơi duy nhất phát ra nó. Cả hai nên bỏ hẳn hoặc gắn công dụng mới;
+> hiện chúng chỉ là con số đứng yên trong ví.
 
 **Admin** — dashboard KPI, quản lý user, theo dõi phòng/trận live, CRUD vật phẩm và
 nhiệm vụ/sự kiện, xử lý báo cáo, audit log, phễu analytics.
@@ -475,7 +473,6 @@ Cosmetic vẫn vẽ bằng gradient nên thêm item mới chỉ cần một dòn
 | Report/Ban/Mute, profanity filter | ✅ |
 | Reconnect + grace period | ✅ |
 | Guild (bang hội) + chat bang | ✅ |
-| Battle Pass theo mùa | ✅ |
 | Tournament bracket (loại trực tiếp) | ✅ |
 | Push notification (Expo → FCM/APNs) | ✅ mã hoàn chỉnh, chưa chạy thật |
 | Seasonal rank + định hạng đầu mùa | ✅ |

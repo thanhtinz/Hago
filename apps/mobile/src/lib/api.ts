@@ -100,11 +100,7 @@ export const ERROR_TEXT: Record<string, string> = {
   NO_REQUEST: 'Không còn đơn nào của người này',
   NOT_ALLOWED: 'Bạn không có quyền làm việc này',
 
-  // Battle Pass
-  TIER_LOCKED: 'Bạn chưa tới mốc này',
-  PREMIUM_REQUIRED: 'Cần mở nhánh cao cấp trước',
   ALREADY_CLAIMED: 'Bạn đã nhận phần này rồi',
-  NO_REWARD: 'Mốc này không có thưởng ở nhánh đó',
 
   // Giải đấu
   TOURNAMENT_NOT_FOUND: 'Không tìm thấy giải',

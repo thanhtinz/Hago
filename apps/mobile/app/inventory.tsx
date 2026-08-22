@@ -13,9 +13,9 @@ import { useStore } from '../src/state/store';
 /**
  * Túi đồ.
  *
- * App không có cửa hàng: cosmetic chỉ **kiếm được** qua Battle Pass và thành
- * tựu, nên màn này chỉ để xem đồ đang có và chọn thứ muốn dùng. Mỗi loại chỉ
- * trang bị được một món, đúng như quy tắc ở server.
+ * App không có cửa hàng: cosmetic chỉ **kiếm được** qua thành tựu, nên màn này
+ * chỉ để xem đồ đang có và chọn thứ muốn dùng. Mỗi loại chỉ trang bị được một
+ * món, đúng như quy tắc ở server.
  */
 const TYPES: { id: string; label: string; icon: IconName }[] = [
   { id: '', label: 'Tất cả', icon: 'grid' },
@@ -75,7 +75,7 @@ export default function InventoryScreen() {
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <ScreenHeader
         title="Túi đồ"
-        subtitle="Cosmetic kiếm được từ Battle Pass và thành tựu"
+        subtitle="Cosmetic mở khoá từ thành tựu"
         icon="gift"
       />
 
@@ -151,7 +151,7 @@ export default function InventoryScreen() {
           <Empty
             icon="gift"
             title={inventory.length ? 'Loại này chưa có món nào' : 'Túi đồ trống'}
-            hint="Lên mốc Battle Pass hoặc mở khoá thành tựu để nhận cosmetic"
+            hint="Mở khoá thành tựu để nhận cosmetic trang trí hồ sơ"
           />
         )}
       </ScrollView>

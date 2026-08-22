@@ -17,7 +17,7 @@ import { bumpDaily, dailyValue, track } from '../services/analytics';
 import { progressAchievements, progressQuests } from '../services/quests';
 import { areFriends } from '../services/social';
 import { addGuildPoints } from '../services/guilds';
-import { addSeasonXp, recordRankedMatch } from '../services/season';
+import { recordRankedMatch } from '../services/season';
 import { notify } from '../services/notifications';
 
 export interface MatchRuntime {
@@ -338,9 +338,6 @@ export function settleMatch(match: MatchRuntime): { matchId: string; rows: Settl
     // Đóng góp cho bang: chơi xong được 5 điểm, thắng thêm 10. Tính theo trận
     // chứ không theo XP để bang không lệ thuộc vào việc ai cày game dài.
     addGuildPoints(r.userId, r.result === 'win' ? 15 : 5);
-    // XP Battle Pass đi theo XP trận nên ai chơi nhiều thì mùa cũng lên nhanh,
-    // không cần một hệ đếm riêng dễ lệch với cảm nhận của người chơi.
-    addSeasonXp(r.userId, r.xpGain);
     // Trận xếp hạng mới tính vào định hạng mùa; trận thường không đụng tới rank.
     if (match.mode === 'ranked') {
       const now = db.prepare('SELECT rating FROM users WHERE id = ?').get(r.userId) as { rating: number };

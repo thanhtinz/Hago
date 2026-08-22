@@ -46,13 +46,31 @@ const QUESTS = [
 ];
 
 const ACHIEVEMENTS = [
+  // Bỏ Battle Pass rồi thì đây là nguồn cosmetic duy nhất, nên danh sách phải
+  // phủ hết 19 món — mỗi thành tựu tặng một món, khó dần thì hiếm dần.
   { id: 'ach_first_win', title: 'Chiến Thắng Đầu Tiên', description: 'Thắng trận đầu tiên', metric: 'wins', target: 1, rewardCoin: 200, rewardXp: 150, rewardItem: 'title_newbie', art: 'star' },
-  { id: 'ach_win_10', title: 'Tay Chơi Cứng', description: 'Thắng 10 trận', metric: 'wins', target: 10, rewardCoin: 500, rewardXp: 350, rewardItem: 'bubble_cloud', art: 'flame' },
+  { id: 'ach_win_5', title: 'Bắt Nhịp', description: 'Thắng 5 trận', metric: 'wins', target: 5, rewardCoin: 300, rewardXp: 220, rewardItem: 'bubble_cloud', art: 'happy' },
+  { id: 'ach_win_10', title: 'Tay Chơi Cứng', description: 'Thắng 10 trận', metric: 'wins', target: 10, rewardCoin: 500, rewardXp: 350, rewardItem: 'frame_mint', art: 'flame' },
+  { id: 'ach_win_25', title: 'Có Số Có Má', description: 'Thắng 25 trận', metric: 'wins', target: 25, rewardCoin: 900, rewardXp: 600, rewardItem: 'board_wood', art: 'medal-3' },
+  { id: 'ach_win_50', title: 'Sát Thủ Bàn Cờ', description: 'Thắng 50 trận', metric: 'wins', target: 50, rewardCoin: 1600, rewardXp: 1100, rewardItem: 'fx_confetti', art: 'medal-2' },
   { id: 'ach_win_100', title: 'Huyền Thoại', description: 'Thắng 100 trận', metric: 'wins', target: 100, rewardCoin: 3000, rewardXp: 2000, rewardItem: 'fx_fireworks', art: 'crown' },
+  { id: 'ach_win_250', title: 'Bất Khả Chiến Bại', description: 'Thắng 250 trận', metric: 'wins', target: 250, rewardCoin: 7000, rewardXp: 4500, rewardItem: 'title_caro_king', art: 'medal-1' },
+  { id: 'ach_win_500', title: 'Tượng Đài', description: 'Thắng 500 trận', metric: 'wins', target: 500, rewardCoin: 15000, rewardXp: 9000, rewardItem: 'frame_dragon', art: 'trophy' },
+
+  { id: 'ach_match_10', title: 'Làm Quen Sân Chơi', description: 'Chơi 10 trận', metric: 'matches', target: 10, rewardCoin: 250, rewardXp: 180, rewardItem: 'bg_bamboo', art: 'dice' },
+  { id: 'ach_match_50', title: 'Khách Quen', description: 'Chơi 50 trận', metric: 'matches', target: 50, rewardCoin: 800, rewardXp: 550, rewardItem: 'bubble_candy', art: 'ui-chat' },
   { id: 'ach_match_100', title: '100 Trận Đấu', description: 'Chơi 100 trận', metric: 'matches', target: 100, rewardCoin: 1500, rewardXp: 1000, rewardItem: 'bg_beach', art: 'target' },
-  { id: 'ach_match_1000', title: '1000 Trận Đấu', description: 'Chơi 1000 trận', metric: 'matches', target: 1000, rewardCoin: 12000, rewardXp: 8000, rewardItem: 'frame_royal', art: 'trophy' },
-  { id: 'ach_friends_5', title: 'Bạn Bè Bốn Phương', description: 'Kết bạn với 5 người', metric: 'friends', target: 5, rewardCoin: 300, rewardXp: 200, rewardItem: 'emote_pack_cute', art: 'handshake' },
+  { id: 'ach_match_250', title: 'Cày Không Ngừng', description: 'Chơi 250 trận', metric: 'matches', target: 250, rewardCoin: 3500, rewardXp: 2400, rewardItem: 'frame_sakura', art: 'flame' },
+  { id: 'ach_match_500', title: 'Ở Lì Trong Game', description: 'Chơi 500 trận', metric: 'matches', target: 500, rewardCoin: 7000, rewardXp: 5000, rewardItem: 'bg_night', art: 'moon' },
+  { id: 'ach_match_1000', title: '1000 Trận Đấu', description: 'Chơi 1000 trận', metric: 'matches', target: 1000, rewardCoin: 12000, rewardXp: 8000, rewardItem: 'board_neon', art: 'trophy' },
+
+  { id: 'ach_friends_1', title: 'Người Bạn Đầu Tiên', description: 'Kết bạn với 1 người', metric: 'friends', target: 1, rewardCoin: 150, rewardXp: 100, rewardItem: 'fx_entry_star', art: 'handshake' },
+  { id: 'ach_friends_5', title: 'Bạn Bè Bốn Phương', description: 'Kết bạn với 5 người', metric: 'friends', target: 5, rewardCoin: 300, rewardXp: 200, rewardItem: 'emote_pack_cute', art: 'users' },
+  { id: 'ach_friends_15', title: 'Giao Thiệp Rộng', description: 'Kết bạn với 15 người', metric: 'friends', target: 15, rewardCoin: 900, rewardXp: 650, rewardItem: 'emote_pack_troll', art: 'ui-friends' },
+  { id: 'ach_friends_30', title: 'Trùm Quan Hệ', description: 'Kết bạn với 30 người', metric: 'friends', target: 30, rewardCoin: 2000, rewardXp: 1400, rewardItem: 'title_wolf', art: 'ui-friends' },
+  { id: 'ach_friends_50', title: 'Ai Cũng Biết Bạn', description: 'Kết bạn với 50 người', metric: 'friends', target: 50, rewardCoin: 4000, rewardXp: 2800, rewardItem: 'frame_royal', art: 'crown' },
 ];
+
 
 const DEMO_USERS = [
   { username: 'linhchibi', displayName: 'Linh Chibi', rating: 1780, coin: 4200, diamond: 65 },
@@ -189,25 +207,6 @@ export function ensureSeed(): void {
       ),
     );
     db.prepare("UPDATE profiles SET frame_id = 'frame_sakura' WHERE user_id = ?").run(demoId);
-
-    // Tiến độ Battle Pass sẵn có cho demo, để màn mùa không trống ở lần chạy đầu.
-    {
-      const sid = nid();
-      const start = nowMs();
-      db.prepare('INSERT INTO seasons (id, name, start_at, end_at, active) VALUES (?,?,?,?,1)').run(
-        sid,
-        'Mùa 1',
-        start,
-        start + 60 * 86400_000,
-      );
-      db.prepare('INSERT INTO user_season (user_id, season_id, xp, premium) VALUES (?,?,?,0)').run(demoId, sid, 2600);
-      // Đã nhận vài mốc đầu, để thấy đủ cả ba trạng thái ô thưởng.
-      [1, 2, 3].forEach((tier) =>
-        db.prepare(
-          'INSERT OR IGNORE INTO season_claims (user_id, season_id, tier, track, created_at) VALUES (?,?,?,?,?)',
-        ).run(demoId, sid, tier, 'free', nowMs()),
-      );
-    }
 
     // Hai giải mở sẵn để màn Giải đấu có cái mà xem ngay lần chạy đầu.
     [
