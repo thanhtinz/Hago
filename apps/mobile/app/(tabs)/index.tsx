@@ -20,6 +20,8 @@ interface HomeData {
   hotGames: { gameType: string; matches: number }[];
   livePlayers: Record<string, number>;
   events: any[];
+  checkin: { streak: number; claimedToday: boolean; nextSlot: number; rewards: any[] };
+  live: any[];
   quests: any[];
   recent: any[];
   unread: number;
@@ -82,7 +84,7 @@ export default function HomeScreen() {
     colors: EVENT_COLORS[e.kind] ?? ['#8A6BFF', '#FF6FA5'],
     art: EVENT_ART[e.kind] ?? 'ui-gift',
     tag: `Còn ${Math.max(0, Math.ceil((e.endAt - Date.now()) / 86400000))} ngày`,
-    onPress: () => router.push('/quests'),
+    onPress: () => router.push('/events'),
   }));
 
   return (
@@ -215,6 +217,81 @@ export default function HomeScreen() {
         )}
       </View>
 
+      {/* ---------------- Điểm danh ---------------- */}
+      {data?.checkin ? (
+        <Pressable onPress={() => router.push('/events')} style={{ paddingHorizontal: S.lg, marginTop: S.lg }}>
+          <View
+            style={[
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: S.md,
+                padding: S.md,
+                borderRadius: R.lg,
+                backgroundColor: data.checkin.claimedToday ? C.mintSoft : C.sunSoft,
+                borderWidth: 2,
+                borderColor: data.checkin.claimedToday ? C.mint : C.sun,
+              },
+              softShadow(0.08, 12, 4),
+            ]}
+          >
+            <Art name="ui-gift" size={30} />
+            <View style={{ flex: 1 }}>
+              <Txt size={14} weight="heading" color={data.checkin.claimedToday ? '#1F7A50' : '#9A6B00'}>
+                {data.checkin.claimedToday ? 'Đã điểm danh hôm nay' : 'Điểm danh nhận thưởng'}
+              </Txt>
+              <Txt size={11} color={C.inkSoft}>
+                {data.checkin.streak > 0 ? `Chuỗi ${data.checkin.streak} ngày · ` : ''}
+                Mốc {data.checkin.nextSlot}/7
+              </Txt>
+            </View>
+            <Txt size={13} weight="bold" color={data.checkin.claimedToday ? '#1F7A50' : '#9A6B00'}>
+              {data.checkin.claimedToday ? 'Xem sự kiện ›' : 'Nhận ngay ›'}
+            </Txt>
+          </View>
+        </Pressable>
+      ) : null}
+
+      {/* ---------------- Đang thi đấu ---------------- */}
+      {data?.live?.length ? (
+        <View style={{ marginTop: S.xl }}>
+          <Head title="Bạn bè đang thi đấu" icon="eye" actionLabel="Xem tất cả" onAction={() => router.push('/spectate')} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.md, paddingHorizontal: S.lg }}>
+            {data.live.map((m: any) => (
+              <Pressable key={m.matchId} onPress={() => router.push(`/spectate/${m.matchId}`)}>
+                <Card style={{ width: 200, gap: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Txt size={13} weight="heading" numberOfLines={1} style={{ flex: 1 }}>
+                      {games.find((g) => g.id === m.gameType)?.name ?? m.gameType}
+                    </Txt>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Icon name="eye" size={12} color={C.inkFaint} strokeWidth={2.2} />
+                      <Txt size={10} weight="bold" color={C.inkFaint}>
+                        {m.spectators}
+                      </Txt>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    {m.players.map((p: any, i: number) => (
+                      // Chồng nhẹ lên nhau cho gọn chỗ; RN không nhận gap âm nên lùi bằng margin.
+                      <View key={p.id} style={{ marginLeft: i ? -8 : 0 }}>
+                        <Avatar seed={p.avatarSeed} styleName={p.avatarStyle} size={28} ring="#fff" />
+                      </View>
+                    ))}
+                    <Txt size={11} color={C.inkSoft} numberOfLines={1} style={{ flex: 1, marginLeft: 8 }}>
+                      {m.players.map((p: any) => p.name).join(' vs ')}
+                    </Txt>
+                  </View>
+                  <Txt size={11} weight="bold" color={C.primary}>
+                    Vào xem ›
+                  </Txt>
+                </Card>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+
       {/* ---------------- Hành động nhanh ---------------- */}
       <View style={{ flexDirection: 'row', gap: S.md, paddingHorizontal: S.lg, marginTop: S.lg }}>
         <ActionTile
@@ -336,7 +413,13 @@ export default function HomeScreen() {
           <Card style={{ gap: S.md }}>
             {data?.recent.length ? (
               data.recent.map((m: any) => (
-                <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                // Có khung phát lại thì cả dòng bấm được để mở màn xem lại.
+                <Pressable
+                  key={m.id}
+                  disabled={!m.hasReplay}
+                  onPress={() => router.push(`/replay/${m.id}`)}
+                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
                     <Icon
                       name={m.result === 'win' ? 'trophy' : m.result === 'draw' ? 'handshake' : 'droplet'}
@@ -368,11 +451,14 @@ export default function HomeScreen() {
                             ? 'Hoà'
                             : 'Thua'}
                     </Txt>
-                    <Txt size={10} color={C.inkFaint}>
-                      +{m.xp_gain} XP · +{m.coin_gain} coin
-                    </Txt>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Txt size={10} color={C.inkFaint}>
+                        +{m.xp_gain} XP · +{m.coin_gain} coin
+                      </Txt>
+                      {m.hasReplay ? <Icon name="play" size={12} color={C.primary} /> : null}
+                    </View>
                   </View>
-                </View>
+                </Pressable>
               ))
             ) : (
               <Empty icon="star" title="Chưa có trận nào" hint="Bấm nút vàng ở giữa thanh dưới để chơi ngay!" />

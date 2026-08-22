@@ -31,6 +31,9 @@ export type IconName =
   | 'flag'
   | 'ban'
   | 'play'
+  | 'pause'
+  | 'rewind'
+  | 'forward'
   | 'dice'
   | 'target'
   | 'shield'
@@ -224,6 +227,27 @@ function render(name: IconName, p: any, color: string) {
       );
     case 'play':
       return <Path d="M8 5.5l10 6.5-10 6.5v-13z" {...p} fill={color} />;
+    case 'pause':
+      return (
+        <>
+          <Path d="M9 5v14" {...p} strokeWidth={3.2} />
+          <Path d="M15 5v14" {...p} strokeWidth={3.2} />
+        </>
+      );
+    case 'rewind':
+      return (
+        <>
+          <Path d="M12 7v10L5 12l7-5z" {...p} fill={color} />
+          <Path d="M20 7v10l-7-5 7-5z" {...p} fill={color} />
+        </>
+      );
+    case 'forward':
+      return (
+        <>
+          <Path d="M12 7v10l7-5-7-5z" {...p} fill={color} />
+          <Path d="M4 7v10l7-5-7-5z" {...p} fill={color} />
+        </>
+      );
     case 'dice':
       return (
         <>

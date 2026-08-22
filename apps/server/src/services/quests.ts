@@ -19,6 +19,7 @@ function mapQuest(r: any): QuestDef {
     rewardXp: r.reward_xp,
     rewardDiamond: r.reward_diamond,
     gameType: r.game_type,
+    eventId: r.event_id ?? null,
     startAt: r.start_at,
     endAt: r.end_at,
     active: !!r.active,
@@ -38,20 +39,27 @@ export function activeQuests(): QuestDef[] {
   ).map(mapQuest);
 }
 
-export function userQuests(userId: string): UserQuest[] {
-  return activeQuests().map((quest) => {
-    const period = periodFor(quest.type);
-    const row = db
-      .prepare('SELECT progress, claimed FROM user_quests WHERE user_id = ? AND quest_id = ? AND period = ?')
-      .get(userId, quest.id, period) as { progress: number; claimed: number } | undefined;
-    const progress = row?.progress ?? 0;
-    return {
-      quest,
-      progress: Math.min(progress, quest.target),
-      claimed: !!row?.claimed,
-      completed: progress >= quest.target,
-    };
-  });
+/**
+ * Nhiệm vụ của người chơi. Mặc định chỉ trả nhiệm vụ thường (`eventId` null) —
+ * nhiệm vụ sự kiện hiện trong thẻ sự kiện chứ không trộn vào màn Nhiệm vụ. Truyền
+ * `eventId` để lấy đúng nhiệm vụ của một sự kiện.
+ */
+export function userQuests(userId: string, eventId: string | null = null): UserQuest[] {
+  return activeQuests()
+    .filter((q) => (q.eventId ?? null) === eventId)
+    .map((quest) => {
+      const period = periodFor(quest.type);
+      const row = db
+        .prepare('SELECT progress, claimed FROM user_quests WHERE user_id = ? AND quest_id = ? AND period = ?')
+        .get(userId, quest.id, period) as { progress: number; claimed: number } | undefined;
+      const progress = row?.progress ?? 0;
+      return {
+        quest,
+        progress: Math.min(progress, quest.target),
+        claimed: !!row?.claimed,
+        completed: progress >= quest.target,
+      };
+    });
 }
 
 /** Cộng tiến độ cho mọi quest đang chạy khớp metric (và game type nếu có). */

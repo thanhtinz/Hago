@@ -294,3 +294,24 @@ function Side({
     </View>
   );
 }
+
+/**
+ * View của người xem (`view(state, null)` trên server) không có ô "của tôi" —
+ * mấy game giấu bài như Bắn Tàu trả về `sides[]` thay cho `me`/`foe`. Bàn chơi
+ * lại được viết theo góc nhìn người trong trận, nên ở đây ta gán tạm ghế 0 làm
+ * góc nhìn: khán giả xem trận như đang ngồi cạnh người chơi ghế 0, còn thông
+ * tin ẩn thì vẫn giấu vì server đã lọc từ trước.
+ */
+export function spectatorView(view: any): { view: any; seat: number } {
+  if (!view) return { view, seat: 0 };
+  // Game giấu bài trả `sides[]` cho người ngoài. Lấy ghế 0 làm góc nhìn — dữ
+  // liệu trong đó đã bị server lọc rồi, nên không lộ thêm gì.
+  if (Array.isArray(view.sides) && !view.me) {
+    return { view: { ...view, me: view.sides[0], foe: view.sides[1] }, seat: 0 };
+  }
+  // Engine nào có khai `mySeat` thì tin nó, kể cả khi là -1 (không ngồi ghế
+  // nào) — bàn chơi sẽ tự tắt hết nút thao tác. Engine không khai (Caro, Ô Ăn
+  // Quan…) thì mọi thứ đều công khai, xem từ ghế 0 là được.
+  const seat = typeof view.mySeat === 'number' ? view.mySeat : 0;
+  return { view, seat };
+}

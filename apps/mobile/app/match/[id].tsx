@@ -14,20 +14,10 @@ import { VictoryEffect } from '../../src/components/Cosmetic';
 import { placeArt } from '../../src/lib/rank';
 
 import { C, GAME_GRADIENT, R, S, softShadow } from '../../src/theme';
-import { BOARDS } from '../../src/games';
+import { BOARDS, GAME_NAMES } from '../../src/games';
 import { friendlyError } from '../../src/lib/api';
 import { emitAck, newActionId } from '../../src/lib/socket';
 import { useStore } from '../../src/state/store';
-
-const GAME_NAMES: Record<string, string> = {
-  caro: 'Cờ Caro',
-  battleship: 'Bắn Tàu',
-  oanquan: 'Ô Ăn Quan',
-  sheep: 'Sheep Battle',
-  chess: 'Cờ Vua',
-  flappy: 'Flappy Bird',
-  werewolf: 'Ma Sói',
-};
 
 const FLASH: Record<string, { icon: IconName; text: string }> = {
   win: { icon: 'trophy', text: 'Thắng rồi!' },
@@ -362,6 +352,8 @@ export default function MatchScreen() {
 
                   <View style={{ flexDirection: 'row', gap: S.sm, marginTop: 6 }}>
                     <Btn label="Về trang chủ" tone="ghost" onPress={() => router.replace('/')} />
+                    {/* Khung phát lại được ghi ngay trong lúc đấu nên xem lại được liền. */}
+                    <Btn label="Xem lại" icon="play" tone="secondary" onPress={() => router.replace(`/replay/${id}`)} />
                     <Btn label="Chơi tiếp" icon="refresh" onPress={() => router.replace('/quickplay')} />
                   </View>
                 </>

@@ -15,6 +15,7 @@ import { pushRouter } from './routes/push';
 import { adminRouter } from './routes/admin';
 import { initGateway } from './realtime/gateway';
 import { ensureSeed } from './seed';
+import { pruneReplays } from './services/replays';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -51,6 +52,16 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 });
 
 ensureSeed();
+
+// Khung phát lại là phần phình nhanh nhất của DB, dọn lúc khởi động rồi mỗi giờ.
+pruneReplays();
+setInterval(() => {
+  try {
+    pruneReplays();
+  } catch (e) {
+    console.error('[replay-prune]', e);
+  }
+}, 3600_000).unref?.();
 
 const server = http.createServer(app);
 initGateway(server);

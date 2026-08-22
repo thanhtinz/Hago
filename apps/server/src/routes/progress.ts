@@ -9,6 +9,9 @@ import { track } from '../services/analytics';
 import { matchHistory } from '../realtime/match';
 import { allRooms, listPublicRooms, toRoomView } from '../realtime/rooms';
 import { activeMatches } from '../realtime/match';
+import { replayOf, withReplayFlag } from '../services/replays';
+import { liveMatchesFor } from '../services/spectate';
+import { activeEvents, checkinState, claimCheckin } from '../services/events';
 
 export const progressRouter = Router();
 
@@ -38,23 +41,46 @@ progressRouter.post('/notifications/read', requireAuth, (req, res) => {
   res.json({ ok: true, unread: unreadCount(req.auth!.sub) });
 });
 
-progressRouter.get('/events', (_req, res) => {
-  const now = nowMs();
-  const rows = db
-    .prepare('SELECT * FROM events WHERE active = 1 AND start_at <= ? AND end_at >= ? ORDER BY start_at')
-    .all(now, now) as any[];
+progressRouter.get('/events', requireAuth, (req, res) => {
   res.json({
-    events: rows.map((r) => ({
-      id: r.id,
-      title: r.title,
-      description: r.description,
-      banner: r.banner,
-      kind: r.kind,
-      startAt: r.start_at,
-      endAt: r.end_at,
-      active: !!r.active,
-    })),
+    events: activeEvents(req.auth!.sub),
+    checkin: checkinState(req.auth!.sub),
+    balance: balanceOf(req.auth!.sub),
   });
+});
+
+progressRouter.get('/checkin', requireAuth, (req, res) => {
+  res.json({ checkin: checkinState(req.auth!.sub) });
+});
+
+progressRouter.post('/checkin', requireAuth, (req, res) => {
+  try {
+    const { reward, streak } = claimCheckin(req.auth!.sub);
+    res.json({ ok: true, reward, streak, checkin: checkinState(req.auth!.sub), balance: balanceOf(req.auth!.sub) });
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+/* --------------------------- xem lại & xem trực tiếp -------------------- */
+
+/** Lịch sử đấu, kèm cờ trận nào còn khung để xem lại. */
+progressRouter.get('/matches', requireAuth, (req, res) => {
+  const limit = Math.min(50, Math.max(1, Number(req.query.limit ?? 20)));
+  res.json({ matches: withReplayFlag(matchHistory(req.auth!.sub, limit) as any[]) });
+});
+
+progressRouter.get('/matches/:id/replay', requireAuth, (req, res) => {
+  // View được lọc theo chính người đang xem: xem lại trận của mình thì thấy
+  // thông tin của mình, xem trận người khác thì vẫn bị giấu như lúc đang đấu.
+  const replay = replayOf(req.params.id, req.auth!.sub);
+  if (!replay) return res.status(404).json({ error: 'REPLAY_NOT_FOUND' });
+  res.json({ replay });
+});
+
+/** Trận đang diễn ra mà mình xem được: của bạn bè hoặc người cùng bang. */
+progressRouter.get('/live', requireAuth, (req, res) => {
+  res.json({ matches: liveMatchesFor(req.auth!.sub) });
 });
 
 progressRouter.get('/games', (_req, res) => {
@@ -83,9 +109,7 @@ progressRouter.get('/home', requireAuth, (req, res) => {
       `SELECT game_type, COUNT(*) AS c FROM matches WHERE started_at > ? GROUP BY game_type ORDER BY c DESC`,
     )
     .all(now - 24 * 3600_000) as any[];
-  const events = db
-    .prepare('SELECT * FROM events WHERE active = 1 AND start_at <= ? AND end_at >= ? ORDER BY start_at LIMIT 5')
-    .all(now, now) as any[];
+  const events = activeEvents(userId).slice(0, 5);
 
   // Số người đang thực sự ở trong trận / trong phòng của từng game — dùng cho
   // nhãn "đang chơi" ở khu Game đang hot.
@@ -112,17 +136,11 @@ progressRouter.get('/home', requireAuth, (req, res) => {
       rating: r.rating,
     })),
     hotGames: hot.map((h) => ({ gameType: h.game_type, matches: h.c })),
-    events: events.map((r) => ({
-      id: r.id,
-      title: r.title,
-      description: r.description,
-      banner: r.banner,
-      kind: r.kind,
-      startAt: r.start_at,
-      endAt: r.end_at,
-    })),
+    events,
+    checkin: checkinState(userId),
+    live: liveMatchesFor(userId, 6),
     quests: userQuests(userId).slice(0, 4),
-    recent: matchHistory(userId, 5),
+    recent: withReplayFlag(matchHistory(userId, 5) as any[]),
     unread: unreadCount(userId),
     balance: balanceOf(userId),
     openRooms: listPublicRooms().slice(0, 8).map(toRoomView),

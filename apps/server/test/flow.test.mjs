@@ -549,3 +549,186 @@ test('cosmetic: hồ sơ trả về đủ ô đang dùng của demo', async () =
   assert.equal(seen.frameId, 'frame_sakura');
   assert.equal(seen.titleId, 'title_newbie');
 });
+
+/* ------------------------- xem lại & xem trực tiếp ------------------------ */
+
+test('xem lại: trận đã xong có khung phát lại, tua được từ đầu tới cuối', async () => {
+  const { json } = await get('/api/matches?limit=10', users.alpha.token);
+  const done = json.matches.find((m) => m.hasReplay);
+  assert.ok(done, 'trận Caro vừa chơi phải có bản xem lại');
+
+  const r = await get(`/api/matches/${done.id}/replay`, users.alpha.token);
+  assert.equal(r.status, 200);
+  const replay = r.json.replay;
+  assert.ok(replay.frames.length >= 2, 'phải có nhiều hơn một khung');
+  assert.equal(replay.players.length, 2);
+  // Mốc thời gian không được lùi, không thì thanh tua chạy giật.
+  for (let i = 1; i < replay.frames.length; i++) {
+    assert.ok(replay.frames[i].at >= replay.frames[i - 1].at, 'mốc thời gian phải tăng dần');
+  }
+  assert.equal(replay.frames[0].view.over, false, 'khung đầu là lúc chưa ai thắng');
+  assert.equal(replay.frames[replay.frames.length - 1].view.over, true, 'khung cuối phải là lúc kết thúc');
+  assert.ok(replay.rows.some((x) => x.result === 'win'), 'kết quả đi kèm bản xem lại');
+});
+
+test('xem lại: trận đang chơi thì chưa có bản xem lại', async () => {
+  const sa = sockets[0];
+  const sb = sockets[1];
+  const started = Promise.all([waitFor(sa, 'match.start'), waitFor(sb, 'match.start')]);
+  await ack(sa, 'mm.join', { gameType: 'caro', mode: 'normal' });
+  await ack(sb, 'mm.join', { gameType: 'caro', mode: 'normal' });
+  const [start] = await started;
+
+  const r = await get(`/api/matches/${start.matchId}/replay`, users.alpha.token);
+  assert.equal(r.status, 404, 'đang đấu thì phải dùng khán đài, không phải xem lại');
+  users.liveMatchId = start.matchId;
+});
+
+test('khán đài: bạn bè vào xem được, người lạ thì không', async () => {
+  for (const name of ['gamma', 'delta']) {
+    const { json } = await post('/api/auth/register', { username: name, password: 'secret123' });
+    users[name] = json;
+  }
+  // gamma là bạn của alpha; delta không quen ai trong trận.
+  await post(`/api/social/friends/${users.gamma.profile.id}/request`, {}, users.alpha.token);
+  await post(`/api/social/friends/${users.alpha.profile.id}/accept`, {}, users.gamma.token);
+
+  const sg = io(API, { auth: { token: users.gamma.token }, transports: ['websocket'] });
+  const sd = io(API, { auth: { token: users.delta.token }, transports: ['websocket'] });
+  sockets.push(sg, sd);
+  // Giữ lại để test sau dùng: mảng `sockets` còn socket của mấy test khác nữa,
+  // đếm chỉ số là sai.
+  users.gammaSocket = sg;
+  await Promise.all([waitFor(sg, 'connect'), waitFor(sd, 'connect')]);
+
+  const denied = await ack(sd, 'spectate.join', { matchId: users.liveMatchId });
+  assert.equal(denied.ok, false);
+  assert.equal(denied.error, 'SPECTATE_NOT_ALLOWED');
+
+  const joined = await ack(sg, 'spectate.join', { matchId: users.liveMatchId });
+  assert.equal(joined.ok, true, JSON.stringify(joined));
+  assert.equal(joined.state.spectating, true);
+  assert.ok(Array.isArray(joined.state.view.cells), 'khán giả nhận được bàn cờ');
+
+  // Có nước đi mới thì khán đài cũng nhận được state mới.
+  const pushed = waitFor(sg, 'game.state', 10000);
+  const sync = await ack(sockets[0], 'game.sync', { matchId: users.liveMatchId });
+  const mover = sync.state.view.players.findIndex((p) => p.id === users.alpha.profile.id) === sync.state.view.turnSeat ? sockets[0] : sockets[1];
+  await ack(mover, 'game.action', { matchId: users.liveMatchId, actionId: 'spec-1', type: 'move', payload: { x: 6, y: 6 } });
+  const state = await pushed;
+  assert.equal(state.matchId, users.liveMatchId);
+  assert.equal(state.spectating, true);
+  assert.ok(state.spectators >= 1, 'số khán giả phải được đếm');
+
+  await ack(sg, 'spectate.leave', { matchId: users.liveMatchId });
+});
+
+test('khán đài: game giấu bài không lộ thông tin ẩn cho khán giả', async () => {
+  const sa = sockets[0];
+  const sb = sockets[1];
+  const sg = users.gammaSocket;
+  const started = Promise.all([waitFor(sa, 'match.start'), waitFor(sb, 'match.start')]);
+  await ack(sa, 'mm.join', { gameType: 'battleship', mode: 'normal' });
+  await ack(sb, 'mm.join', { gameType: 'battleship', mode: 'normal' });
+  const [start] = await started;
+
+  // Hai bên xếp hạm đội xong thì toạ độ tàu đã nằm trong state của server.
+  await ack(sa, 'game.action', { matchId: start.matchId, actionId: 'bs-a', type: 'place', payload: {} });
+  await ack(sb, 'game.action', { matchId: start.matchId, actionId: 'bs-b', type: 'place', payload: {} });
+
+  const joined = await ack(sg, 'spectate.join', { matchId: start.matchId });
+  assert.equal(joined.ok, true, JSON.stringify(joined));
+  const view = joined.state.view;
+  assert.equal(view.me, null, 'khán giả không có bàn "của tôi"');
+  assert.equal(view.sides.length, 2);
+  for (const side of view.sides) {
+    assert.equal(side.placed, true, 'khán giả vẫn biết hai bên đã xếp xong');
+    assert.equal(side.ships.length, 0, 'chưa chìm tàu nào thì khán giả không thấy toạ độ tàu');
+  }
+
+  // Người chơi thì vẫn thấy hạm đội của chính mình.
+  const own = await ack(sa, 'game.sync', { matchId: start.matchId });
+  assert.ok(own.state.view.me.ships.length > 0);
+
+  await ack(sg, 'spectate.leave', { matchId: start.matchId });
+});
+
+test('khán đài: người trong trận không tự xem trận của chính mình', async () => {
+  const self = await ack(sockets[0], 'spectate.join', { matchId: users.liveMatchId });
+  assert.equal(self.ok, false);
+  assert.equal(self.error, 'ALREADY_PLAYING');
+});
+
+test('khán đài: danh sách trận xem được chỉ gồm trận của bạn bè', async () => {
+  const mine = await get('/api/live', users.gamma.token);
+  assert.ok(
+    mine.json.matches.some((m) => m.matchId === users.liveMatchId && m.reason === 'friend'),
+    'gamma phải thấy trận của bạn mình',
+  );
+  const stranger = await get('/api/live', users.delta.token);
+  assert.equal(stranger.json.matches.length, 0, 'người lạ không thấy trận nào');
+});
+
+/* --------------------------- điểm danh & sự kiện -------------------------- */
+
+test('điểm danh: nhận một lần mỗi ngày, có chuỗi ngày và cộng tiền thật', async () => {
+  const before = (await get('/api/users/me', users.gamma.token)).json.profile;
+  const first = await post('/api/checkin', {}, users.gamma.token);
+  assert.equal(first.status, 200);
+  assert.equal(first.json.streak, 1);
+  assert.equal(first.json.checkin.claimedToday, true);
+  assert.equal(first.json.balance.coin, before.coin + first.json.reward.coin);
+
+  const again = await post('/api/checkin', {}, users.gamma.token);
+  assert.equal(again.status, 400);
+  assert.equal(again.json.error, 'ALREADY_CLAIMED');
+
+  const state = await get('/api/checkin', users.gamma.token);
+  assert.equal(state.json.checkin.streak, 1);
+  assert.equal(state.json.checkin.bestStreak, 1);
+  assert.equal(state.json.checkin.rewards.length, 7);
+});
+
+test('sự kiện: có nhiệm vụ riêng, và nhiệm vụ đó không lẫn vào màn Nhiệm vụ', async () => {
+  const ev = await get('/api/events', users.gamma.token);
+  assert.equal(ev.status, 200);
+  const login = ev.json.events.find((e) => e.id === 'ev_login');
+  assert.ok(login, 'sự kiện điểm danh phải đang chạy');
+  assert.ok(login.quests.length >= 2, 'sự kiện phải có nhiệm vụ riêng');
+  // Điểm danh ở test trên đã nhích tiến độ nhiệm vụ 'điểm danh N ngày'.
+  const checkinQuest = login.quests.find((q) => q.quest.metric === 'checkin');
+  assert.ok(checkinQuest.progress >= 1, 'điểm danh phải cộng tiến độ nhiệm vụ sự kiện');
+
+  const quests = await get('/api/quests', users.gamma.token);
+  const eventIds = new Set(ev.json.events.flatMap((e) => e.quests.map((q) => q.quest.id)));
+  assert.ok(
+    quests.json.quests.every((q) => !eventIds.has(q.quest.id)),
+    'nhiệm vụ sự kiện không được hiện ở màn Nhiệm vụ',
+  );
+});
+
+test('sự kiện: nhiệm vụ đủ tiến độ thì nhận thưởng được, và chỉ một lần', async () => {
+  // Đẩy thẳng tiến độ qua admin thì phải sửa DB; thay vào đó dùng nhiệm vụ mục
+  // tiêu 1 do admin tạo, gắn vào sự kiện đang chạy.
+  const admin = (await post('/api/auth/login', { login: 'admin', password: 'admin123' })).json;
+  await post(
+    '/api/admin/quests',
+    { id: 'q_test_event', title: 'Điểm danh thử', metric: 'checkin', target: 1, rewardCoin: 50, rewardXp: 10, eventId: 'ev_login' },
+    admin.token,
+  );
+
+  const { json } = await post('/api/auth/register', { username: 'epsilon', password: 'secret123' });
+  await post('/api/checkin', {}, json.token);
+
+  const ev = await get('/api/events', json.token);
+  const quest = ev.json.events.flatMap((e) => e.quests).find((q) => q.quest.id === 'q_test_event');
+  assert.equal(quest.completed, true);
+  assert.equal(quest.claimed, false);
+
+  const claim = await post('/api/quests/q_test_event/claim', {}, json.token);
+  assert.equal(claim.status, 200);
+  assert.equal(claim.json.reward.coin, 50);
+  const twice = await post('/api/quests/q_test_event/claim', {}, json.token);
+  assert.equal(twice.status, 400);
+  assert.equal(twice.json.error, 'ALREADY_CLAIMED');
+});

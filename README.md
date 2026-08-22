@@ -241,8 +241,9 @@ mới chỉ cần sửa dữ liệu, không phải phát hành lại app. Bốn 
 hình của chính chủ thì không lộ ra.
 
 **Không có cửa hàng và không có nạp tiền**: cosmetic chỉ kiếm được qua **thành tựu**,
-nên không có giá. 19 thành tựu, mỗi cái tặng đúng một
-món, khó dần thì hiếm dần — đó là toàn bộ đường lấy cosmetic. Coin dùng làm phí lập
+nên không có giá. 19 thành tựu tặng đúng một món mỗi cái, khó dần thì hiếm dần — đó là
+toàn bộ đường lấy cosmetic. Hai thành tựu điểm danh thêm sau chỉ thưởng Coin/XP vì 19
+món đã chia hết; có món mới thì gắn vào đó trước. Coin dùng làm phí lập
 bang và lệ phí giải đấu, chỉ đến từ trận đấu và nhiệm vụ; mọi thay đổi số dư vẫn ghi
 transaction bất biến trong SQL transaction.
 
@@ -251,8 +252,41 @@ transaction bất biến trong SQL transaction.
 > Battle Pass là nơi duy nhất phát ra nó. Cả hai nên bỏ hẳn hoặc gắn công dụng mới;
 > hiện chúng chỉ là con số đứng yên trong ví.
 
+**Xem lại trận** — mọi trận đều được server chụp lại thành từng khung, xem lại bằng
+một trình phát có thanh tua, nút lùi/tới từng khung và bốn mức tốc độ 0,5x–4x. Bàn cờ
+dùng lại đúng component của màn chơi nên xem lại trông y hệt lúc đấu.
+
+Chọn cách **chụp khung** thay vì **diễn lại từ seed**: engine thuần và RNG có seed nên
+về lý thuyết diễn lại được từ `matches.seed` + `match_actions`, nhưng Sheep và Flappy
+còn phụ thuộc `tick(now)` của đồng hồ máy chủ — diễn lại không ra đúng khung cũ. Khung
+lưu **state thô**, lúc phát mới lọc theo người đang xem, nên xem lại trận của mình thì
+thấy thông tin của mình còn người ngoài vẫn bị giấu. Trần 400 khung mỗi trận; chạm trần
+thì bỏ bớt khung lẻ và giãn nhịp ra, giữ trọn trận thay vì cắt cụt đúng đoạn quyết định.
+Khung giữ 14 ngày.
+
+Vào từ: nút *Xem lại* ngay trong bảng kết quả trận, dòng trận trong *Trận gần đây* ở
+trang chủ, và lịch sử đấu trong hồ sơ (dòng nào còn bản xem lại thì có dấu ▶).
+
+**Xem trực tiếp** — vào khán đài trận đang diễn ra của bạn bè hoặc người cùng bang,
+nhận state realtime qua đúng luồng của người chơi. Khán giả nhận **một bản chung** đã
+lọc sạch thông tin ẩn (`view(state, null)`) và không nhận các sự kiện gửi riêng cho một
+người chơi — nên khán đài không thể thành đường rò bài: xem Bắn Tàu thì không thấy toạ
+độ tàu của ai cả. Người trong trận thấy số khán giả trên thanh tiêu đề. Không mở công
+khai cho cả thiên hạ vì như thế là mời người ta lập nick phụ ngồi xem bài đối thủ rồi
+mách nước qua kênh ngoài.
+
+**Điểm danh & sự kiện** — điểm danh vòng 7 mốc, thưởng tăng dần và mốc 7 nặng nhất; bỏ
+một ngày là về mốc 1. Sự kiện giới hạn thời gian có nhiệm vụ riêng, tiến độ và nút nhận
+thưởng ngay trong thẻ sự kiện.
+
+Nhiệm vụ sự kiện **dùng lại nguyên bảng `quests`**, chỉ khác là có `event_id`: tiến độ,
+chống nhận trùng và trả thưởng đi chung một đường với nhiệm vụ thường, không phải viết
+lại lần nữa. Chúng không hiện ở màn *Nhiệm vụ* để hai chỗ không lẫn vào nhau. Admin gắn
+nhiệm vụ vào sự kiện ngay trong LiveOps, và nhiệm vụ tự mượn khung thời gian của sự kiện
+sinh ra nó — quên đặt ngày kết thúc là nhiệm vụ sống dai hơn cả sự kiện.
+
 **Admin** — dashboard KPI, quản lý user, theo dõi phòng/trận live, CRUD vật phẩm và
-nhiệm vụ/sự kiện, xử lý báo cáo, audit log, phễu analytics.
+nhiệm vụ/sự kiện (gắn được nhiệm vụ vào sự kiện), xử lý báo cáo, audit log, phễu analytics.
 
 ---
 
@@ -484,6 +518,9 @@ Cosmetic vẫn vẽ bằng gradient nên thêm item mới chỉ cần một dòn
 | Push notification (Expo → FCM/APNs) | ✅ mã hoàn chỉnh, chưa chạy thật |
 | Seasonal rank + định hạng đầu mùa | ✅ |
 | Skill-based MM: ghép theo trình sát nhất | ✅ |
+| Xem lại trận (replay có tua, đổi tốc độ) | ✅ |
+| Xem trực tiếp trận của bạn bè / cùng bang | ✅ |
+| Điểm danh theo chuỗi ngày + nhiệm vụ sự kiện | ✅ |
 
 Chi tiết kỹ thuật: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · API: [`docs/API.md`](docs/API.md)
 
@@ -493,11 +530,14 @@ Chi tiết kỹ thuật: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · API: 
 
 ```bash
 npm test                    # chạy toàn bộ
-npm test -w @hago/shared    # 31 test: 7 engine, redact thông tin ẩn, Elo, XP cap
-npm test -w @hago/server    # 26 test tích hợp: đăng ký → ghép trận → thưởng → bang hội → giải đấu → admin
+npm test -w @hago/shared    # 41 test: 7 engine, redact thông tin ẩn, Elo, XP cap
+npm test -w @hago/server    # 36 test tích hợp: đăng ký → ghép trận → thưởng → bang hội → giải đấu → xem lại → khán đài → admin
 ```
 
 Test tích hợp khởi động server thật trên SQLite tạm và điều khiển hai WebSocket client
 chơi trọn một ván Caro ranked, kiểm tra: kết quả do server quyết định, Elo bảo toàn tổng,
 `action_id` trùng không tính hai lần, lọc từ tục, rate limit chat, không mua trùng vật phẩm,
-không claim quest hai lần, RBAC admin và ban thu hồi phiên.
+không claim quest hai lần, RBAC admin và ban thu hồi phiên. Phần mới thêm: bản xem lại
+có đủ khung từ đầu tới cuối và mốc thời gian không lùi, người lạ không vào được khán đài,
+khán giả xem Bắn Tàu không nhận được toạ độ tàu, điểm danh chỉ ăn một lần mỗi ngày và
+nhiệm vụ sự kiện không lẫn vào màn Nhiệm vụ.

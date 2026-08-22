@@ -263,6 +263,31 @@ CREATE TABLE IF NOT EXISTS match_actions (
 );
 CREATE INDEX IF NOT EXISTS idx_actions_match ON match_actions(match_id, version);
 
+-- Khung hình phát lại: ảnh chụp state của server tại mỗi lần state đổi. Lưu
+-- state thô chứ không lưu view, để lúc phát lại còn lọc thông tin ẩn theo đúng
+-- người đang xem (người trong trận thấy bài mình, người ngoài thì không).
+CREATE TABLE IF NOT EXISTS match_frames (
+  match_id   TEXT NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+  idx        INTEGER NOT NULL,
+  -- ms kể từ lúc vào trận, để phát lại đúng nhịp thật.
+  at         INTEGER NOT NULL,
+  version    INTEGER NOT NULL,
+  state_json TEXT NOT NULL,
+  PRIMARY KEY (match_id, idx)
+);
+
+-- Điểm danh hằng ngày. Một dòng một ngày nên không thể nhận hai lần, và chuỗi
+-- ngày được ghi thẳng vào dòng thay vì suy lại từ lịch sử mỗi lần đọc.
+CREATE TABLE IF NOT EXISTS checkins (
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day        TEXT NOT NULL,
+  streak     INTEGER NOT NULL,
+  -- Mốc 1..7 trong vòng điểm danh, quyết định phần thưởng của ngày đó.
+  slot       INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, day)
+);
+
 CREATE TABLE IF NOT EXISTS items (
   id            TEXT PRIMARY KEY,
   name          TEXT NOT NULL,
@@ -414,6 +439,7 @@ for (const [table, column, type] of [
   ['profiles', 'entry_id', 'TEXT'],
   ['profiles', 'emote_id', 'TEXT'],
   ['game_stats', 'best_score', 'INTEGER NOT NULL DEFAULT 0'],
+  ['quests', 'event_id', 'TEXT'],
 ] as const) {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
   if (!cols.some((c) => c.name === column)) {

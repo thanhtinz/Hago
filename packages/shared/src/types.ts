@@ -450,6 +450,8 @@ export interface QuestDef {
   rewardXp: number;
   rewardDiamond: number;
   gameType: GameType | null;
+  /** Nhiệm vụ của một sự kiện thì gắn id sự kiện; nhiệm vụ thường để null. */
+  eventId: string | null;
   startAt: number | null;
   endAt: number | null;
   active: boolean;
@@ -491,6 +493,71 @@ export interface EventDef {
   endAt: number;
   kind: 'login' | 'winstreak' | 'seasonal' | 'tournament';
   active: boolean;
+}
+
+/** Sự kiện kèm nhiệm vụ riêng và tiến độ của người đang xem. */
+export interface EventWithQuests extends EventDef {
+  quests: UserQuest[];
+}
+
+/* ------------------------------------------------------------------ */
+/* Check-in                                                             */
+/* ------------------------------------------------------------------ */
+
+export interface CheckinReward {
+  /** Mốc 1..7 trong một vòng điểm danh. */
+  slot: number;
+  coin: number;
+  xp: number;
+  diamond: number;
+}
+
+export interface CheckinState {
+  /** Chuỗi ngày liên tiếp tính tới hôm nay (0 nếu hôm qua đã đứt). */
+  streak: number;
+  /** Chuỗi dài nhất từng đạt. */
+  bestStreak: number;
+  claimedToday: boolean;
+  /** Mốc sẽ nhận nếu điểm danh bây giờ, 1..7. */
+  nextSlot: number;
+  rewards: CheckinReward[];
+  /** Ngày (YYYY-MM-DD) đã điểm danh trong 14 ngày gần nhất. */
+  recentDays: string[];
+}
+
+/* ------------------------------------------------------------------ */
+/* Replay & spectate                                                    */
+/* ------------------------------------------------------------------ */
+
+export interface ReplayFrame {
+  /** Mốc thời gian tính từ lúc vào trận, đơn vị ms. */
+  at: number;
+  version: number;
+  view: unknown;
+  deadline: number | null;
+}
+
+export interface ReplayData {
+  matchId: string;
+  gameType: GameType;
+  mode: GameMode;
+  startedAt: number;
+  endedAt: number | null;
+  durationMs: number;
+  players: { id: string; name: string; seat: number; avatarSeed: string; avatarStyle: string }[];
+  rows: MatchResultRow[];
+  frames: ReplayFrame[];
+}
+
+export interface LiveMatchInfo {
+  matchId: string;
+  gameType: GameType;
+  mode: GameMode;
+  startedAt: number;
+  spectators: number;
+  /** Vì sao trận này xem được: bạn bè hay cùng bang. */
+  reason: 'friend' | 'guild' | 'admin';
+  players: { id: string; name: string; avatarSeed: string; avatarStyle: string; level: number }[];
 }
 
 /* ------------------------------------------------------------------ */

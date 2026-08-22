@@ -20,6 +20,7 @@ import { track } from '../services/analytics';
 import * as Rooms from './rooms';
 import * as MM from './matchmaking';
 import { bindTournamentRunner, reportMatch } from '../services/tournaments';
+import { SpectateError, joinSpectate, leaveSpectate, liveMatchesFor, spectatingMatch } from '../services/spectate';
 import {
   applyAction,
   bindMatchHooks,
@@ -61,17 +62,32 @@ function pushRoom(room: Rooms.Room): void {
 function pushMatchState(match: ReturnType<typeof getMatch>, events: GameEvent[] = []): void {
   if (!match) return;
   const engine = getEngine(match.gameType);
+  const finished = match.finished || engine.finished(match.state);
+  const base = {
+    matchId: match.id,
+    gameType: match.gameType,
+    version: match.version,
+    finished,
+    deadline: engine.deadline(match.state),
+    spectators: match.spectators.size,
+  };
   for (const p of match.players) {
-    emitToUser(p.id, 'game.state', {
-      matchId: match.id,
-      gameType: match.gameType,
-      version: match.version,
-      view: engine.view(match.state, p.id),
-      finished: match.finished || engine.finished(match.state),
-      deadline: engine.deadline(match.state),
-    });
+    emitToUser(p.id, 'game.state', { ...base, view: engine.view(match.state, p.id) });
     const mine = events.filter((e) => !e.to || e.to === p.id);
     if (mine.length) emitToUser(p.id, 'game.event', { matchId: match.id, version: match.version, events: mine });
+  }
+
+  // Người xem nhận đúng `view(state, null)`: cùng một bản đã lọc sạch thông tin
+  // ẩn cho mọi người xem, nên không thể lấy khán đài làm đường rò bài.
+  if (match.spectators.size) {
+    const view = engine.view(match.state, null);
+    // Sự kiện gửi riêng cho một người (`e.to`) là thông tin riêng của người đó,
+    // khán giả không được nhận.
+    const open = events.filter((e) => !e.to);
+    for (const id of match.spectators) {
+      emitToUser(id, 'game.state', { ...base, view, spectating: true });
+      if (open.length) emitToUser(id, 'game.event', { matchId: match.id, version: match.version, events: open });
+    }
   }
 }
 
@@ -137,6 +153,18 @@ export function initGateway(server: HttpServer): Server {
           rows: summary.rows,
         }),
       );
+      // Khán giả cũng cần biết ván kết thúc ra sao rồi mới rời khán đài.
+      match.spectators.forEach((id) =>
+        emitToUser(id, 'match.result', {
+          matchId: match.id,
+          gameType: match.gameType,
+          mode: match.mode,
+          rows: summary.rows,
+          spectating: true,
+        }),
+      );
+      match.spectators.clear();
+
       // Nếu trận này nằm trong nhánh giải đấu thì đẩy người thắng sang vòng sau.
       const champion = summary.rows.find((r) => r.result === 'win');
       reportMatch(match.id, champion?.userId ?? null);
@@ -328,6 +356,47 @@ export function initGateway(server: HttpServer): Server {
       });
     });
 
+    /* ----------------------------- spectate ----------------------------- */
+
+    socket.on('spectate.join', (p: any, ack?: (r: any) => void) => {
+      try {
+        // Một lúc chỉ xem một trận; vào trận mới thì tự rời khán đài cũ.
+        leaveSpectate(userId);
+        const match = joinSpectate(userId, String(p?.matchId ?? ''));
+        const engine = getEngine(match.gameType);
+        track(userId, 'spectate_join', { match_id: match.id, game_type: match.gameType });
+        ack?.({
+          ok: true,
+          state: {
+            matchId: match.id,
+            gameType: match.gameType,
+            version: match.version,
+            view: engine.view(match.state, null),
+            finished: match.finished,
+            deadline: engine.deadline(match.state),
+            spectators: match.spectators.size,
+            spectating: true,
+          },
+          players: match.players.map((x) => ({ id: x.id, name: x.name, seat: x.seat })),
+        });
+        // Người trong trận thấy ngay số khán giả đổi.
+        pushMatchState(match);
+      } catch (e: any) {
+        ack?.({ ok: false, error: e instanceof SpectateError ? e.message : 'SPECTATE_FAILED' });
+      }
+    });
+
+    socket.on('spectate.leave', (p: any, ack?: (r: any) => void) => {
+      const match = spectatingMatch(userId);
+      leaveSpectate(userId, p?.matchId ? String(p.matchId) : undefined);
+      if (match) pushMatchState(match);
+      ack?.({ ok: true });
+    });
+
+    socket.on('spectate.list', (_p: any, ack?: (r: any) => void) => {
+      ack?.({ ok: true, matches: liveMatchesFor(userId) });
+    });
+
     /* ------------------------------- chat ------------------------------- */
 
     socket.on('chat.send', (p: any, ack?: (r: any) => void) => {
@@ -374,6 +443,11 @@ export function initGateway(server: HttpServer): Server {
       if (!s || s.size === 0) {
         socketsOfUser.delete(userId);
         markDisconnected(userId);
+        // Khán giả rớt mạng thì rời khán đài luôn — không có grace period vì họ
+        // không giữ ghế nào cả.
+        const watched = spectatingMatch(userId);
+        leaveSpectate(userId);
+        if (watched) pushMatchState(watched);
         const room = Rooms.roomOfUser(userId);
         if (room) {
           const seat = room.seats.find((x) => x.userId === userId);

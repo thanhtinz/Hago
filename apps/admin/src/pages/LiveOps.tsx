@@ -7,7 +7,7 @@ const DAY = 86_400_000;
 export default function LiveOps({ toast }: { toast: (t: string) => void }) {
   const [quests, setQuests] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
-  const [quest, setQuest] = useState({ title: '', type: 'daily', metric: 'play_match', target: 3, rewardCoin: 100, rewardXp: 60, rewardDiamond: 0, gameType: '' });
+  const [quest, setQuest] = useState({ title: '', type: 'daily', metric: 'play_match', target: 3, rewardCoin: 100, rewardXp: 60, rewardDiamond: 0, gameType: '', eventId: '' });
   const [event, setEvent] = useState({ title: '', description: '', kind: 'seasonal', days: 7, banner: '#7C6BFF' });
   const [announce, setAnnounce] = useState({ title: '', body: '' });
 
@@ -41,6 +41,7 @@ export default function LiveOps({ toast }: { toast: (t: string) => void }) {
                   <option value="play_match">Chơi trận</option>
                   <option value="win_match">Thắng trận</option>
                   <option value="play_with_friend">Chơi cùng bạn</option>
+                  <option value="checkin">Điểm danh</option>
                 </select>
               </label>
               <label className="field" style={{ width: 90 }}>
@@ -48,6 +49,25 @@ export default function LiveOps({ toast }: { toast: (t: string) => void }) {
                 <input type="number" value={quest.target} onChange={(e) => setQuest({ ...quest, target: Number(e.target.value) })} />
               </label>
             </div>
+            <label className="field">
+              Thuộc sự kiện
+              <select
+                value={quest.eventId}
+                onChange={(e) => {
+                  // Gắn vào sự kiện thì chu kỳ là 'event': nhiệm vụ một lần, hiện
+                  // trong thẻ sự kiện chứ không nằm ở màn Nhiệm vụ hằng ngày.
+                  const eventId = e.target.value;
+                  setQuest({ ...quest, eventId, type: eventId ? 'event' : quest.type === 'event' ? 'daily' : quest.type });
+                }}
+              >
+                <option value="">Không (nhiệm vụ thường)</option>
+                {events.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.title}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div className="row">
               <label className="field" style={{ flex: 1 }}>
                 Giới hạn game
@@ -77,7 +97,10 @@ export default function LiveOps({ toast }: { toast: (t: string) => void }) {
               className="btn"
               onClick={async () => {
                 if (!quest.title) return toast('Nhập tiêu đề nhiệm vụ');
-                await api('/api/admin/quests', { method: 'POST', body: { ...quest, gameType: quest.gameType || null } });
+                await api('/api/admin/quests', {
+                  method: 'POST',
+                  body: { ...quest, gameType: quest.gameType || null, eventId: quest.eventId || null },
+                });
                 toast('Đã tạo nhiệm vụ');
                 setQuest({ ...quest, title: '' });
                 load();
@@ -159,6 +182,7 @@ export default function LiveOps({ toast }: { toast: (t: string) => void }) {
                 <tr>
                   <th>Tiêu đề</th>
                   <th>Chu kỳ</th>
+                  <th>Sự kiện</th>
                   <th>Mục tiêu</th>
                   <th>Thưởng</th>
                 </tr>
@@ -170,6 +194,7 @@ export default function LiveOps({ toast }: { toast: (t: string) => void }) {
                     <td>
                       <Pill tone={q.type === 'daily' ? 'ok' : 'info'}>{q.type}</Pill>
                     </td>
+                    <td className="muted">{events.find((ev) => ev.id === q.event_id)?.title ?? '—'}</td>
                     <td>
                       {q.metric} × {q.target}
                     </td>
@@ -190,7 +215,8 @@ export default function LiveOps({ toast }: { toast: (t: string) => void }) {
                 <div>
                   <div style={{ fontWeight: 700 }}>{e.title}</div>
                   <div className="muted">
-                    {e.kind} · {fmtDate(e.start_at)} → {fmtDate(e.end_at)}
+                    {e.kind} · {fmtDate(e.start_at)} → {fmtDate(e.end_at)} ·{' '}
+                    {quests.filter((q) => q.event_id === e.id).length} nhiệm vụ
                   </div>
                 </div>
                 <Pill tone={e.end_at > Date.now() ? 'ok' : 'muted'}>{e.end_at > Date.now() ? 'đang chạy' : 'đã kết thúc'}</Pill>

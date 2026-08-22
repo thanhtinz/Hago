@@ -43,6 +43,15 @@ const QUESTS = [
   { id: 'q_weekly_play20', type: 'weekly', title: 'Cày cuốc tuần này', description: 'Chơi 20 trận trong tuần', metric: 'play_match', target: 20, rewardCoin: 600, rewardXp: 400, rewardDiamond: 5, gameType: null },
   { id: 'q_weekly_win8', type: 'weekly', title: 'Chuỗi thắng', description: 'Thắng 8 trận trong tuần', metric: 'win_match', target: 8, rewardCoin: 800, rewardXp: 500, rewardDiamond: 8, gameType: null },
   { id: 'q_weekly_chess', type: 'weekly', title: 'Chiếu tướng', description: 'Thắng 3 ván Cờ Vua trong tuần', metric: 'win_match', target: 3, rewardCoin: 400, rewardXp: 300, rewardDiamond: 3, gameType: 'chess' },
+
+  // Nhiệm vụ của sự kiện: cùng bảng `quests`, chỉ khác là có `eventId` nên
+  // chúng hiện trong thẻ sự kiện chứ không trộn vào màn Nhiệm vụ. Khung thời
+  // gian lấy theo sự kiện, đặt trong ensureSeed().
+  { id: 'q_ev_login_3', type: 'event', title: 'Điểm danh 3 ngày', description: 'Điểm danh 3 ngày trong thời gian sự kiện', metric: 'checkin', target: 3, rewardCoin: 400, rewardXp: 250, rewardDiamond: 3, gameType: null, eventId: 'ev_login' },
+  { id: 'q_ev_login_7', type: 'event', title: 'Điểm danh 7 ngày', description: 'Điểm danh đủ 7 ngày để nhận phần lớn', metric: 'checkin', target: 7, rewardCoin: 1000, rewardXp: 600, rewardDiamond: 10, gameType: null, eventId: 'ev_login' },
+  { id: 'q_ev_streak_win5', type: 'event', title: 'Thắng 5 trận', description: 'Giành 5 chiến thắng trong thời gian sự kiện', metric: 'win_match', target: 5, rewardCoin: 700, rewardXp: 450, rewardDiamond: 6, gameType: null, eventId: 'ev_streak' },
+  { id: 'q_ev_streak_play15', type: 'event', title: 'Chơi 15 trận', description: 'Chơi 15 trận bất kỳ trong thời gian sự kiện', metric: 'play_match', target: 15, rewardCoin: 500, rewardXp: 350, rewardDiamond: 4, gameType: null, eventId: 'ev_streak' },
+  { id: 'q_ev_tour_caro', type: 'event', title: 'Khởi động Caro', description: 'Chơi 5 ván Caro để làm nóng trước giải', metric: 'play_match', target: 5, rewardCoin: 450, rewardXp: 300, rewardDiamond: 3, gameType: 'caro', eventId: 'ev_tournament' },
 ];
 
 const ACHIEVEMENTS = [
@@ -69,6 +78,11 @@ const ACHIEVEMENTS = [
   { id: 'ach_friends_15', title: 'Giao Thiệp Rộng', description: 'Kết bạn với 15 người', metric: 'friends', target: 15, rewardCoin: 900, rewardXp: 650, rewardItem: 'emote_pack_troll', art: 'ui-friends' },
   { id: 'ach_friends_30', title: 'Trùm Quan Hệ', description: 'Kết bạn với 30 người', metric: 'friends', target: 30, rewardCoin: 2000, rewardXp: 1400, rewardItem: 'title_wolf', art: 'ui-friends' },
   { id: 'ach_friends_50', title: 'Ai Cũng Biết Bạn', description: 'Kết bạn với 50 người', metric: 'friends', target: 50, rewardCoin: 4000, rewardXp: 2800, rewardItem: 'frame_royal', art: 'crown' },
+
+  // Điểm danh: 19 món cosmetic đã chia hết cho các mốc trên, nên hai mốc này
+  // thưởng Coin/XP thôi. Thêm món mới thì gắn vào đây trước.
+  { id: 'ach_checkin_7', title: 'Chăm Chỉ', description: 'Điểm danh 7 ngày', metric: 'checkin', target: 7, rewardCoin: 400, rewardXp: 300, rewardItem: null, art: 'star' },
+  { id: 'ach_checkin_30', title: 'Ngày Nào Cũng Ghé', description: 'Điểm danh 30 ngày', metric: 'checkin', target: 30, rewardCoin: 2000, rewardXp: 1500, rewardItem: null, art: 'medal-1' },
 ];
 
 
@@ -128,12 +142,10 @@ export function ensureSeed(): void {
   ITEMS.forEach((i) => upsertItem.run(i.id, i.name, i.type, i.rarity, JSON.stringify(i.payload), i.description));
 
   const upsertQuest = db.prepare(
-    `INSERT INTO quests (id, type, title, description, metric, target, reward_coin, reward_xp, reward_diamond, game_type, active)
-     VALUES (?,?,?,?,?,?,?,?,?,?,1)
-     ON CONFLICT(id) DO UPDATE SET title=excluded.title, target=excluded.target`,
-  );
-  QUESTS.forEach((q) =>
-    upsertQuest.run(q.id, q.type, q.title, q.description, q.metric, q.target, q.rewardCoin, q.rewardXp, q.rewardDiamond, q.gameType),
+    `INSERT INTO quests (id, type, title, description, metric, target, reward_coin, reward_xp, reward_diamond, game_type, event_id, start_at, end_at, active)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1)
+     ON CONFLICT(id) DO UPDATE SET title=excluded.title, target=excluded.target, event_id=excluded.event_id,
+       start_at=excluded.start_at, end_at=excluded.end_at`,
   );
 
   const upsertAch = db.prepare(
@@ -161,6 +173,30 @@ export function ensureSeed(): void {
      ('ev_tournament','Giải Caro Mở Rộng','Bracket 16 người, giải thưởng 5000 Diamond','#2FA9F5','tournament',?,?,1)
      ON CONFLICT(id) DO UPDATE SET end_at=excluded.end_at`,
   ).run(now, now + 5 * DAY);
+
+  // Chạy sau khi có sự kiện: nhiệm vụ sự kiện mượn luôn khung thời gian của sự
+  // kiện sinh ra nó, không thì sự kiện hết mà nhiệm vụ vẫn còn.
+  const eventWindow = db.prepare('SELECT start_at, end_at FROM events WHERE id = ?');
+  QUESTS.forEach((q) => {
+    const ev = (q as any).eventId
+      ? (eventWindow.get((q as any).eventId) as { start_at: number; end_at: number } | undefined)
+      : undefined;
+    upsertQuest.run(
+      q.id,
+      q.type,
+      q.title,
+      q.description,
+      q.metric,
+      q.target,
+      q.rewardCoin,
+      q.rewardXp,
+      q.rewardDiamond,
+      q.gameType,
+      (q as any).eventId ?? null,
+      ev?.start_at ?? null,
+      ev?.end_at ?? null,
+    );
+  });
 
   const userCount = (db.prepare('SELECT COUNT(*) AS c FROM users').get() as { c: number }).c;
   if (userCount === 0) {

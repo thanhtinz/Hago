@@ -19,6 +19,7 @@ import { areFriends } from '../services/social';
 import { addGuildPoints } from '../services/guilds';
 import { recordRankedMatch } from '../services/season';
 import { notify } from '../services/notifications';
+import { INITIAL_FRAME_GAP_MS, recordFrame } from '../services/replays';
 
 export interface MatchRuntime {
   id: string;
@@ -33,6 +34,12 @@ export interface MatchRuntime {
   finished: boolean;
   /** userId -> thời điểm mất kết nối; quá grace period thì bị xử theo luật game. */
   disconnected: Map<string, number>;
+  /** Người đang xem trận (không ngồi ghế nào, chỉ nhận state đã lọc). */
+  spectators: Set<string>;
+  /** Số khung phát lại đã ghi và nhịp ghi hiện tại — xem services/replays.ts. */
+  frames: number;
+  lastFrameAt: number;
+  frameGapMs: number;
 }
 
 type Broadcast = (match: MatchRuntime, events: GameEvent[]) => void;
@@ -87,6 +94,10 @@ export function createMatch(opts: {
     startedAt: nowMs(),
     finished: false,
     disconnected: new Map(),
+    spectators: new Set(),
+    frames: 0,
+    lastFrameAt: 0,
+    frameGapMs: INITIAL_FRAME_GAP_MS,
   };
   matches.set(id, match);
 
@@ -101,6 +112,7 @@ export function createMatch(opts: {
 }
 
 function persist(match: MatchRuntime): void {
+  recordFrame(match);
   db.prepare(
     `INSERT INTO game_states (match_id, version, state_json, rng_state, updated_at) VALUES (?,?,?,?,?)
      ON CONFLICT(match_id) DO UPDATE SET version=excluded.version, state_json=excluded.state_json,
@@ -369,6 +381,8 @@ export function settleMatch(match: MatchRuntime): { matchId: string; rows: Settl
 function finishMatch(match: MatchRuntime): void {
   if (match.finished) return;
   match.finished = true;
+  // Khung cuối luôn phải có: đó là khung người ta tua tới để xem ai thắng.
+  recordFrame(match, true);
   const summary = settleMatch(match);
   onFinish(match, summary);
   // Giữ lại 5 phút để client xem kết quả / rematch rồi mới dọn.

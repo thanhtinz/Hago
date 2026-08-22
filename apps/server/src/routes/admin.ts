@@ -172,16 +172,26 @@ adminRouter.get('/quests', (_req, res) => {
 adminRouter.post('/quests', (req, res) => {
   const b = req.body ?? {};
   const id = b.id || `quest_${nid().slice(0, 8)}`;
+  /**
+   * Nhiệm vụ gắn vào sự kiện thì lấy luôn khung thời gian của sự kiện: quên đặt
+   * ngày kết thúc là nhiệm vụ sống dai hơn cả sự kiện sinh ra nó.
+   */
+  const eventId = b.eventId || null;
+  const event = eventId
+    ? (db.prepare('SELECT start_at, end_at FROM events WHERE id = ?').get(eventId) as
+        | { start_at: number; end_at: number }
+        | undefined)
+    : undefined;
   db.prepare(
-    `INSERT INTO quests (id, type, title, description, metric, target, reward_coin, reward_xp, reward_diamond, game_type, start_at, end_at, active)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+    `INSERT INTO quests (id, type, title, description, metric, target, reward_coin, reward_xp, reward_diamond, game_type, event_id, start_at, end_at, active)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(id) DO UPDATE SET type=excluded.type, title=excluded.title, description=excluded.description,
        metric=excluded.metric, target=excluded.target, reward_coin=excluded.reward_coin, reward_xp=excluded.reward_xp,
-       reward_diamond=excluded.reward_diamond, game_type=excluded.game_type, start_at=excluded.start_at,
-       end_at=excluded.end_at, active=excluded.active`,
+       reward_diamond=excluded.reward_diamond, game_type=excluded.game_type, event_id=excluded.event_id,
+       start_at=excluded.start_at, end_at=excluded.end_at, active=excluded.active`,
   ).run(
     id,
-    b.type ?? 'daily',
+    b.type ?? (eventId ? 'event' : 'daily'),
     b.title,
     b.description ?? '',
     b.metric ?? 'play_match',
@@ -190,8 +200,9 @@ adminRouter.post('/quests', (req, res) => {
     Number(b.rewardXp ?? 0),
     Number(b.rewardDiamond ?? 0),
     b.gameType ?? null,
-    b.startAt ?? null,
-    b.endAt ?? null,
+    eventId,
+    b.startAt ?? event?.start_at ?? null,
+    b.endAt ?? event?.end_at ?? null,
     b.active === false ? 0 : 1,
   );
   audit(req.auth!.sub, 'quest_upsert', id, b);

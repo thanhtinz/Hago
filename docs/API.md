@@ -65,8 +65,16 @@ thành tựu, nên không có giá và không có đường mua.
 | GET | `/quests` · POST `/quests/:id/claim` | Nhiệm vụ và nhận thưởng |
 | GET | `/achievements` | Thành tựu |
 | GET | `/notifications` · POST `/notifications/read` | Thông báo |
-| GET | `/events` | Sự kiện đang diễn ra |
+| GET | `/events` | Sự kiện đang chạy, kèm nhiệm vụ riêng và tiến độ + trạng thái điểm danh |
+| GET | `/checkin` · POST `/checkin` | Trạng thái điểm danh và nhận thưởng ngày hôm nay |
+| GET | `/matches?limit=` | Lịch sử đấu của mình, kèm cờ `hasReplay` |
+| GET | `/matches/:id/replay` | Bản xem lại: khung hình theo thời gian + kết quả |
+| GET | `/live` | Trận đang diễn ra mà mình xem được (bạn bè / cùng bang) |
 | POST | `/analytics` | `{name, props}` — gửi event tracking |
+
+Nhiệm vụ sự kiện dùng chung đường nhận thưởng với nhiệm vụ thường
+(`POST /quests/:id/claim`), nhưng không xuất hiện trong `GET /quests` — chúng chỉ
+nằm trong thẻ sự kiện của `GET /events`.
 
 ### Admin — `/api/admin` (yêu cầu `is_admin`)
 
@@ -102,6 +110,9 @@ tài khoản bị khoá.
 | `mm.leave` | `{}` | `{ok}` |
 | `game.action` | `{matchId, actionId, type, payload}` | `{ok, version}` |
 | `game.sync` | `{matchId?}` | `{ok, state}` |
+| `spectate.join` | `{matchId}` | `{ok, state, players}` hoặc `{ok:false, error}` |
+| `spectate.leave` | `{matchId?}` | `{ok}` |
+| `spectate.list` | `{}` | `{ok, matches}` |
 | `chat.send` | `{channelId\|toUserId, body, kind?}` | `{ok, message}` |
 | `chat.history` | `{channelId\|toUserId, limit?}` | `{ok, channelId, messages}` |
 | `ping.check` | `{}` | `timestamp` |
@@ -114,9 +125,9 @@ tài khoản bị khoá.
 | `room.left` | `{roomId, kicked?}` |
 | `mm.found` | `{roomId, gameType, mode, waitMs}` |
 | `match.start` | `{matchId, gameType, mode, roomId}` |
-| `game.state` | `{matchId, gameType, version, view, finished, deadline}` |
+| `game.state` | `{matchId, gameType, version, view, finished, deadline, spectators, spectating?}` |
 | `game.event` | `{matchId, version, events[]}` — hiệu ứng: win, kick, bump, score, rent… |
-| `match.result` | `{matchId, gameType, mode, rows[]}` với xpGain, coinGain, ratingDelta |
+| `match.result` | `{matchId, gameType, mode, rows[], spectating?}` với xpGain, coinGain, ratingDelta |
 | `chat.message` | `ChatMessage` |
 | `notification` | `NotificationRow` |
 | `presence` | `{user, online}` — chỉ gửi cho bạn bè |
@@ -174,6 +185,36 @@ tài khoản bị khoá.
 
 Chat bang dùng chung `chat.send` / `chat.history` với `channelId = "guild:<id>"`.
 Cả hai chỉ nhận `channelId` mà người gọi là thành viên của kênh.
+
+### Xem lại trận
+
+`GET /api/matches/:id/replay` trả về:
+
+```jsonc
+{
+  "replay": {
+    "matchId": "...", "gameType": "caro", "mode": "ranked",
+    "startedAt": 0, "endedAt": 0, "durationMs": 41200,
+    "players": [{ "id": "...", "seat": 0, "name": "...", "avatarSeed": "...", "avatarStyle": "..." }],
+    "rows": [{ "userId": "...", "result": "win", "score": 5, "place": 1, "ratingDelta": 12, "xpGain": 90, "coinGain": 60 }],
+    // Mỗi khung là một ảnh chụp state của server, `at` tính từ lúc vào trận.
+    "frames": [{ "at": 0, "version": 1, "view": { }, "deadline": null }]
+  }
+}
+```
+
+`view` trong mỗi khung được lọc theo **chính người gọi API**: xem lại trận của
+mình thì thấy thông tin của mình, xem trận người khác thì vẫn bị giấu như lúc
+trận đang diễn ra. Chỉ trận đã kết thúc mới có bản xem lại (trận đang chạy trả
+`404 REPLAY_NOT_FOUND` — dùng khán đài). Khung được giữ 14 ngày.
+
+### Khán đài
+
+`spectate.join` chỉ nhận khi trận đang chạy, người xem **không** ở trong trận,
+và có quan hệ với ít nhất một người chơi: bạn bè, cùng bang, hoặc là admin. Đã
+chặn nhau thì không vào được. Khán giả nhận `view(state, null)` — cùng một bản
+đã lọc sạch thông tin ẩn cho mọi khán giả — và không nhận các sự kiện gửi riêng
+cho một người chơi. Một lúc chỉ xem được một trận.
 
 ### Mã lỗi thường gặp
 

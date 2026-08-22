@@ -5,6 +5,7 @@ import { requireAuth } from '../auth';
 import { db } from '../db';
 import { AVATAR_STYLES } from '../avatar';
 import { findUser, searchUsers, toProfile, toPublicUser } from '../services/users';
+import { withReplayFlag } from '../services/replays';
 import { matchHistory } from '../realtime/match';
 import { userAchievements } from '../services/quests';
 
@@ -94,11 +95,13 @@ usersRouter.get('/:id', requireAuth, (req, res) => {
   if (!row) return res.status(404).json({ error: 'NOT_FOUND' });
   res.json({
     profile: toProfile(row),
-    history: matchHistory(row.id, 10),
+    history: withReplayFlag(matchHistory(row.id, 10) as any[]),
     achievements: userAchievements(row.id).filter((a) => a.unlockedAt),
   });
 });
 
 usersRouter.get('/:id/history', requireAuth, (req, res) => {
-  res.json({ history: matchHistory(req.params.id, Math.min(50, Number(req.query.limit ?? 20))) });
+  res.json({
+    history: withReplayFlag(matchHistory(req.params.id, Math.min(50, Number(req.query.limit ?? 20))) as any[]),
+  });
 });

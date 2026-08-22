@@ -29,6 +29,8 @@ const LEVEL_CURVE = (level: number) => Math.round(60 * (level - 1) + 12 * Math.p
 const MENU: MenuItem[] = [
   { label: 'Túi đồ', icon: 'gift', route: '/inventory' },
   { label: 'Nhiệm vụ', icon: 'list', route: '/quests' },
+  { label: 'Sự kiện', icon: 'gift', route: '/events' },
+  { label: 'Đang thi đấu', icon: 'eye', route: '/spectate' },
   { label: 'Giải đấu', icon: 'trophy', route: '/tournaments' },
   { label: 'Bang hội', icon: 'shield', route: '/guild' },
   { label: 'Bảng xếp hạng', icon: 'trend', route: '/leaderboard' },
@@ -192,7 +194,13 @@ export default function ProfileScreen() {
         <Card style={{ gap: S.md }}>
           {history.length ? (
             history.map((m: any) => (
-              <View key={m.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              // Trận còn khung phát lại thì bấm vào là mở màn xem lại.
+              <Pressable
+                key={m.id}
+                disabled={!m.hasReplay}
+                onPress={() => router.push(`/replay/${m.id}`)}
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+              >
                 <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
                   <Icon
                     name={m.result === 'win' ? 'trophy' : m.result === 'draw' ? 'handshake' : 'flag'}
@@ -205,11 +213,14 @@ export default function ProfileScreen() {
                   </Txt>
                   <Chip label={m.mode} color={C.inkFaint} soft={C.surfaceAlt} size={9} />
                 </View>
-                <Txt size={12} weight="bold" color={m.rating_delta >= 0 ? C.mint : C.danger}>
-                  {m.rating_delta > 0 ? '+' : ''}
-                  {m.rating_delta}
-                </Txt>
-              </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Txt size={12} weight="bold" color={m.rating_delta >= 0 ? C.mint : C.danger}>
+                    {m.rating_delta > 0 ? '+' : ''}
+                    {m.rating_delta}
+                  </Txt>
+                  {m.hasReplay ? <Icon name="play" size={13} color={C.primary} /> : null}
+                </View>
+              </Pressable>
             ))
           ) : (
             <Empty icon="grid" title="Chưa có trận nào" />
