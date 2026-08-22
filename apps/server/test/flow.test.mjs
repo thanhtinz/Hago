@@ -26,6 +26,14 @@ const post = async (p, body, token) => {
   });
   return { status: res.status, json: await res.json() };
 };
+const put = async (p, body, token) => {
+  const res = await fetch(API + p, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify(body ?? {}),
+  });
+  return { status: res.status, json: await res.json() };
+};
 const get = async (p, token) => {
   const res = await fetch(API + p, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
   return { status: res.status, json: await res.json() };
@@ -731,4 +739,173 @@ test('sự kiện: nhiệm vụ đủ tiến độ thì nhận thưởng đượ
   const twice = await post('/api/quests/q_test_event/claim', {}, json.token);
   assert.equal(twice.status, 400);
   assert.equal(twice.json.error, 'ALREADY_CLAIMED');
+});
+
+/* ---------------------------- bang hội mở rộng ---------------------------- */
+
+test('bang hội: thông báo ghim chỉ chủ và sĩ quan đặt được', async () => {
+  // Bang riêng cho nhóm test này: bang của alpha ở trên đã bị giải tán khi chủ
+  // bang rời, nên không mượn lại được.
+  users.gmaster = (await post('/api/auth/register', { username: 'gmaster', password: 'secret123' })).json;
+  users.gmember = (await post('/api/auth/register', { username: 'gmember', password: 'secret123' })).json;
+  const gid = (await post('/api/guilds', { name: 'Bang Cong Hien', tag: 'CH' }, users.gmaster.token)).json.guild.id;
+  users.guildId = gid;
+  assert.equal((await post(`/api/guilds/${gid}/join`, {}, users.gmember.token)).status, 200);
+
+  const denied = await put(`/api/guilds/${gid}/notice`, { notice: 'thử' }, users.gmember.token);
+  assert.equal(denied.status, 400);
+  assert.equal(denied.json.error, 'NOT_ALLOWED');
+
+  const ok = await put(`/api/guilds/${gid}/notice`, { notice: 'Tối nay 21h cả bang vào Caro nhé' }, users.gmaster.token);
+  assert.equal(ok.status, 200);
+  assert.equal(ok.json.guild.notice, 'Tối nay 21h cả bang vào Caro nhé');
+  assert.ok(ok.json.guild.noticeAt > 0);
+
+  const seen = await get('/api/guilds/me', users.gmember.token);
+  assert.equal(seen.json.guild.notice, 'Tối nay 21h cả bang vào Caro nhé', 'thành viên thường vẫn đọc được');
+});
+
+test('bang hội: nhật ký ghi lại việc vào bang và đổi thông báo', async () => {
+  const { json } = await get(`/api/guilds/${users.guildId}/logs`, users.gmaster.token);
+  const kinds = json.logs.map((l) => l.kind);
+  assert.ok(kinds.includes('join'), 'phải có dòng vào bang');
+  assert.ok(kinds.includes('notice'), 'phải có dòng đổi thông báo');
+  // Tên lưu sẵn trong dòng nhật ký nên đọc được mà không phải tra lại bảng users.
+  const notice = json.logs.find((l) => l.kind === 'notice');
+  assert.equal(notice.actorName, users.gmaster.profile.displayName);
+});
+
+test('bang hội: điểm danh một lần mỗi ngày, cộng điểm cho cả bang lẫn bản thân', async () => {
+  const before = (await get('/api/guilds/me', users.gmember.token)).json;
+  assert.equal(before.checkin.checkedInToday, false);
+
+  const first = await post('/api/guilds/checkin', {}, users.gmember.token);
+  assert.equal(first.status, 200, JSON.stringify(first.json));
+  assert.ok(first.json.points > 0);
+  assert.equal(first.json.guild.xp, before.guild.xp + first.json.points, 'điểm phải vào kho bang');
+  assert.equal(first.json.guild.points, before.guild.points + first.json.points, 'và vào sổ công trạng của mình');
+
+  const again = await post('/api/guilds/checkin', {}, users.gmember.token);
+  assert.equal(again.status, 400);
+  assert.equal(again.json.error, 'ALREADY_CLAIMED');
+
+  const after = (await get('/api/guilds/me', users.gmember.token)).json;
+  assert.equal(after.checkin.checkedInToday, true);
+  assert.equal(after.checkin.todayCount, 1);
+  assert.ok(after.members.find((m) => m.user.id === users.gmember.profile.id).checkedInToday);
+});
+
+test('bang hội: nhiệm vụ bang góp chung, xong thì từng người nhận một lần', async () => {
+  const admin = (await post('/api/auth/login', { login: 'admin', password: 'admin123' })).json;
+  // Mục tiêu 1 để một lượt điểm danh là cán đích.
+  await post(
+    '/api/admin/guild-quests',
+    { id: 'gq_test', title: 'Điểm danh thử', metric: 'guild_checkin', target: 1, rewardCoin: 80, rewardXp: 20, rewardGuildPoints: 100 },
+    admin.token,
+  );
+
+  // alpha chưa điểm danh hôm nay; điểm danh xong là nhiệm vụ chung hoàn thành.
+  const mine = await post('/api/guilds/checkin', {}, users.gmaster.token);
+  assert.equal(mine.status, 200, JSON.stringify(mine.json));
+  const quest = mine.json.quests.find((q) => q.quest.id === 'gq_test');
+  assert.equal(quest.completed, true);
+  assert.equal(quest.claimed, false);
+
+  const claim = await post('/api/guilds/quests/gq_test/claim', {}, users.gmaster.token);
+  assert.equal(claim.status, 200, JSON.stringify(claim.json));
+  assert.equal(claim.json.reward.coin, 80);
+  const twice = await post('/api/guilds/quests/gq_test/claim', {}, users.gmaster.token);
+  assert.equal(twice.status, 400);
+  assert.equal(twice.json.error, 'ALREADY_CLAIMED');
+
+  // Người khác trong bang vẫn nhận được phần của mình: tiến độ là của cả bang.
+  const other = await post('/api/guilds/quests/gq_test/claim', {}, users.gmember.token);
+  assert.equal(other.status, 200, JSON.stringify(other.json));
+  assert.equal(other.json.reward.coin, 80);
+
+  const state = (await get('/api/guilds/me', users.gmaster.token)).json;
+  assert.equal(state.quests.find((q) => q.quest.id === 'gq_test').claimedBy, 2);
+});
+
+test('bang hội: chưa xong thì không nhận thưởng nhiệm vụ bang được', async () => {
+  const admin = (await post('/api/auth/login', { login: 'admin', password: 'admin123' })).json;
+  await post(
+    '/api/admin/guild-quests',
+    { id: 'gq_hard', title: 'Rất khó', metric: 'win_match', target: 9999, rewardCoin: 10 },
+    admin.token,
+  );
+  const r = await post('/api/guilds/quests/gq_hard/claim', {}, users.gmaster.token);
+  assert.equal(r.status, 400);
+  assert.equal(r.json.error, 'QUEST_INCOMPLETE');
+});
+
+/* ------------------------------- ảnh trong chat --------------------------- */
+
+// PNG 1x1 hợp lệ, đủ để đi qua kiểm tra chữ ký file.
+const PNG_1PX =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+test('chat: tải ảnh lên rồi gửi được, và ảnh không bị lọc từ tục', async () => {
+  const up = await post('/api/social/upload', { data: `data:image/png;base64,${PNG_1PX}` }, users.gmaster.token);
+  assert.equal(up.status, 200, JSON.stringify(up.json));
+  assert.match(up.json.url, /^\/uploads\/[a-z0-9]+\.png$/);
+  users.imageUrl = up.json.url;
+
+  // File thật sự phục vụ được qua HTTP.
+  const served = await fetch(API + up.json.url);
+  assert.equal(served.status, 200);
+  assert.equal(served.headers.get('content-type'), 'image/png');
+
+  // Socket riêng: alpha đã đụng trần rate limit chat ở test chống spam phía trên.
+  const sg = io(API, { auth: { token: users.gmaster.token }, transports: ['websocket'] });
+  sockets.push(sg);
+  await waitFor(sg, 'connect');
+  users.gmasterSocket = sg;
+
+  const sent = await ack(sg, 'chat.send', {
+    toUserId: users.gmember.profile.id,
+    body: up.json.url,
+    kind: 'image',
+  });
+  assert.equal(sent.ok, true, JSON.stringify(sent));
+  assert.equal(sent.message.kind, 'image');
+  assert.equal(sent.message.body, up.json.url);
+  assert.equal(sent.message.filtered, false);
+});
+
+test('chat: tin ảnh chỉ nhận đường dẫn do server phát ra', async () => {
+  for (const body of ['https://example.com/a.png', '/uploads/../etc/passwd', '/uploads/x.png']) {
+    const r = await ack(users.gmasterSocket, 'chat.send', { toUserId: users.gmember.profile.id, body, kind: 'image' });
+    assert.equal(r.ok, false, `không được nhận: ${body}`);
+    assert.equal(r.error, 'BAD_IMAGE');
+  }
+});
+
+test('chat: từ chối file không phải ảnh và ảnh quá nặng', async () => {
+  const notImage = await post(
+    '/api/social/upload',
+    { data: `data:image/png;base64,${Buffer.from('<html>hack</html>').toString('base64')}` },
+    users.gmaster.token,
+  );
+  assert.equal(notImage.status, 400);
+  assert.equal(notImage.json.error, 'BAD_IMAGE');
+
+  const wrongMime = await post(
+    '/api/social/upload',
+    { data: `data:application/pdf;base64,${PNG_1PX}` },
+    users.gmaster.token,
+  );
+  assert.equal(wrongMime.status, 400);
+  assert.equal(wrongMime.json.error, 'UNSUPPORTED_IMAGE');
+
+  // Ảnh PNG hợp lệ nhưng phình quá trần 2MB.
+  const header = Buffer.from(PNG_1PX, 'base64');
+  const big = Buffer.concat([header, Buffer.alloc(2 * 1024 * 1024 + 1024)]);
+  const tooBig = await post(
+    '/api/social/upload',
+    { data: `data:image/png;base64,${big.toString('base64')}` },
+    users.gmaster.token,
+  );
+  assert.equal(tooBig.status, 400);
+  assert.equal(tooBig.json.error, 'IMAGE_TOO_LARGE');
 });

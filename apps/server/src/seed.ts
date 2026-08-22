@@ -2,10 +2,17 @@ import { db, nowMs } from './db';
 import { hashPassword } from './auth';
 import { AVATAR_STYLES } from './avatar';
 import { nid } from './util';
+import { upsertGuildQuest } from './services/guildQuests';
+import { logGuild } from './services/guildLog';
 
 const DAY = 86_400_000;
 
 /** Cosmetic dùng CSS gradient/emoji nên không phụ thuộc asset nhị phân nào. */
+/**
+ * Tên sticker trong `payload.stickers` phải là tên asset có thật trong
+ * `apps/mobile/src/art/gameArt.ts` — đặt tên không có trong kho thì ô sticker
+ * hiện ra trống trơn (đúng lỗi đã gặp với 'wave', 'party', 'crystal'...).
+ */
 const ITEMS = [
   // Frames
   { id: 'frame_sakura', name: 'Khung Hoa Anh Đào', type: 'frame', rarity: 'rare', payload: { from: '#FFB7C5', to: '#FF6F91', glow: '#FFD9E3' }, description: 'Viền hồng chibi rực rỡ' },
@@ -24,8 +31,8 @@ const ITEMS = [
   { id: 'bubble_cloud', name: 'Bong Bóng Mây', type: 'bubble', rarity: 'common', payload: { bg: '#E8F1FF', text: '#2B3A67' }, description: 'Mềm như mây' },
   { id: 'bubble_candy', name: 'Bong Bóng Kẹo', type: 'bubble', rarity: 'rare', payload: { bg: '#FFE1F0', text: '#B33771' }, description: 'Ngọt ngào' },
   // Emotes
-  { id: 'emote_pack_cute', name: 'Gói Emote Chibi', type: 'emote', rarity: 'rare', payload: { stickers: 'wave,smile,party,handshake,fire,trophy' }, description: '6 sticker biểu cảm' },
-  { id: 'emote_pack_troll', name: 'Gói Emote Cà Khịa', type: 'emote', rarity: 'epic', payload: { stickers: 'smile,skull,sheep,moon,star,crystal' }, description: 'Cà khịa nhẹ nhàng' },
+  { id: 'emote_pack_cute', name: 'Gói Emote Chibi', type: 'emote', rarity: 'rare', payload: { stickers: 'bird,sheep,sun,moon,medal-1,ui-gift' }, description: '6 sticker biểu cảm' },
+  { id: 'emote_pack_troll', name: 'Gói Emote Cà Khịa', type: 'emote', rarity: 'epic', payload: { stickers: 'lose,vote,die-1,die-6,stone,medal-3' }, description: 'Cà khịa nhẹ nhàng' },
   // Victory / entry effects
   { id: 'fx_confetti', name: 'Hiệu Ứng Pháo Giấy', type: 'victory', rarity: 'rare', payload: { kind: 'confetti', color: '#FFD36E' }, description: 'Ăn mừng rực rỡ' },
   { id: 'fx_fireworks', name: 'Hiệu Ứng Pháo Hoa', type: 'victory', rarity: 'legendary', payload: { kind: 'fireworks', color: '#FF6F91' }, description: 'Bùng nổ cả màn hình' },
@@ -133,6 +140,16 @@ function createUser(opts: {
   return id;
 }
 
+/**
+ * Nhiệm vụ bang: mục tiêu chung cả tuần, cả bang cùng góp rồi ai cũng nhận
+ * phần của mình. Mức đặt vừa tầm một bang nhỏ vẫn làm xong trong tuần.
+ */
+const GUILD_QUESTS = [
+  { id: 'gq_play_60', title: 'Cả bang ra sân', description: 'Cả bang chơi 60 trận trong tuần', metric: 'play_match', target: 60, rewardCoin: 300, rewardXp: 200, rewardGuildPoints: 300 },
+  { id: 'gq_win_25', title: 'Bang thắng lớn', description: 'Cả bang giành 25 chiến thắng trong tuần', metric: 'win_match', target: 25, rewardCoin: 500, rewardXp: 350, rewardGuildPoints: 500 },
+  { id: 'gq_checkin_30', title: 'Bang chăm chỉ', description: 'Cả bang điểm danh 30 lượt trong tuần', metric: 'guild_checkin', target: 30, rewardCoin: 250, rewardXp: 150, rewardGuildPoints: 250 },
+];
+
 export function ensureSeed(): void {
   const upsertItem = db.prepare(
     `INSERT INTO items (id, name, type, rarity, payload, description)
@@ -156,6 +173,8 @@ export function ensureSeed(): void {
   ACHIEVEMENTS.forEach((a) =>
     upsertAch.run(a.id, a.title, a.description, a.metric, a.target, a.rewardCoin, a.rewardXp, a.rewardItem, a.art),
   );
+
+  GUILD_QUESTS.forEach(upsertGuildQuest);
 
   const now = nowMs();
   db.prepare(
@@ -316,6 +335,28 @@ export function ensureSeed(): void {
         ).run(gid, m.id, k === 0 ? 'owner' : k === 1 ? 'officer' : 'member', Math.round(g.xp / (k + 2)), nowMs());
         db.prepare('INSERT OR IGNORE INTO channel_members (channel_id, user_id) VALUES (?,?)').run(`guild:${gid}`, m.id);
       });
+
+      // Tài khoản demo vào bang đầu tiên với vai sĩ quan, để mở app là đã có
+      // trang bang xem được ngay thay vì màn tìm bang trống.
+      if (i === 0) {
+        db.prepare(
+          'INSERT OR IGNORE INTO guild_members (guild_id, user_id, role, points, joined_at) VALUES (?,?,?,?,?)',
+        ).run(gid, demoId, 'officer', 420, nowMs());
+        db.prepare('INSERT OR IGNORE INTO channel_members (channel_id, user_id) VALUES (?,?)').run(
+          `guild:${gid}`,
+          demoId,
+        );
+        db.prepare('UPDATE guilds SET notice = ?, notice_by = ?, notice_at = ? WHERE id = ?').run(
+          'Tối nay 21h cả bang vào Caro xếp hạng nhé, ai rảnh thì hú một tiếng trong chat bang.',
+          demoId,
+          nowMs(),
+          gid,
+        );
+        logGuild(gid, 'create', { actorId: owner.id });
+        logGuild(gid, 'join', { targetId: demoId });
+        logGuild(gid, 'role', { actorId: owner.id, targetId: demoId, detail: 'officer' });
+        logGuild(gid, 'notice', { actorId: demoId, detail: 'Tối nay 21h cả bang vào Caro xếp hạng nhé' });
+      }
     });
 
     console.log(`Seeded users: admin/admin123 (id=${adminId}), demo/demo123 (id=${demoId}), +${others.length} demo players`);

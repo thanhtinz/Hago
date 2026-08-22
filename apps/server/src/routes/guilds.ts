@@ -4,6 +4,9 @@ import { mutateCurrency, balanceOf } from '../services/economy';
 import {
   GUILD_COST,
   createGuild,
+  guildCheckin,
+  guildCheckinState,
+  setNotice,
   guildLeaderboard,
   guildMembers,
   guildOf,
@@ -17,6 +20,8 @@ import {
   toGuildSummary,
   updateGuild,
 } from '../services/guilds';
+import { guildLogs } from '../services/guildLog';
+import { claimGuildQuest, guildQuestStates } from '../services/guildQuests';
 import { db } from '../db';
 import { track } from '../services/analytics';
 
@@ -43,9 +48,45 @@ guildsRouter.get('/me', requireAuth, (req, res) => {
     role: mine.role,
     members: guildMembers(mine.id),
     requests: canReview ? pendingRequests(mine.id) : [],
+    quests: guildQuestStates(mine.id, req.auth!.sub),
+    logs: guildLogs(mine.id, 30),
+    checkin: guildCheckinState(req.auth!.sub),
     cost: GUILD_COST,
     balance: balanceOf(req.auth!.sub),
   });
+});
+
+/** Thông báo ghim của bang — chỉ chủ và phó bang đặt được. */
+guildsRouter.put('/:id/notice', requireAuth, (req, res) => {
+  try {
+    res.json({ guild: setNotice(req.auth!.sub, req.params.id, String(req.body?.notice ?? '')) });
+  } catch (e: any) {
+    fail(res, e);
+  }
+});
+
+guildsRouter.get('/:id/logs', requireAuth, (req, res) => {
+  res.json({ logs: guildLogs(req.params.id, Math.min(100, Number(req.query.limit ?? 40))) });
+});
+
+guildsRouter.post('/checkin', requireAuth, (req, res) => {
+  try {
+    const out = guildCheckin(req.auth!.sub);
+    track(req.auth!.sub, 'guild_checkin', {});
+    const mine = guildOf(req.auth!.sub)!;
+    res.json({ ok: true, ...out, guild: mine, quests: guildQuestStates(mine.id, req.auth!.sub) });
+  } catch (e: any) {
+    fail(res, e);
+  }
+});
+
+guildsRouter.post('/quests/:questId/claim', requireAuth, (req, res) => {
+  try {
+    const reward = claimGuildQuest(req.auth!.sub, req.params.questId);
+    res.json({ ok: true, reward, balance: balanceOf(req.auth!.sub) });
+  } catch (e: any) {
+    fail(res, e);
+  }
 });
 
 guildsRouter.get('/:id', requireAuth, (req, res) => {

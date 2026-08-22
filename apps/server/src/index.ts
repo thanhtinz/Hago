@@ -16,11 +16,17 @@ import { adminRouter } from './routes/admin';
 import { initGateway } from './realtime/gateway';
 import { ensureSeed } from './seed';
 import { pruneReplays } from './services/replays';
+import { uploadDir } from './services/uploads';
 
 const app = express();
 app.set('trust proxy', 1);
 app.use(cors({ origin: CONFIG.corsOrigin }));
-app.use(express.json({ limit: '256kb' }));
+// Ảnh chat đi qua JSON dạng data URL nên phải nới trần body; trần thật của ảnh
+// nằm ở services/uploads.ts (2MB sau khi giải mã).
+app.use(express.json({ limit: '4mb' }));
+
+/** Ảnh người chơi gửi trong chat. Tên file do server đặt nên cache thoải mái. */
+app.use('/uploads', express.static(uploadDir(), { maxAge: '7d', index: false, dotfiles: 'deny' }));
 
 app.get('/health', (_req, res) => res.json({ ok: true, uptime: process.uptime(), ts: Date.now() }));
 

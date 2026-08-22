@@ -7,6 +7,8 @@ const DAY = 86_400_000;
 export default function LiveOps({ toast }: { toast: (t: string) => void }) {
   const [quests, setQuests] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [guildQuests, setGuildQuests] = useState<any[]>([]);
+  const [gq, setGq] = useState({ title: '', description: '', metric: 'play_match', target: 50, rewardCoin: 300, rewardXp: 200, rewardGuildPoints: 300 });
   const [quest, setQuest] = useState({ title: '', type: 'daily', metric: 'play_match', target: 3, rewardCoin: 100, rewardXp: 60, rewardDiamond: 0, gameType: '', eventId: '' });
   const [event, setEvent] = useState({ title: '', description: '', kind: 'seasonal', days: 7, banner: '#7C6BFF' });
   const [announce, setAnnounce] = useState({ title: '', body: '' });
@@ -14,6 +16,7 @@ export default function LiveOps({ toast }: { toast: (t: string) => void }) {
   const load = () => {
     api('/api/admin/quests').then((r: any) => setQuests(r.quests));
     api('/api/admin/events').then((r: any) => setEvents(r.events));
+    api('/api/admin/guild-quests').then((r: any) => setGuildQuests(r.quests));
   };
   useEffect(load, []);
 
@@ -175,6 +178,86 @@ export default function LiveOps({ toast }: { toast: (t: string) => void }) {
       </div>
 
       <div className="grid two">
+        <Card title="Nhiệm vụ bang (mục tiêu chung cả tuần)">
+          <div className="stack">
+            <label className="field">
+              Tiêu đề
+              <input value={gq.title} onChange={(e) => setGq({ ...gq, title: e.target.value })} placeholder="VD: Cả bang thắng 25 trận" />
+            </label>
+            <label className="field">
+              Mô tả
+              <input value={gq.description} onChange={(e) => setGq({ ...gq, description: e.target.value })} />
+            </label>
+            <div className="row">
+              <label className="field" style={{ flex: 1 }}>
+                Chỉ số
+                <select value={gq.metric} onChange={(e) => setGq({ ...gq, metric: e.target.value })}>
+                  <option value="play_match">Chơi trận</option>
+                  <option value="win_match">Thắng trận</option>
+                  <option value="guild_checkin">Điểm danh bang</option>
+                </select>
+              </label>
+              <label className="field" style={{ width: 90 }}>
+                Mục tiêu
+                <input type="number" value={gq.target} onChange={(e) => setGq({ ...gq, target: Number(e.target.value) })} />
+              </label>
+            </div>
+            <div className="row">
+              <label className="field" style={{ flex: 1 }}>
+                Coin mỗi người
+                <input type="number" value={gq.rewardCoin} onChange={(e) => setGq({ ...gq, rewardCoin: Number(e.target.value) })} />
+              </label>
+              <label className="field" style={{ flex: 1 }}>
+                XP mỗi người
+                <input type="number" value={gq.rewardXp} onChange={(e) => setGq({ ...gq, rewardXp: Number(e.target.value) })} />
+              </label>
+              <label className="field" style={{ flex: 1 }}>
+                Cống hiến cho bang
+                <input type="number" value={gq.rewardGuildPoints} onChange={(e) => setGq({ ...gq, rewardGuildPoints: Number(e.target.value) })} />
+              </label>
+            </div>
+            <button
+              className="btn"
+              onClick={async () => {
+                if (!gq.title) return toast('Nhập tiêu đề nhiệm vụ bang');
+                await api('/api/admin/guild-quests', { method: 'POST', body: gq });
+                toast('Đã tạo nhiệm vụ bang');
+                setGq({ ...gq, title: '', description: '' });
+                load();
+              }}
+            >
+              Tạo nhiệm vụ bang
+            </button>
+            <hr style={{ border: 'none', borderTop: '1px solid var(--line)' }} />
+            <div className="table-wrap" style={{ maxHeight: 220, overflowY: 'auto' }}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tiêu đề</th>
+                    <th>Mục tiêu</th>
+                    <th>Thưởng mỗi người</th>
+                    <th>Cống hiến</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {guildQuests.map((q) => (
+                    <tr key={q.id}>
+                      <td style={{ fontWeight: 700 }}>{q.title}</td>
+                      <td>
+                        {q.metric} × {q.target}
+                      </td>
+                      <td className="muted">
+                        {q.reward_coin} coin · {q.reward_xp} XP
+                      </td>
+                      <td className="muted">{q.reward_guild_points}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </Card>
+
         <Card title={`Nhiệm vụ (${quests.length})`}>
           <div className="table-wrap" style={{ maxHeight: 340, overflowY: 'auto' }}>
             <table>

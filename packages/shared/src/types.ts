@@ -298,6 +298,10 @@ export interface GuildSummary {
   need: number;
   members: number;
   slots: number;
+  /** Thông báo ghim của bang, do chủ/phó đặt. */
+  notice: string;
+  noticeBy: string | null;
+  noticeAt: number | null;
 }
 
 export interface GuildMemberRow {
@@ -305,6 +309,66 @@ export interface GuildMemberRow {
   role: GuildRole;
   points: number;
   joinedAt: number;
+  /** Đã điểm danh bang hôm nay chưa. */
+  checkedInToday: boolean;
+}
+
+/** Việc đáng ghi lại trong bang, để thành viên biết chuyện gì vừa xảy ra. */
+export type GuildLogKind =
+  | 'join'
+  | 'leave'
+  | 'kick'
+  | 'role'
+  | 'notice'
+  | 'quest'
+  | 'level'
+  | 'create';
+
+export interface GuildLogRow {
+  id: string;
+  kind: GuildLogKind;
+  actorName: string | null;
+  targetName: string | null;
+  detail: string;
+  createdAt: number;
+}
+
+/* ------------------------------------------------------------------ */
+/* Nhiệm vụ bang                                                        */
+/* ------------------------------------------------------------------ */
+
+export interface GuildQuestDef {
+  id: string;
+  title: string;
+  description: string;
+  /** Chỉ số cộng dồn từ mọi thành viên: play_match, win_match, guild_checkin. */
+  metric: string;
+  target: number;
+  /** Thưởng cho từng thành viên khi nhận. */
+  rewardCoin: number;
+  rewardXp: number;
+  /** Điểm cộng thẳng vào kho bang khi nhiệm vụ hoàn thành. */
+  rewardGuildPoints: number;
+  active: boolean;
+}
+
+export interface GuildQuestState {
+  quest: GuildQuestDef;
+  /** Tiến độ chung của cả bang trong tuần này. */
+  progress: number;
+  completed: boolean;
+  /** Người đang xem đã nhận thưởng chưa. */
+  claimed: boolean;
+  /** Số thành viên đã nhận. */
+  claimedBy: number;
+}
+
+/** Điểm danh bang: mỗi ngày một lần, cộng điểm đóng góp và điểm cho bang. */
+export interface GuildCheckinState {
+  checkedInToday: boolean;
+  /** Số thành viên đã điểm danh hôm nay. */
+  todayCount: number;
+  rewardPoints: number;
 }
 
 /* ------------------------------------------------------------------ */
@@ -327,7 +391,11 @@ export interface ChatMessage {
   senderName: string;
   senderAvatar: string;
   body: string;
-  kind: 'text' | 'sticker' | 'system';
+  /**
+   * `image` mang đường dẫn tương đối tới file đã tải lên (`/uploads/<id>.jpg`),
+   * không phải URL tuỳ ý — server chỉ nhận đúng dạng đó.
+   */
+  kind: 'text' | 'sticker' | 'image' | 'system';
   createdAt: number;
   filtered?: boolean;
 }

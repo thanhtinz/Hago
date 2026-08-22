@@ -101,6 +101,13 @@ export const ERROR_TEXT: Record<string, string> = {
   NOT_ALLOWED: 'Bạn không có quyền làm việc này',
 
   ALREADY_CLAIMED: 'Bạn đã nhận phần này rồi',
+  QUEST_INCOMPLETE: 'Nhiệm vụ chưa xong',
+  QUEST_NOT_FOUND: 'Không tìm thấy nhiệm vụ',
+
+  // Ảnh trong chat
+  BAD_IMAGE: 'File này không phải ảnh hợp lệ',
+  UNSUPPORTED_IMAGE: 'Chỉ nhận ảnh PNG, JPG, WEBP hoặc GIF',
+  IMAGE_TOO_LARGE: 'Ảnh nặng quá, tối đa 2MB',
 
   // Giải đấu
   TOURNAMENT_NOT_FOUND: 'Không tìm thấy giải',

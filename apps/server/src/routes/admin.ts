@@ -9,6 +9,7 @@ import { activeMatches } from '../realtime/match';
 import { allRooms, toRoomView } from '../realtime/rooms';
 import { queueSizes } from '../realtime/matchmaking';
 import { toPublicUser } from '../services/users';
+import { upsertGuildQuest } from '../services/guildQuests';
 
 export const adminRouter = Router();
 adminRouter.use(requireAdmin);
@@ -206,6 +207,20 @@ adminRouter.post('/quests', (req, res) => {
     b.active === false ? 0 : 1,
   );
   audit(req.auth!.sub, 'quest_upsert', id, b);
+  res.json({ ok: true, id });
+});
+
+/** Nhiệm vụ bang: mục tiêu chung cả tuần, vận hành đặt từ đây. */
+adminRouter.get('/guild-quests', (_req, res) => {
+  res.json({ quests: db.prepare('SELECT * FROM guild_quests ORDER BY target').all() });
+});
+
+adminRouter.post('/guild-quests', (req, res) => {
+  const b = req.body ?? {};
+  if (!b.title) return res.status(400).json({ error: 'VALIDATION' });
+  const id = b.id || `gq_${nid().slice(0, 8)}`;
+  upsertGuildQuest({ ...b, id });
+  audit(req.auth!.sub, 'guild_quest_upsert', id, b);
   res.json({ ok: true, id });
 });
 

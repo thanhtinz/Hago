@@ -17,6 +17,7 @@ import { bumpDaily, dailyValue, track } from '../services/analytics';
 import { progressAchievements, progressQuests } from '../services/quests';
 import { areFriends } from '../services/social';
 import { addGuildPoints } from '../services/guilds';
+import { progressGuildQuests } from '../services/guildQuests';
 import { recordRankedMatch } from '../services/season';
 import { notify } from '../services/notifications';
 import { INITIAL_FRAME_GAP_MS, recordFrame } from '../services/replays';
@@ -350,6 +351,9 @@ export function settleMatch(match: MatchRuntime): { matchId: string; rows: Settl
     // Đóng góp cho bang: chơi xong được 5 điểm, thắng thêm 10. Tính theo trận
     // chứ không theo XP để bang không lệ thuộc vào việc ai cày game dài.
     addGuildPoints(r.userId, r.result === 'win' ? 15 : 5);
+    // Nhiệm vụ bang ăn theo cùng mốc với nhiệm vụ cá nhân, chỉ khác là tiến độ
+    // dồn về bang.
+    progressGuildQuests(r.userId, 'play_match', 1);
     // Trận xếp hạng mới tính vào định hạng mùa; trận thường không đụng tới rank.
     if (match.mode === 'ranked') {
       const now = db.prepare('SELECT rating FROM users WHERE id = ?').get(r.userId) as { rating: number };
@@ -358,6 +362,7 @@ export function settleMatch(match: MatchRuntime): { matchId: string; rows: Settl
     if (r.result === 'win') {
       bumpDaily(r.userId, 'wins');
       progressQuests(r.userId, 'win_match', 1, match.gameType);
+      progressGuildQuests(r.userId, 'win_match', 1);
       progressAchievements(r.userId, 'wins', 1);
     }
     notify(

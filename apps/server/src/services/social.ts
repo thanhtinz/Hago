@@ -4,6 +4,7 @@ import { filterProfanity, nid } from '../util';
 import { findUser, toPublicUser } from './users';
 import { notify } from './notifications';
 import { progressAchievements } from './quests';
+import { IMAGE_PATH_RE } from './uploads';
 
 export function friendList(userId: string): FriendEdge[] {
   const rows = db
@@ -163,7 +164,11 @@ export function postMessage(channelId: string, senderId: string, rawBody: string
 
   const trimmed = rawBody.trim().slice(0, 500);
   if (!trimmed) throw new Error('EMPTY_MESSAGE');
-  const { body, filtered } = filterProfanity(trimmed);
+  // Tin ảnh chỉ được mang đúng đường dẫn do chính server phát ra. Cho phép URL
+  // tuỳ ý là mở đường nhét link ngoài vào chat.
+  if (kind === 'image' && !IMAGE_PATH_RE.test(trimmed)) throw new Error('BAD_IMAGE');
+  // Lọc từ tục chỉ áp cho chữ; đường dẫn ảnh và mã sticker mà bị lọc là hỏng.
+  const { body, filtered } = kind === 'text' ? filterProfanity(trimmed) : { body: trimmed, filtered: false };
   const msg: ChatMessage = {
     id: nid(),
     channelId,

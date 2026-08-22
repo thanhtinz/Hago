@@ -182,9 +182,31 @@ tài khoản bị khoá.
 | POST | `/api/guilds/:id/requests/:userId` | Duyệt đơn — `{accept}` |
 | POST | `/api/guilds/:id/kick/:userId` | Đuổi thành viên |
 | POST | `/api/guilds/:id/role/:userId` | Đổi vai — `{role}`; `owner` là nhường ghế chủ |
+| PUT | `/api/guilds/:id/notice` | Đặt thông báo ghim — `{notice}`, chỉ chủ và sĩ quan |
+| GET | `/api/guilds/:id/logs?limit=` | Nhật ký bang |
+| POST | `/api/guilds/checkin` | Điểm danh bang, mỗi ngày một lần |
+| POST | `/api/guilds/quests/:questId/claim` | Nhận phần của mình khi bang xong nhiệm vụ |
+
+`GET /api/guilds/me` nay trả thêm `quests` (nhiệm vụ bang tuần này), `logs` và
+`checkin`. Nhiệm vụ bang có tiến độ **chung của cả bang** theo tuần ISO; xong thì
+mỗi thành viên tự vào nhận phần riêng, một lần một người một tuần.
 
 Chat bang dùng chung `chat.send` / `chat.history` với `channelId = "guild:<id>"`.
 Cả hai chỉ nhận `channelId` mà người gọi là thành viên của kênh.
+
+### Ảnh trong chat
+
+| Method | Path | Mô tả |
+|---|---|---|
+| POST | `/api/social/upload` | `{data}` là data URL ảnh; trả `{url, bytes}` |
+| GET | `/api/social/upload/limit` | Trần dung lượng ảnh |
+| GET | `/uploads/<file>` | Ảnh đã tải lên, cache 7 ngày |
+
+Gửi ảnh là hai bước: tải lên lấy `url`, rồi `chat.send` với `kind: 'image'` và
+`body` đúng bằng `url` đó. Server chỉ nhận `body` khớp `^/uploads/[a-z0-9]{8,32}\.(png|jpg|webp|gif)$`
+— cho phép URL tuỳ ý là mở đường nhét link ngoài vào chat. Trần 2MB sau khi giải
+mã, kiểm cả chữ ký file chứ không tin mime client khai, và hạn mức 10 ảnh/phút
+mỗi người.
 
 ### Xem lại trận
 

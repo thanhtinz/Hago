@@ -1,4 +1,5 @@
 import {
+  GuildCheckinState,
   GuildJoinPolicy,
   GuildMemberRow,
   GuildRole,
@@ -6,10 +7,12 @@ import {
   guildLevelFromXp,
   guildSlots,
 } from '@hago/shared';
-import { db, nowMs } from '../db';
+import { db, nowMs, today } from '../db';
 import { nid } from '../util';
 import { toPublicUser } from './users';
 import { notify } from './notifications';
+import { logGuild } from './guildLog';
+import { progressGuildQuests } from './guildQuests';
 
 /**
  * Bang hội.
@@ -52,7 +55,71 @@ export function toGuildSummary(g: any): GuildSummary {
     need,
     members: memberCount(g.id),
     slots: guildSlots(level),
+    notice: g.notice ?? '',
+    noticeBy: g.notice_by ?? null,
+    noticeAt: g.notice_at ?? null,
   };
+}
+
+/* ------------------------------ thông báo ------------------------------ */
+
+/** Điểm cộng cho bang mỗi lượt điểm danh của một thành viên. */
+export const GUILD_CHECKIN_POINTS = 20;
+
+export function setNotice(actorId: string, guildId: string, text: string): GuildSummary {
+  requireRole(guildId, actorId, ['owner', 'officer']);
+  const notice = String(text ?? '').trim().slice(0, 300);
+  db.prepare('UPDATE guilds SET notice = ?, notice_by = ?, notice_at = ? WHERE id = ?').run(
+    notice,
+    actorId,
+    nowMs(),
+    guildId,
+  );
+  logGuild(guildId, 'notice', { actorId, detail: notice.slice(0, 80) });
+  // Báo cho cả bang: thông báo mới mà không ai biết thì đặt làm gì.
+  for (const m of db.prepare('SELECT user_id FROM guild_members WHERE guild_id = ?').all(guildId) as any[]) {
+    if (m.user_id === actorId) continue;
+    notify(m.user_id, 'guild', 'Thông báo mới của bang', notice || 'Thông báo đã được gỡ', { guildId });
+  }
+  return toGuildSummary(row(guildId));
+}
+
+/* ----------------------------- điểm danh bang ---------------------------- */
+
+export function guildCheckinState(userId: string): GuildCheckinState | null {
+  const m = db.prepare('SELECT guild_id FROM guild_members WHERE user_id = ?').get(userId) as any;
+  if (!m) return null;
+  const mine = db
+    .prepare('SELECT 1 AS x FROM guild_checkins WHERE guild_id = ? AND user_id = ? AND day = ?')
+    .get(m.guild_id, userId, today());
+  const count = (
+    db.prepare('SELECT COUNT(*) AS n FROM guild_checkins WHERE guild_id = ? AND day = ?').get(m.guild_id, today()) as any
+  ).n;
+  return { checkedInToday: !!mine, todayCount: count, rewardPoints: GUILD_CHECKIN_POINTS };
+}
+
+/**
+ * Điểm danh bang. Khác điểm danh cá nhân ở chỗ phần thưởng không phải tiền mà
+ * là **điểm đóng góp** — nó chảy vào cả kho bang lẫn sổ công trạng của chính
+ * mình, nên đây là cách góp cho bang mà không cần phải thắng trận nào.
+ */
+export function guildCheckin(userId: string): { points: number; state: GuildCheckinState } {
+  const m = db.prepare('SELECT guild_id FROM guild_members WHERE user_id = ?').get(userId) as any;
+  if (!m) throw new Error('NOT_IN_GUILD');
+  const dup = db
+    .prepare('SELECT 1 AS x FROM guild_checkins WHERE guild_id = ? AND user_id = ? AND day = ?')
+    .get(m.guild_id, userId, today());
+  if (dup) throw new Error('ALREADY_CLAIMED');
+
+  db.prepare('INSERT INTO guild_checkins (guild_id, user_id, day, created_at) VALUES (?,?,?,?)').run(
+    m.guild_id,
+    userId,
+    today(),
+    nowMs(),
+  );
+  addGuildPoints(userId, GUILD_CHECKIN_POINTS);
+  progressGuildQuests(userId, 'guild_checkin', 1);
+  return { points: GUILD_CHECKIN_POINTS, state: guildCheckinState(userId)! };
 }
 
 /** Kênh chat của bang; tạo cùng lúc với bang và bám theo thành viên. */
@@ -103,19 +170,22 @@ export function listGuilds(query: string, limit = 30): GuildSummary[] {
 export function guildMembers(guildId: string): GuildMemberRow[] {
   const rows = db
     .prepare(
-      `SELECT gm.role, gm.points, gm.joined_at, u.*, p.avatar_seed, p.avatar_style, p.frame_id, p.title_id
+      `SELECT gm.role, gm.points, gm.joined_at, u.*, p.avatar_seed, p.avatar_style, p.frame_id, p.title_id,
+              (SELECT 1 FROM guild_checkins gc
+                WHERE gc.guild_id = gm.guild_id AND gc.user_id = gm.user_id AND gc.day = ?) AS checked
        FROM guild_members gm
        JOIN users u ON u.id = gm.user_id
        LEFT JOIN profiles p ON p.user_id = u.id
        WHERE gm.guild_id = ?
        ORDER BY CASE gm.role WHEN 'owner' THEN 0 WHEN 'officer' THEN 1 ELSE 2 END, gm.points DESC`,
     )
-    .all(guildId) as any[];
+    .all(today(), guildId) as any[];
   return rows.map((r) => ({
     user: toPublicUser(r),
     role: r.role as GuildRole,
     points: r.points,
     joinedAt: r.joined_at,
+    checkedInToday: !!r.checked,
   }));
 }
 
@@ -206,6 +276,7 @@ export function joinGuild(userId: string, guildId: string): { joined: boolean } 
   }
 
   addMember(guildId, userId);
+  logGuild(guildId, 'join', { targetId: userId });
   return { joined: true };
 }
 
@@ -242,6 +313,7 @@ export function reviewRequest(actorId: string, guildId: string, targetId: string
   const { level } = guildLevelFromXp(g.xp);
   if (memberCount(guildId) >= guildSlots(level)) throw new Error('GUILD_FULL');
   addMember(guildId, targetId);
+  logGuild(guildId, 'join', { actorId, targetId });
   notify(targetId, 'guild', 'Được nhận vào bang', `Chào mừng tới ${g.name}`, { guildId });
 }
 
@@ -251,6 +323,7 @@ export function leaveGuild(userId: string): void {
   if (m.role === 'owner' && memberCount(m.guild_id) > 1) throw new Error('OWNER_MUST_TRANSFER');
   db.prepare('DELETE FROM guild_members WHERE user_id = ?').run(userId);
   leaveChannel(m.guild_id, userId);
+  logGuild(m.guild_id, 'leave', { targetId: userId });
   // Chủ bang rời khi không còn ai thì giải tán luôn, khỏi để bang ma.
   if (m.role === 'owner') db.prepare('DELETE FROM guilds WHERE id = ?').run(m.guild_id);
 }
@@ -266,6 +339,7 @@ export function kickMember(actorId: string, guildId: string, targetId: string): 
   if (actor.role === 'officer' && target.role === 'officer') throw new Error('NOT_ALLOWED');
   db.prepare('DELETE FROM guild_members WHERE guild_id = ? AND user_id = ?').run(guildId, targetId);
   leaveChannel(guildId, targetId);
+  logGuild(guildId, 'kick', { actorId, targetId });
   notify(targetId, 'guild', 'Bạn đã rời bang', `Bạn không còn trong ${row(guildId)?.name ?? 'bang'}`, { guildId });
 }
 
@@ -285,10 +359,12 @@ export function setRole(actorId: string, guildId: string, targetId: string, role
       db.prepare('UPDATE guilds SET owner_id = ? WHERE id = ?').run(targetId, guildId);
     });
     tx();
+    logGuild(guildId, 'role', { actorId, targetId, detail: 'owner' });
     notify(targetId, 'guild', 'Bạn là chủ bang mới', `Bạn tiếp quản ${row(guildId)?.name ?? 'bang'}`, { guildId });
     return;
   }
   db.prepare('UPDATE guild_members SET role = ? WHERE guild_id = ? AND user_id = ?').run(role, guildId, targetId);
+  logGuild(guildId, 'role', { actorId, targetId, detail: role });
 }
 
 export function updateGuild(

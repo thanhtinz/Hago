@@ -78,6 +78,10 @@ CREATE TABLE IF NOT EXISTS guilds (
   join_policy TEXT NOT NULL DEFAULT 'open',
   min_level   INTEGER NOT NULL DEFAULT 1,
   xp          INTEGER NOT NULL DEFAULT 0,
+  -- Thông báo ghim đầu trang bang, chỉ chủ và phó bang sửa được.
+  notice      TEXT NOT NULL DEFAULT '',
+  notice_by   TEXT,
+  notice_at   INTEGER,
   created_at  INTEGER NOT NULL
 );
 
@@ -94,6 +98,63 @@ CREATE TABLE IF NOT EXISTS guild_members (
 
 -- Một người chỉ ở một bang, nên khoá luôn ở tầng DB thay vì tin vào code.
 CREATE UNIQUE INDEX IF NOT EXISTS guild_members_one_per_user ON guild_members(user_id);
+
+-- Nhật ký bang: ai vào, ai rời, ai lên chức, đổi thông báo, xong nhiệm vụ.
+-- Lưu tên người ở thời điểm đó thay vì chỉ id, để dòng nhật ký còn đọc được
+-- sau khi người ta đổi tên hoặc xoá tài khoản.
+CREATE TABLE IF NOT EXISTS guild_logs (
+  id          TEXT PRIMARY KEY,
+  guild_id    TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+  kind        TEXT NOT NULL,
+  actor_name  TEXT,
+  target_name TEXT,
+  detail      TEXT NOT NULL DEFAULT '',
+  created_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS guild_logs_by_guild ON guild_logs(guild_id, created_at);
+
+-- Định nghĩa nhiệm vụ bang. Tách khỏi bảng quests vì tiến độ ở đây là của cả
+-- bang chứ không của một người, nên khoá và cách cộng khác hẳn.
+CREATE TABLE IF NOT EXISTS guild_quests (
+  id                  TEXT PRIMARY KEY,
+  title               TEXT NOT NULL,
+  description         TEXT NOT NULL DEFAULT '',
+  metric              TEXT NOT NULL,
+  target              INTEGER NOT NULL,
+  reward_coin         INTEGER NOT NULL DEFAULT 0,
+  reward_xp           INTEGER NOT NULL DEFAULT 0,
+  reward_guild_points INTEGER NOT NULL DEFAULT 0,
+  active              INTEGER NOT NULL DEFAULT 1
+);
+
+-- Tiến độ chung theo tuần: period là mã tuần ISO nên sang tuần là làm lại.
+CREATE TABLE IF NOT EXISTS guild_quest_progress (
+  guild_id  TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+  quest_id  TEXT NOT NULL REFERENCES guild_quests(id) ON DELETE CASCADE,
+  period    TEXT NOT NULL,
+  progress  INTEGER NOT NULL DEFAULT 0,
+  -- Điểm thưởng cho kho bang chỉ cộng một lần, đánh dấu ở đây.
+  paid      INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (guild_id, quest_id, period)
+);
+
+-- Mỗi thành viên tự nhận phần của mình, một lần mỗi tuần.
+CREATE TABLE IF NOT EXISTS guild_quest_claims (
+  guild_id TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+  quest_id TEXT NOT NULL REFERENCES guild_quests(id) ON DELETE CASCADE,
+  period   TEXT NOT NULL,
+  user_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (guild_id, quest_id, period, user_id)
+);
+
+-- Điểm danh bang: một dòng một ngày một người, nên không điểm danh hai lần được.
+CREATE TABLE IF NOT EXISTS guild_checkins (
+  guild_id   TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day        TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (guild_id, user_id, day)
+);
 
 CREATE TABLE IF NOT EXISTS guild_requests (
   guild_id   TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
@@ -440,6 +501,9 @@ for (const [table, column, type] of [
   ['profiles', 'emote_id', 'TEXT'],
   ['game_stats', 'best_score', 'INTEGER NOT NULL DEFAULT 0'],
   ['quests', 'event_id', 'TEXT'],
+  ['guilds', 'notice', "TEXT NOT NULL DEFAULT ''"],
+  ['guilds', 'notice_by', 'TEXT'],
+  ['guilds', 'notice_at', 'INTEGER'],
 ] as const) {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
   if (!cols.some((c) => c.name === column)) {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Art, ArtName } from './Art';
+import { GAME_ART } from '../art/gameArt';
 
 /**
  * Quân cờ và nhân vật trong trận.
@@ -85,6 +86,12 @@ const STICKER_ALIAS: Record<string, StickerName> = {
 };
 
 export function StickerArt({ name, size = 40, color }: { name: StickerName; size?: number; color?: string }) {
-  const key = STICKER_ALIAS[name] ?? name;
-  return <Art name={key as ArtName} size={size} color={color ?? STICKER_TONE[key] ?? '#FFC93C'} />;
+  const aliased = STICKER_ALIAS[name] ?? name;
+  /**
+   * Gói emote là dữ liệu do server cấu hình, nên tên có thể trỏ vào asset không
+   * tồn tại (đã từng có 'wave', 'party', 'crystal'). Không chặn ở đây thì ô
+   * sticker hiện ra trống trơn mà chẳng báo gì.
+   */
+  const key = (GAME_ART as Record<string, unknown>)[aliased] ? aliased : 'happy';
+  return <Art name={key as ArtName} size={size} color={color ?? STICKER_TONE[key as StickerName] ?? '#FFC93C'} />;
 }

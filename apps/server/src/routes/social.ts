@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../auth';
 import { db, nowMs } from '../db';
-import { nid } from '../util';
+import { RateLimiter, nid } from '../util';
 import {
   acceptFriend,
   blockUser,
@@ -16,8 +16,29 @@ import {
 } from '../services/social';
 import { track } from '../services/analytics';
 import { findUser, toPublicUser } from '../services/users';
+import { MAX_IMAGE_BYTES, UploadError, saveDataUrl } from '../services/uploads';
 
 export const socialRouter = Router();
+
+/** Ảnh nặng hơn tin nhắn nhiều nên có hạn mức riêng, chặt hơn rate limit chat. */
+const uploadLimiter = new RateLimiter(60_000, 10);
+
+/**
+ * Tải ảnh cho chat. Trả về đường dẫn tương đối; muốn gửi thì đẩy tiếp đường dẫn
+ * đó qua `chat.send` với `kind: 'image'`.
+ */
+socialRouter.post('/upload', requireAuth, (req, res) => {
+  if (!uploadLimiter.take(req.auth!.sub)) return res.status(429).json({ error: 'RATE_LIMITED' });
+  try {
+    const out = saveDataUrl(String(req.body?.data ?? ''));
+    track(req.auth!.sub, 'chat_upload', { bytes: out.bytes });
+    res.json({ ok: true, ...out });
+  } catch (e: any) {
+    res.status(400).json({ error: e instanceof UploadError ? e.message : 'BAD_IMAGE' });
+  }
+});
+
+socialRouter.get('/upload/limit', (_req, res) => res.json({ maxBytes: MAX_IMAGE_BYTES }));
 
 socialRouter.get('/friends', requireAuth, (req, res) => {
   res.json({ friends: friendList(req.auth!.sub) });

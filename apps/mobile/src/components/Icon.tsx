@@ -69,7 +69,9 @@ export type IconName =
   | 'parking'
   | 'question'
   | 'droplet'
-  | 'handshake';
+  | 'handshake'
+  | 'happy-face'
+  | 'image';
 
 interface Props {
   name: IconName;
@@ -223,6 +225,25 @@ function render(name: IconName, p: any, color: string) {
         <>
           <Circle cx="12" cy="12" r="8.2" {...p} />
           <Path d="M6.4 6.4l11.2 11.2" {...p} />
+        </>
+      );
+    case 'happy-face':
+      // Mặt cười vẽ nét — thay cho ký tự emoji, để đổi màu được theo ngữ cảnh
+      // và canh nét đúng với các icon còn lại.
+      return (
+        <>
+          <Circle cx="12" cy="12" r="9" {...p} />
+          <Circle cx="9" cy="10" r="1.1" fill={color} stroke="none" />
+          <Circle cx="15" cy="10" r="1.1" fill={color} stroke="none" />
+          <Path d="M8.2 14.2a4.6 4.6 0 0 0 7.6 0" {...p} />
+        </>
+      );
+    case 'image':
+      return (
+        <>
+          <Rect x="3" y="5" width="18" height="14" rx="3" {...p} />
+          <Circle cx="8.5" cy="10" r="1.6" {...p} />
+          <Path d="M4 17l4.5-4.5 3 3L15 11l5 5" {...p} />
         </>
       );
     case 'play':

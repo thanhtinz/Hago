@@ -1,23 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Avatar, Btn, Empty, Txt } from '../src/components/ui';
-import { StickerArt, StickerName } from '../src/components/Piece';
+import { Avatar, Empty, Txt } from '../src/components/ui';
+import { ChatComposer, ImageLightbox, MessageBody } from '../src/components/Chat';
 import { Art, ArtName } from '../src/components/Art';
-import { C, F, R, S } from '../src/theme';
+import { C, R, S } from '../src/theme';
 import { api, friendlyError } from '../src/lib/api';
 import { emitAck } from '../src/lib/socket';
 import { useStore } from '../src/state/store';
-import { useBubbleStyle, useEmotePack } from '../src/components/Cosmetic';
+import { useBubbleStyle } from '../src/components/Cosmetic';
 
 /**
  * Kênh chat của bang. Khác chat 1-1 ở chỗ nhiều người nói nên tin của người
  * khác phải kèm tên và avatar, còn lại dùng chung đường truyền `chat.send` với
- * `channelId` thay vì `toUserId`.
+ * `channelId` thay vì `toUserId`, và dùng chung ô soạn ở components/Chat.tsx.
  */
-const STICKERS: StickerName[] = ['happy', 'sad', 'love', 'fire', 'win', 'crown', 'star', 'gem'];
-
 export default function GuildChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -26,13 +24,7 @@ export default function GuildChatScreen() {
   const [guild, setGuild] = useState<any>(null);
   const [members, setMembers] = useState<Record<string, any>>({});
   const [messages, setMessages] = useState<any[]>([]);
-  const [draft, setDraft] = useState('');
-  // Gói emote đang dùng nối thêm vào cuối thanh sticker mặc định.
-  const pack = useEmotePack();
-  const stickers = React.useMemo(
-    () => [...STICKERS, ...pack.filter((x) => !STICKERS.includes(x as StickerName))] as StickerName[],
-    [pack],
-  );
+  const [zoom, setZoom] = useState<string | null>(null);
   const bubble = useBubbleStyle(profile?.bubbleId);
   const listRef = useRef<FlatList>(null);
   const channelId = `guild:${id}`;
@@ -59,9 +51,7 @@ export default function GuildChatScreen() {
     };
   }, [socket, channelId]);
 
-  const send = async (body: string, kind = 'text') => {
-    if (!body.trim()) return;
-    setDraft('');
+  const send = async (body: string, kind: string) => {
     const res: any = await emitAck('chat.send', { channelId, body, kind });
     if (!res?.ok) showToast(friendlyError(res?.error ?? 'NETWORK'), 'warn');
   };
@@ -106,6 +96,7 @@ export default function GuildChatScreen() {
         renderItem={({ item }) => {
           const mine = item.senderId === profile?.id;
           const who = members[item.senderId];
+          const bare = item.kind === 'image';
           return (
             <View style={{ flexDirection: 'row', gap: 8, alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '84%' }}>
               {/* Nhiều người cùng nói nên tin của người khác phải có avatar và tên */}
@@ -118,23 +109,18 @@ export default function GuildChatScreen() {
                 ) : null}
                 <View
                   style={{
-                    backgroundColor: mine ? bubble?.bg ?? C.primary : C.surface,
-                    paddingHorizontal: 14,
-                    paddingVertical: 9,
+                    backgroundColor: bare ? 'transparent' : mine ? bubble?.bg ?? C.primary : C.surface,
+                    paddingHorizontal: bare ? 0 : 14,
+                    paddingVertical: bare ? 0 : 9,
                     borderRadius: R.lg,
-                    borderBottomRightRadius: mine ? 4 : R.lg,
-                    borderBottomLeftRadius: mine ? R.lg : 4,
-                    borderWidth: mine ? 0 : 2,
+                    borderBottomRightRadius: mine && !bare ? 4 : R.lg,
+                    borderBottomLeftRadius: !mine && !bare ? 4 : R.lg,
+                    borderWidth: mine || bare ? 0 : 2,
                     borderColor: C.line,
+                    overflow: 'hidden',
                   }}
                 >
-                  {/^:[a-z0-9-]+:$/.test(item.body) ? (
-                    <StickerArt name={item.body.slice(1, -1) as StickerName} size={44} />
-                  ) : (
-                    <Txt size={14} color={mine ? bubble?.text ?? '#fff' : C.ink}>
-                      {item.body}
-                    </Txt>
-                  )}
+                  <MessageBody message={item} mine={mine} bubbleText={bubble?.text} onOpenImage={setZoom} />
                 </View>
                 <Txt size={9} color={C.inkFaint} style={{ marginTop: 2, alignSelf: mine ? 'flex-end' : 'flex-start' }}>
                   {new Date(item.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
@@ -145,30 +131,11 @@ export default function GuildChatScreen() {
         }}
       />
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0, height: 42 }}
-        contentContainerStyle={{ paddingHorizontal: S.lg, gap: 10, alignItems: 'center' }}
-      >
-        {stickers.map((s) => (
-          <Pressable key={s} onPress={() => send(`:${s}:`, 'sticker')} accessibilityLabel={`Gửi sticker ${s}`}>
-            <StickerArt name={s} size={30} />
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      <View style={{ flexDirection: 'row', gap: S.sm, padding: S.md, paddingBottom: Math.max(insets.bottom, S.md), alignItems: 'center', backgroundColor: C.surface, borderTopWidth: 2, borderColor: C.line }}>
-        <TextInput
-          value={draft}
-          onChangeText={setDraft}
-          onSubmitEditing={() => send(draft)}
-          placeholder="Nhắn cho cả bang..."
-          placeholderTextColor={C.inkFaint}
-          style={{ flex: 1, backgroundColor: C.bg, borderRadius: R.pill, paddingHorizontal: 16, paddingVertical: 11, fontFamily: F.body, fontSize: 14, color: C.ink }}
-        />
-        <Btn label="Gửi" icon="send" size="sm" onPress={() => send(draft)} />
+      <View style={{ paddingBottom: Math.max(insets.bottom, 0) }}>
+        <ChatComposer placeholder="Nhắn cho cả bang..." onSend={send} onError={(t) => showToast(t, 'warn')} />
       </View>
+
+      <ImageLightbox url={zoom} onClose={() => setZoom(null)} />
     </KeyboardAvoidingView>
   );
 }

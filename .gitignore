@@ -13,3 +13,4 @@ apps/server/data/
 .env
 .DS_Store
 apps/mobile/dist/
+data/
