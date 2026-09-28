@@ -21,8 +21,8 @@ export type IconName =
   | 'user'
   | 'clock'
   | 'flag'
-  | 'draw'
-  | 'refresh'
+  | 'scales'
+  | 'newmatch'
   | 'more'
   | 'settings'
   | 'lock'
@@ -144,20 +144,39 @@ function render(name: IconName, p: Record<string, unknown>, color: string) {
           <Path d="M6 4h11l-2 4 2 4H6" {...p} />
         </>
       );
-    // Hoà vẽ bằng dấu bằng trong vòng tròn. Cái bắt tay vẽ ở cỡ 20px thành
-    // một vệt ngoằn ngoèo không ai đoán ra là cái gì.
-    case 'draw':
+    /**
+     * Cầu hoà: cái cân thăng bằng.
+     *
+     * Dấu bằng trong vòng tròn đọc ra là "bằng nhau" chứ không ra "xin
+     * hoà" — nó là một phép toán, không phải một lời đề nghị. Cái cân thì
+     * ai nhìn cũng hiểu là hai bên ngang nhau, và nó khác hẳn hình tròn của
+     * mấy nút bên cạnh nên không lẫn.
+     */
+    case 'scales':
       return (
         <>
-          <Circle cx={12} cy={12} r={8.5} {...p} />
-          <Path d="M8 10h8M8 14h8" {...p} />
+          <Path d="M12 4.5v15M7 19.5h10" {...p} />
+          <Path d="M4.5 8h15" {...p} />
+          <Circle cx={12} cy={6.2} r={1.5} fill={color} stroke="none" />
+          <Path d="M4.5 8 L2 13.2a2.8 2.8 0 0 0 5 0z" {...p} />
+          <Path d="M19.5 8 L17 13.2a2.8 2.8 0 0 0 5 0z" {...p} />
         </>
       );
-    case 'refresh':
+    /**
+     * Ván mới: một bàn cờ trống với dấu cộng.
+     *
+     * Trước đây là mũi tên tròn, mà nút lùi lại bên cạnh cũng là mũi tên
+     * tròn quay ngược — hai nút cạnh nhau gần như giống hệt, người chơi
+     * bấm nhầm là mất cả ván chứ không phải mất một nước.
+     */
+    case 'newmatch':
       return (
         <>
-          <Path d="M20 12a8 8 0 1 1-2.6-5.9" {...p} />
-          <Path d="M20 4v5h-5" {...p} />
+          <Rect x={2.8} y={2.8} width={13} height={13} rx={2.2} {...p} />
+          <Path d="M9.3 2.8v13M2.8 9.3h13" {...p} />
+          {/* Dấu cộng tách hẳn khỏi khung, không dính vào góc bàn cờ — dính
+              vào thì ở cỡ 20px hai hình nhập làm một vệt. */}
+          <Path d="M18.6 15.4v6.2M15.5 18.5h6.2" {...p} strokeWidth={2.3} />
         </>
       );
     case 'more':
