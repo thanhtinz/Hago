@@ -5,6 +5,7 @@ import Svg, { Path } from 'react-native-svg';
 import type { BotLevel, MetaState, Seat, Wrapped } from '@co/core';
 import { caroBot, type CaroAction, type CaroState, type CaroView } from '@co/game-co-caro';
 import { caroMeta } from '../../catalog';
+import { meName } from '../../net/api';
 import { LEVEL_NAME, MatchShell } from '../../ui/MatchShell';
 import { S, lift } from '../../ui/theme';
 import { BOT, ME, useFlagOnTimeout, useVsBot } from '../useVsBot';
@@ -69,7 +70,7 @@ export function CaroTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
       youWon={m.outcome?.winner === ME}
       surface={(w, h) => <DeskBackdrop width={w} height={h} />}
       top={{ name: 'Máy', sub: `Mức ${LEVEL_NAME[level]}`, token: <Token seat={BOT} active={m.toMove === BOT} />, active: !m.outcome && m.toMove === BOT, thinking: m.thinking, ms: m.clock[BOT] }}
-      bottom={{ name: 'Bạn', sub: 'Khách', token: <Token seat={ME} active={m.toMove === ME} />, active: !m.outcome && m.toMove === ME, ms: m.clock[ME] }}
+      bottom={{ name: meName(), sub: 'Đấu với máy', token: <Token seat={ME} active={m.toMove === ME} />, active: !m.outcome && m.toMove === ME, ms: m.clock[ME] }}
     >
       <View style={{ width: size, height: size }}>
         <PaperStack size={size} />

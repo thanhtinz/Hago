@@ -80,7 +80,7 @@ export default function Lobby() {
                 </Txt>
                 {/* Không bịa elo hay số trận. Chưa có xếp hạng thì nói là chưa có. */}
                 <Txt size={11.5} color={A.inkFaint}>
-                  {me ? (me.email ? 'Chưa xếp hạng · đã đăng nhập' : 'Tài khoản khách · chỉ trên máy này') : 'Đăng nhập để chơi với người thật'}
+                  {me ? 'Chưa xếp hạng · đã đăng nhập' : 'Đăng nhập để chơi với người thật'}
                 </Txt>
               </View>
               <Icon name="chevron" size={17} color={A.inkFaint} />

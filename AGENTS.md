@@ -98,6 +98,10 @@ npm test        # tsc --build --force + toàn bộ test
 - Đăng nhập Google: máy chủ **tự kiểm chữ ký** ID token, và phải kiểm cả `aud`
   — không kiểm `aud` thì token Google cấp cho ứng dụng bất kỳ khác cũng vào
   được. Không bao giờ nhận `sub` client gửi thẳng.
+- **Không có tài khoản khách.** Ba chế độ online đòi đăng nhập thật; đấu với
+  máy thì không đòi gì. Tài khoản khách chỉ sống trên đúng một trình duyệt,
+  nên mọi thành tích nó ghi được đều sẽ mất, và người chơi chỉ phát hiện ra
+  sau vài chục ván.
 - Chỉ **ván ghép cặp** vào sổ thành tích. Phòng riêng mở bằng mã thì không:
   hai người quen nhau thay nhau xin thua là bơm điểm xong.
 - `PRAGMA foreign_keys = ON` phải bật tay. SQLite mặc định **im lặng bỏ qua**

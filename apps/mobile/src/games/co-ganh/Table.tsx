@@ -5,6 +5,7 @@ import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import type { BotLevel, MetaState, Seat, Wrapped } from '@co/core';
 import { ganhBot, type GanhAction, type GanhState, type GanhView } from '@co/game-co-ganh';
 import { ganhMeta } from '../../catalog';
+import { meName } from '../../net/api';
 import { LEVEL_NAME, MatchShell } from '../../ui/MatchShell';
 import { S } from '../../ui/theme';
 import { BOT, ME, useFlagOnTimeout, useVsBot } from '../useVsBot';
@@ -105,8 +106,8 @@ export function GanhTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
         ms: m.clock[BOT],
       }}
       bottom={{
-        name: 'Bạn',
-        sub: `Khách · ${mine} quân`,
+        name: meName(),
+        sub: `${mine} quân`,
         token: <Token dark active={m.toMove === ME} />,
         active: myTurn,
         ms: m.clock[ME],

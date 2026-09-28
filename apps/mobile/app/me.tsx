@@ -78,26 +78,13 @@ export default function MeScreen() {
             {me.name}
           </Txt>
           <Txt size={11.5} color={A.inkFaint}>
-            {me.email ?? 'Tài khoản khách · chưa có email'}
+            {me.email}
           </Txt>
           <Txt size={10.5} color={A.inkFaint}>
             Tham gia {new Date(me.createdAt).toLocaleDateString('vi-VN')}
           </Txt>
         </View>
       </Panel>
-
-      {/* Khách chưa có email thì nói thẳng là mất dữ liệu khi đổi máy, chứ
-          không để họ đánh mấy chục ván rồi mới phát hiện. */}
-      {me.email ? null : (
-        <Panel radius={R.md} tone={0} seed={19}>
-          <View style={{ flexDirection: 'row', gap: S.sm, padding: S.md, alignItems: 'center' }}>
-            <Icon name="lock" size={15} color={A.gold} />
-            <Txt size={11.5} color={A.inkSoft} style={{ flex: 1 }}>
-              Tài khoản khách chỉ sống trên máy này. Đổi máy hoặc xoá dữ liệu trình duyệt là mất hết thành tích.
-            </Txt>
-          </View>
-        </Panel>
-      )}
 
       <Panel radius={R.lg} tone={1} seed={29}>
         <View style={{ gap: S.sm, padding: S.lg }}>

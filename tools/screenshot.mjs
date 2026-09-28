@@ -76,11 +76,14 @@ await shot('16-dang-nhap');
 await page.getByText('Chưa có tài khoản? Đăng ký').click();
 await page.waitForTimeout(400);
 await shot('17-dang-ky');
-await page.getByText('Chơi thử, không cần tài khoản').click();
-await page.waitForTimeout(1500);
+await page.getByLabel('Tên hiển thị').fill('Người Chơi Thử');
+await page.getByLabel('Email').fill(`shot${Date.now()}@vidu.com`);
+await page.getByLabel('Mật khẩu').fill('matkhaudai');
+await page.getByText('Đăng ký', { exact: true }).click();
+await page.waitForTimeout(1800);
 await page.getByLabel('Tôi').first().click();
 await page.waitForTimeout(1200);
-await shot('27-trang-ca-nhan-khach');
+await shot('27-trang-ca-nhan-moi');
 await page.goto(`${URL_BASE}/`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
 

@@ -130,6 +130,17 @@ export function token(): string | null {
   return read();
 }
 
+/**
+ * Tên để hiện ở thanh người chơi khi **đấu với máy**.
+ *
+ * Ván với máy không đòi đăng nhập, nên phải có đường đi cho cả hai trường
+ * hợp. Đã đăng nhập thì thấy tên mình; chưa thì "Bạn" — không bịa ra một cái
+ * tên khách, vì tài khoản khách đã bị bỏ.
+ */
+export function meName(): string {
+  return state.me?.name ?? 'Bạn';
+}
+
 const accept = (r: { token: string; user: Me }) => {
   write(r.token);
   set({ me: r.user, loading: false });
@@ -140,7 +151,6 @@ export const auth = {
   register: async (name: string, email: string, password: string) => accept(await post('/auth/register', { name, email, password })),
   login: async (email: string, password: string) => accept(await post('/auth/login', { email, password })),
   google: async (idToken: string) => accept(await post('/auth/google', { idToken })),
-  guest: async (name?: string) => accept(await post('/auth/guest', name ? { name } : {})),
   logout: async () => {
     // Xoá ở máy **trước**, rồi mới báo máy chủ. Ngược lại thì mạng hỏng giữa
     // chừng là người dùng bấm đăng xuất mà vẫn còn đăng nhập.

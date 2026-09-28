@@ -17,8 +17,12 @@ import { A, R, S } from '../src/ui/theme';
  * riêng thì người vào nhầm phải bấm quay lại rồi bấm tiếp — mà "tôi đã có tài
  * khoản chưa" là câu người ta hay nhầm nhất.
  *
- * **Chơi thử không cần tài khoản** vẫn để ngay đây, ngang hàng: bắt đăng ký
- * trước khi cho xem thử một ván là cách nhanh nhất để người ta đóng app.
+ * Không có "chơi thử": mọi tài khoản đều đăng nhập lại được. Tài khoản khách
+ * chỉ sống trên đúng một trình duyệt, nên mọi thành tích nó ghi được đều sẽ
+ * mất — và người chơi chỉ phát hiện ra sau vài chục ván.
+ *
+ * **Đấu với máy vẫn không cần tài khoản.** Chỉ ba chế độ online mới cần, vì
+ * chúng cần một danh tính bền để người khác kết bạn và nhắn tin.
  */
 export default function AuthScreen() {
   const router = useRouter();
@@ -126,7 +130,7 @@ export default function AuthScreen() {
           </Panel>
         )}
 
-        <Btn tone="ghost" label="Chơi thử, không cần tài khoản" disabled={busy} onPress={() => run(() => auth.guest())} />
+        <Btn tone="ghost" label="Chỉ đấu với máy, không cần tài khoản" disabled={busy} onPress={() => backToLobby(router)} />
       </ScrollView>
     </View>
   );

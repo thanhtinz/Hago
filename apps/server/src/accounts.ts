@@ -150,14 +150,6 @@ export class Accounts {
     return this.openSession(id);
   }
 
-  /** Khách chơi thử: có hàng trong `users` nhưng không có cách đăng nhập lại. */
-  guest(nameRaw?: string): Session {
-    const id = randomUUID();
-    const name = nameRaw ? cleanName(nameRaw) : `Khách ${id.slice(0, 4)}`;
-    this.db.prepare('INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)').run(id, name, Date.now());
-    return this.openSession(id);
-  }
-
   user(id: string): User | null {
     const r = this.db.prepare('SELECT * FROM users WHERE id = ?').get(id) as unknown as Row | undefined;
     return r ? toUser(r) : null;

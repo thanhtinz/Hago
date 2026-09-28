@@ -129,7 +129,7 @@ Không sửa file nào trong `packages/core` để thêm game. Phải sửa ngh�
 | App di động + sảnh + ba bàn cờ chơi với máy: gợi ý, lùi lại, tỉ số phiên | ✅ |
 | Máy chủ: phòng, ghép cặp, đồng hồ, chống gửi lặp | ✅ `apps/server` |
 | App nối máy chủ: ghép cặp, tạo phòng, vào mã — chơi với người thật | ✅ |
-| Tài khoản: đăng ký, đăng nhập, Google, chơi thử | ✅ `apps/server/src/accounts.ts` |
+| Tài khoản: đăng ký, đăng nhập, Google | ✅ `apps/server/src/accounts.ts` |
 | Trang cá nhân + thành tích theo bộ môn | ✅ |
 | Bạn bè: kết bạn, tỷ thí, xoá, chặn | ⏳ API xong, chưa có giao diện |
 | Nhắn tin: chung, riêng, trong phòng, thông báo hệ thống | ⏳ |

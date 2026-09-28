@@ -96,10 +96,6 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
       const s = ctx.accounts.upsertGoogle(prof.sub, prof.email, prof.name, prof.picture);
       return json(res, 200, { token: s.token, user: s.user }), true;
     }
-    if (p === '/api/auth/guest' && req.method === 'POST') {
-      const s = ctx.accounts.guest(str(body.name) || undefined);
-      return json(res, 200, { token: s.token, user: s.user }), true;
-    }
     if (p === '/api/auth/logout' && req.method === 'POST') {
       if (token) ctx.accounts.logout(token);
       return json(res, 200, { ok: true }), true;
