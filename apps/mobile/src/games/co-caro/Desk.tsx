@@ -83,8 +83,8 @@ export function DeskBackdrop({ width, height }: { width: number; height: number 
         <Ellipse cx={width / 2} cy={height * 0.46} rx={width * 0.75} ry={height * 0.42} fill="url(#desk-lamp)" />
         {/* Hai đầu tan dần vào nền app, để mặt bàn không thành một khối chữ
             nhật dán đè lên màn hình. */}
-        <Rect x={0} y={0} width={width} height={height * 0.11} fill="url(#desk-fadeTop)" />
-        <Rect x={0} y={height * 0.89} width={width} height={height * 0.11} fill="url(#desk-fadeBottom)" />
+        <Rect x={0} y={0} width={width} height={height * 0.09} fill="url(#desk-fadeTop)" />
+        <Rect x={0} y={height * 0.91} width={width} height={height * 0.09} fill="url(#desk-fadeBottom)" />
       </Svg>
     </View>
   );

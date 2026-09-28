@@ -12,7 +12,8 @@ import { caroTheme as CT, inkFor } from '../../src/games/co-caro/theme';
 import { faceOf } from '../../src/games/faces';
 import { Icon } from '../../src/ui/Icon';
 import { Btn, Clock, IconBtn, Tag, Txt } from '../../src/ui/kit';
-import { A, R, S, lift } from '../../src/ui/theme';
+import { AppBackdrop, Panel, Rule } from '../../src/ui/surface';
+import { A, R, S, glow, lift } from '../../src/ui/theme';
 
 /**
  * Màn chơi.
@@ -128,7 +129,7 @@ export default function PlayScreen() {
   const face = faceOf(String(game));
   if (game !== 'co-caro') {
     return (
-      <View style={{ flex: 1, backgroundColor: A.bg, alignItems: 'center', justifyContent: 'center', gap: S.md, padding: S.xl }}>
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: S.md, padding: S.xl }}>
         <Txt size={17} weight="bold">
           {face ? `${face.nameVi} chưa mở` : 'Bộ môn này chưa mở'}
         </Txt>
@@ -140,19 +141,21 @@ export default function PlayScreen() {
   const view: CaroView = caroMeta.view(state, ME).v as CaroView;
   // Chừa mỗi bên một khoảng mặt bàn. Bàn cờ ăn sát mép màn hình thì tờ giấy
   // không còn nằm trên cái gì, mà thành cái nền của cả màn hình.
-  const board = Math.min(width - S.xxl * 2, height - insets.top - insets.bottom - 320, 430);
+  const board = Math.min(width - S.xl * 2, height - insets.top - insets.bottom - 310, 440);
+  const [deskH, setDeskH] = useState(0);
 
   return (
-    <View style={{ flex: 1, backgroundColor: A.bg, paddingTop: insets.top + S.sm, paddingBottom: insets.bottom + S.sm }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingHorizontal: S.lg, paddingBottom: S.md }}>
+    <View style={{ flex: 1, paddingTop: insets.top + S.sm, paddingBottom: insets.bottom + S.sm }}>
+      <AppBackdrop width={width} height={height} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, paddingHorizontal: S.lg, paddingBottom: S.sm }}>
         <Pressable onPress={() => router.replace('/')} hitSlop={14} accessibilityRole="button" accessibilityLabel="Về sảnh">
           <Icon name="back" size={22} color={A.inkSoft} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Txt size={16} weight="display">
+          <Txt size={18} weight="display">
             Cờ Caro
           </Txt>
-          <Txt size={11} color={A.inkFaint}>
+          <Txt size={10.5} color={A.inkFaint}>
             Luật Việt Nam · chặn hai đầu không tính · 5 phút
           </Txt>
         </View>
@@ -168,7 +171,7 @@ export default function PlayScreen() {
             paddingHorizontal: S.md,
             borderRadius: R.pill,
             backgroundColor: A.goldSoft,
-            borderWidth: 1,
+            borderWidth: 1.2,
             borderColor: A.goldDeep,
           }}
         >
@@ -179,10 +182,15 @@ export default function PlayScreen() {
         </Pressable>
       </View>
 
-      {/* Hai thanh người chơi dính sát bàn cờ trong cùng một khối căn giữa.
-          Tách ra rồi cho bàn cờ `flex: 1` thì trên dưới bàn cờ đều hở một
-          khoảng chết to bằng nửa bàn tay. */}
-      <View style={{ flex: 1, justifyContent: 'center', gap: S.sm }}>
+      {/* Mặt bàn gỗ trải hết khối giữa, không chỉ sau bàn cờ. Nhờ vậy hai
+          thanh người chơi thành hai tấm biển đặt trên bàn, và khoảng trống
+          trên dưới thành mặt bàn chứ không còn là chỗ thừa màu đen. */}
+      <View
+        style={{ flex: 1, justifyContent: 'center', gap: S.sm }}
+        onLayout={(e) => setDeskH(e.nativeEvent.layout.height)}
+      >
+        {deskH > 0 ? <DeskBackdrop width={width} height={deskH} /> : null}
+
         <Bar
           name="Máy"
           sub={`Mức ${LEVEL_NAME[level]}`}
@@ -192,11 +200,10 @@ export default function PlayScreen() {
           ms={clock[BOT]}
         />
 
-        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-          <DeskBackdrop width={width} height={board + S.xxl * 4} />
+        <View style={{ alignItems: 'center', paddingVertical: S.sm }}>
           <View style={{ width: board, height: board }}>
             <PaperStack size={board} />
-            <View style={lift(0.55, 24, 12)}>
+            <View style={lift(0.6, 26, 12)}>
               <CaroBoard view={view} size={board} mySeat={ME} onPlay={play} disabled={toMove !== ME || !!outcome} />
             </View>
           </View>
@@ -218,7 +225,7 @@ export default function PlayScreen() {
             setTimeout(() => send(BOT, { t: 'decline-draw' }), 500);
           }}
         />
-        <IconBtn name="flag" label="Xin thua" tone="danger" disabled={!!outcome} onPress={() => send(ME, { t: 'resign' })} />
+        <IconBtn name="flag" label="Xin thua" tone="seal" disabled={!!outcome} onPress={() => send(ME, { t: 'resign' })} />
       </View>
 
       {state.drawOffer && !outcome ? (
@@ -273,60 +280,60 @@ function Bar({
   ms: number;
 }) {
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: S.md,
-        marginHorizontal: S.md,
-        padding: S.sm,
-        paddingRight: S.sm,
-        borderRadius: R.md,
-        backgroundColor: active ? A.surfaceAlt : 'transparent',
-        borderWidth: 1,
-        borderColor: active ? A.goldDeep : 'transparent',
-      }}
+    <Panel
+      radius={R.md}
+      tone={active ? 2 : 1}
+      seed={seat === 0 ? 41 : 23}
+      hairline={false}
+      style={[
+        { marginHorizontal: S.md, borderWidth: 1.2, borderColor: active ? A.goldDeep : A.lineSoft },
+        active ? glow(0.3, 12) : undefined,
+      ]}
     >
-      <View
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 18,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: CT.paper,
-          borderWidth: 2,
-          borderColor: active ? A.gold : CT.paperShade,
-        }}
-      >
-        <Svg width={20} height={20} viewBox="0 0 100 100">
-          {seat === 0 ? (
-            <>
-              <Path d="M22 22 L78 78" stroke={inkFor(0)} strokeWidth={12} strokeLinecap="round" fill="none" />
-              <Path d="M78 22 L22 78" stroke={inkFor(0)} strokeWidth={12} strokeLinecap="round" fill="none" />
-            </>
-          ) : (
-            <Path
-              d="M74 30 A28 28 0 1 0 76 62 A28 28 0 0 0 66 24"
-              stroke={inkFor(1)}
-              strokeWidth={12}
-              strokeLinecap="round"
-              fill="none"
-            />
-          )}
-        </Svg>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.sm }}>
+        {/* Quân của người chơi vẽ đúng nét bút họ dùng trên bàn cờ, đặt trên
+            một mảnh giấy tròn — không phải một chấm màu quy ước. */}
+        <View
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 19,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: CT.paper,
+            borderWidth: 2,
+            borderColor: active ? A.gold : A.lineSoft,
+          }}
+        >
+          <Svg width={21} height={21} viewBox="0 0 100 100">
+            {seat === 0 ? (
+              <>
+                <Path d="M22 22 L78 78" stroke={inkFor(0)} strokeWidth={12} strokeLinecap="round" fill="none" />
+                <Path d="M78 22 L22 78" stroke={inkFor(0)} strokeWidth={12} strokeLinecap="round" fill="none" />
+              </>
+            ) : (
+              <Path
+                d="M74 30 A28 28 0 1 0 76 62 A28 28 0 0 0 66 24"
+                stroke={inkFor(1)}
+                strokeWidth={12}
+                strokeLinecap="round"
+                fill="none"
+              />
+            )}
+          </Svg>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Txt size={15} weight="display" color={active ? A.ink : A.inkSoft}>
+            {name}
+          </Txt>
+          <Txt size={10.5} color={A.inkFaint}>
+            {thinking ? 'đang nghĩ…' : sub}
+          </Txt>
+        </View>
+        {active && !thinking ? <Tag label="đang đi" color={A.gold} bg={A.goldSoft} /> : null}
+        <Clock ms={ms} running={active} />
       </View>
-      <View style={{ flex: 1 }}>
-        <Txt size={14} weight="bold" color={active ? A.ink : A.inkSoft}>
-          {name}
-        </Txt>
-        <Txt size={11} color={A.inkFaint}>
-          {thinking ? 'đang nghĩ…' : sub}
-        </Txt>
-      </View>
-      {active && !thinking ? <Tag label="đang đi" color={A.gold} bg={A.goldSoft} /> : null}
-      <Clock ms={ms} running={active} />
-    </View>
+    </Panel>
   );
 }
 
@@ -350,37 +357,38 @@ function Result({
   onAgain: () => void;
   onHome: () => void;
 }) {
-  const tint = draw ? A.info : win ? A.gold : A.danger;
+  const tint = draw ? A.info : win ? A.gold : A.sealLit;
   return (
-    <View
-      style={[
-        {
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          gap: S.sm,
-          padding: S.lg,
-          paddingBottom: S.xxl,
-          backgroundColor: A.surface,
-          borderTopLeftRadius: R.xl,
-          borderTopRightRadius: R.xl,
-          borderTopWidth: 2,
-          borderTopColor: tint,
-        },
-        lift(0.6, 28, -10),
-      ]}
-    >
-      <Txt size={24} weight="display" color={tint} center>
-        {draw ? 'Hoà' : win ? 'Bạn thắng' : 'Bạn thua'}
-      </Txt>
-      <Txt size={13} color={A.inkSoft} center style={{ marginBottom: S.sm }}>
-        {reason}
-      </Txt>
-      <View style={{ flexDirection: 'row', gap: S.sm }}>
-        <Btn label="Về sảnh" tone="ghost" onPress={onHome} style={{ flex: 1 }} />
-        <Btn label="Ván mới" onPress={onAgain} style={{ flex: 1.4 }} />
-      </View>
+    <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+      <Panel
+        radius={0}
+        tone={2}
+        seed={61}
+        hairline={false}
+        style={[
+          {
+            borderTopLeftRadius: R.xl,
+            borderTopRightRadius: R.xl,
+            borderTopWidth: 2,
+            borderTopColor: tint,
+          },
+          lift(0.6, 30, -12),
+        ]}
+      >
+        <View style={{ gap: S.sm, padding: S.lg, paddingBottom: S.xxl, alignItems: 'center' }}>
+          <Txt size={27} weight="displayHeavy" color={tint} center>
+            {draw ? 'Hoà' : win ? 'Bạn thắng' : 'Bạn thua'}
+          </Txt>
+          <Rule width={160} />
+          <Txt size={13} color={A.inkSoft} center style={{ marginBottom: S.sm }}>
+            {reason}
+          </Txt>
+          <View style={{ flexDirection: 'row', gap: S.sm, alignSelf: 'stretch' }}>
+            <Btn label="Về sảnh" tone="ghost" onPress={onHome} style={{ flex: 1 }} />
+            <Btn label="Ván mới" onPress={onAgain} style={{ flex: 1.4 }} />
+          </View>
+        </View>
+      </Panel>
     </View>
   );
 }
@@ -408,20 +416,21 @@ function LevelSheet({
     <Pressable
       accessibilityLabel="Đóng"
       onPress={onClose}
-      style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end', backgroundColor: 'rgba(8,7,5,0.7)' }}
+      style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end', backgroundColor: 'rgba(12,7,3,0.72)' }}
     >
-      <View
+      <Panel
+        radius={0}
+        tone={2}
+        seed={83}
+        hairline={false}
         style={{
-          gap: S.sm,
-          padding: S.lg,
-          paddingBottom: S.xxl,
-          backgroundColor: A.surface,
           borderTopLeftRadius: R.xl,
           borderTopRightRadius: R.xl,
-          borderTopWidth: 1,
-          borderTopColor: A.line,
+          borderTopWidth: 1.4,
+          borderTopColor: A.goldDeep,
         }}
       >
+      <View style={{ gap: S.sm, padding: S.lg, paddingBottom: S.xxl }}>
         <Txt size={17} weight="display" style={{ marginBottom: S.xs }}>
           Mức máy
         </Txt>
@@ -437,8 +446,8 @@ function LevelSheet({
               minHeight: 56,
               padding: S.md,
               borderRadius: R.md,
-              backgroundColor: level === lv ? A.goldSoft : A.surfaceAlt,
-              borderWidth: 1,
+              backgroundColor: level === lv ? A.goldSoft : A.panelLo,
+              borderWidth: 1.2,
               borderColor: level === lv ? A.gold : A.lineSoft,
             }}
           >
@@ -458,6 +467,7 @@ function LevelSheet({
           Đổi mức có hiệu lực ngay ở nước kế tiếp của máy.
         </Txt>
       </View>
+      </Panel>
     </Pressable>
   );
 }

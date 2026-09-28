@@ -33,7 +33,7 @@ export const caroTheme = {
   pencil: '#8A8578',
   deskWood: '#5C4020',
   /** Màu app nền, để hai đầu mặt bàn tan dần vào khung chứ không cắt ngang. */
-  deskFade: '#12100D',
+  deskFade: '#1A1008',
   /** Hai tờ giấy lót dưới, tối dần xuống. */
   paperUnder1: '#E6DFCB',
   paperUnder2: '#CFC7B0',

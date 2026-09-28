@@ -1,8 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import { Icon, type IconName } from './Icon';
-import { A, R, S } from './theme';
+import { GoldFill, Panel } from './surface';
+import { A, F, R, S, glow, lift } from './theme';
 
+/**
+ * Chữ.
+ *
+ * Hai bộ chữ, chia việc rõ ràng: **Playfair Display** cho tiêu đề, **Be
+ * Vietnam Pro** cho mọi thứ còn lại. Trước đây dùng chữ hệ thống ở khắp nơi —
+ * đó là thứ làm một app trông rẻ nhanh nhất, vì nó giống hệt mọi app khác trên
+ * máy. Be Vietnam Pro còn là bộ chữ dựng riêng cho tiếng Việt, nên dấu không
+ * bị chèn lên chữ hoa như mấy bộ sans quốc tế.
+ */
 export function Txt({
   children,
   size = 14,
@@ -14,21 +24,33 @@ export function Txt({
 }: {
   children: React.ReactNode;
   size?: number;
-  weight?: 'regular' | 'bold' | 'display';
+  weight?: 'regular' | 'semi' | 'bold' | 'display' | 'displayHeavy';
   color?: string;
   center?: boolean;
   style?: TextStyle;
   numberOfLines?: number;
 }) {
+  const family =
+    weight === 'display'
+      ? F.display
+      : weight === 'displayHeavy'
+        ? F.displayHeavy
+        : weight === 'bold'
+          ? F.bodyBold
+          : weight === 'semi'
+            ? F.bodySemi
+            : F.body;
+  const isDisplay = weight === 'display' || weight === 'displayHeavy';
   return (
     <Text
       numberOfLines={numberOfLines}
       style={[
         {
+          fontFamily: family,
           fontSize: size,
+          lineHeight: Math.round(size * (isDisplay ? 1.25 : 1.4)),
           color,
-          fontWeight: weight === 'regular' ? '400' : weight === 'bold' ? '700' : '800',
-          letterSpacing: weight === 'display' ? 0.3 : 0,
+          letterSpacing: isDisplay ? 0.2 : 0,
           textAlign: center ? 'center' : 'auto',
         },
         style,
@@ -39,12 +61,29 @@ export function Txt({
   );
 }
 
+/** Đo bề rộng để đặt tấm gradient phía sau. */
+function useBox() {
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  const onLayout = (e: { nativeEvent: { layout: { width: number; height: number } } }) => {
+    const { width, height } = e.nativeEvent.layout;
+    if (Math.abs(width - box.w) > 0.5 || Math.abs(height - box.h) > 0.5) setBox({ w: width, h: height });
+  };
+  return [box, onLayout] as const;
+}
+
+/**
+ * Nút.
+ *
+ * `gold` là nút chính: một thỏi kim loại đánh bóng, có vệt loé và quầng sáng.
+ * Cả màn hình chỉ được có **một** nút như vậy — hai thỏi vàng cạnh nhau thì
+ * không cái nào còn là chính nữa.
+ */
 export function Btn({
   label,
   sub,
   icon,
   onPress,
-  tone = 'primary',
+  tone = 'gold',
   size = 'md',
   disabled,
   style,
@@ -53,42 +92,52 @@ export function Btn({
   sub?: string;
   icon?: IconName;
   onPress?: () => void;
-  tone?: 'primary' | 'ghost' | 'solid';
+  tone?: 'gold' | 'wood' | 'ghost';
   size?: 'md' | 'lg';
   disabled?: boolean;
   style?: ViewStyle;
 }) {
-  const bg = disabled ? A.surfaceAlt : tone === 'primary' ? A.gold : tone === 'solid' ? A.surfaceHigh : 'transparent';
-  const fg = disabled ? A.inkFaint : tone === 'primary' ? '#1B1408' : A.ink;
+  const [box, onLayout] = useBox();
   const lg = size === 'lg';
+  const radius = lg ? R.lg : R.pill;
+  const fg = disabled ? A.inkFaint : tone === 'gold' ? A.onGold : A.ink;
+
   return (
     <Pressable
       accessibilityRole="button"
       disabled={disabled}
       onPress={onPress}
-      style={[
+      onLayout={onLayout}
+      style={({ pressed }) => [
         {
-          minHeight: lg ? 64 : 44,
+          minHeight: lg ? 66 : 46,
           flexDirection: 'row',
           gap: S.md,
           paddingHorizontal: lg ? S.xl : S.lg,
           justifyContent: 'center',
           alignItems: 'center',
-          borderRadius: lg ? R.lg : R.pill,
-          backgroundColor: bg,
-          borderWidth: tone === 'ghost' ? 1.5 : 0,
-          borderColor: A.line,
+          borderRadius: radius,
+          overflow: 'hidden',
+          backgroundColor: disabled ? A.panelLo : tone === 'gold' ? A.goldDeep : tone === 'wood' ? A.panel : 'transparent',
+          borderWidth: tone === 'gold' ? 0 : 1.2,
+          borderColor: tone === 'ghost' ? A.line : A.lineSoft,
+          // Bấm xuống thì lún: dịch 1px và giảm quầng sáng. Nút không phản hồi
+          // khi chạm là lỗi cảm giác lớn nhất trên di động.
+          transform: [{ translateY: pressed ? 1 : 0 }],
+          opacity: pressed ? 0.94 : 1,
         },
+        tone === 'gold' && !disabled ? glow(0.38, lg ? 20 : 12) : lift(0.3, 10, 4),
         style,
       ]}
     >
-      {icon ? <Icon name={icon} size={lg ? 26 : 18} color={fg} strokeWidth={2.1} /> : null}
-      <View style={lg ? undefined : { flexDirection: 'row' }}>
-        <Txt weight="bold" size={lg ? 17 : 14} color={fg}>
+      {tone === 'gold' && !disabled && box.w > 0 ? <GoldFill width={box.w} height={box.h} radius={radius} /> : null}
+      {icon ? <Icon name={icon} size={lg ? 27 : 18} color={fg} strokeWidth={2} /> : null}
+      <View>
+        <Txt weight={lg ? 'display' : 'bold'} size={lg ? 19 : 14} color={fg}>
           {label}
         </Txt>
         {sub ? (
-          <Txt size={12} color={fg} style={{ opacity: 0.72, marginTop: 1 }}>
+          <Txt size={12} color={fg} style={{ opacity: 0.75 }}>
             {sub}
           </Txt>
         ) : null}
@@ -97,10 +146,19 @@ export function Btn({
   );
 }
 
-export function Tag({ label, color = A.inkSoft, bg = A.surfaceAlt }: { label: string; color?: string; bg?: string }) {
+export function Tag({ label, color = A.inkSoft, bg = A.goldSoft }: { label: string; color?: string; bg?: string }) {
   return (
-    <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: R.pill, backgroundColor: bg }}>
-      <Txt size={11} weight="bold" color={color}>
+    <View
+      style={{
+        paddingHorizontal: 9,
+        paddingVertical: 3,
+        borderRadius: R.pill,
+        backgroundColor: bg,
+        borderWidth: 1,
+        borderColor: color,
+      }}
+    >
+      <Txt size={10.5} weight="bold" color={color}>
         {label}
       </Txt>
     </View>
@@ -108,35 +166,29 @@ export function Tag({ label, color = A.inkSoft, bg = A.surfaceAlt }: { label: st
 }
 
 /**
- * Ảnh đại diện vẽ bằng chữ cái đầu. Chưa có ảnh thật thì chữ cái vẫn phân biệt
- * được hai bên, còn hình tròn xám giống hệt nhau thì không.
+ * Ảnh đại diện: một đồng xu gỗ có vành vàng, chữ cái đầu khắc ở giữa. Vòng
+ * tròn xám trơn thì hai bên trông giống hệt nhau.
  */
-export function Avatar({
-  name,
-  size = 40,
-  tint = A.gold,
-  active,
-}: {
-  name: string;
-  size?: number;
-  tint?: string;
-  active?: boolean;
-}) {
+export function Avatar({ name, size = 42, active }: { name: string; size?: number; active?: boolean }) {
   const letter = name.trim().charAt(0).toUpperCase() || '?';
   return (
     <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: A.surfaceHigh,
-        borderWidth: active ? 2 : 1,
-        borderColor: active ? tint : A.line,
-      }}
+      style={[
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          backgroundColor: A.panelHi,
+          borderWidth: active ? 2 : 1.2,
+          borderColor: active ? A.gold : A.line,
+        },
+        active ? glow(0.35, 10) : undefined,
+      ]}
     >
-      <Txt size={size * 0.42} weight="bold" color={active ? tint : A.inkSoft}>
+      <Txt size={size * 0.4} weight="display" color={active ? A.gold : A.inkSoft}>
         {letter}
       </Txt>
     </View>
@@ -144,8 +196,8 @@ export function Avatar({
 }
 
 /**
- * Nút chỉ có icon. Vẫn phải có nhãn đọc màn hình và vùng chạm 44px — icon
- * không tự giải thích nó làm gì cho người dùng trình đọc màn hình.
+ * Nút chỉ có icon, khắc chìm vào mặt gỗ. Vẫn có nhãn đọc màn hình và vùng
+ * chạm 48px — icon không tự nói nó làm gì cho người dùng trình đọc màn hình.
  */
 export function IconBtn({
   name,
@@ -157,66 +209,74 @@ export function IconBtn({
   name: IconName;
   label: string;
   onPress?: () => void;
-  tone?: 'plain' | 'danger' | 'gold';
+  tone?: 'plain' | 'seal' | 'gold';
   disabled?: boolean;
 }) {
-  const fg = disabled ? A.inkFaint : tone === 'danger' ? A.danger : tone === 'gold' ? A.gold : A.inkSoft;
-  const bg = tone === 'danger' ? A.dangerSoft : tone === 'gold' ? A.goldSoft : A.surfaceAlt;
+  const fg = disabled ? A.inkFaint : tone === 'seal' ? A.sealLit : tone === 'gold' ? A.gold : A.inkSoft;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       disabled={disabled}
       onPress={onPress}
-      style={{
-        flex: 1,
-        minHeight: 48,
-        gap: 3,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: R.md,
-        backgroundColor: disabled ? A.surface : bg,
-        borderWidth: 1,
-        borderColor: A.lineSoft,
-      }}
+      style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.8 : 1, transform: [{ translateY: pressed ? 1 : 0 }] })}
     >
-      <Icon name={name} size={19} color={fg} />
-      <Txt size={10} weight="bold" color={fg}>
-        {label}
-      </Txt>
+      <Panel
+        radius={R.md}
+        tone={1}
+        seed={name.length * 13}
+        style={{ minHeight: 52 }}
+      >
+        {/* Nội dung phải nằm trong một View riêng, không đặt thẳng làm con của
+            Panel: tấm gỗ nền là một SVG định vị tuyệt đối, và trên web nó phủ
+            lên mọi phần tử tĩnh đứng cạnh — chữ thì đè lên được, icon thì mất
+            hẳn. Bọc một lớp là xong. */}
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, paddingVertical: 6 }}>
+          <Icon name={name} size={20} color={fg} />
+          <Txt size={10.5} weight="semi" color={fg}>
+            {label}
+          </Txt>
+        </View>
+      </Panel>
     </Pressable>
   );
 }
 
 /**
- * Đồng hồ. Ở mọi app cờ online, đồng hồ là thứ mắt liếc nhiều nhất sau bàn cờ,
- * nên nó dùng chữ số đều bề ngang để không nhảy chỗ mỗi giây, và đỏ lên khi
- * dưới 20 giây thay vì chỉ đổi số.
+ * Đồng hồ.
+ *
+ * Ở mọi app cờ online, đồng hồ là thứ mắt liếc nhiều nhất sau bàn cờ. Nó dùng
+ * chữ số đều bề ngang để không nhảy chỗ mỗi giây, sáng lên khi tới lượt, và
+ * chuyển đỏ son khi dưới 20 giây.
  */
 export function Clock({ ms, running, low = 20000 }: { ms: number; running?: boolean; low?: number }) {
   const total = Math.max(0, Math.ceil(ms / 1000));
   const mm = Math.floor(total / 60);
   const ss = total % 60;
   const urgent = ms <= low;
+  const fg = urgent ? A.sealLit : running ? A.goldLit : A.inkFaint;
   return (
     <View
-      style={{
-        paddingHorizontal: S.md,
-        paddingVertical: 7,
-        borderRadius: R.sm,
-        minWidth: 78,
-        alignItems: 'center',
-        backgroundColor: urgent ? A.dangerSoft : running ? A.surfaceHigh : A.surface,
-        borderWidth: 1,
-        borderColor: urgent ? A.danger : running ? A.gold : A.line,
-      }}
+      style={[
+        {
+          paddingHorizontal: S.md,
+          paddingVertical: 6,
+          borderRadius: R.sm,
+          minWidth: 82,
+          alignItems: 'center',
+          backgroundColor: urgent ? A.sealSoft : running ? A.panelLo : 'transparent',
+          borderWidth: 1.2,
+          borderColor: urgent ? A.seal : running ? A.goldDeep : A.lineSoft,
+        },
+        running && !urgent ? glow(0.25, 8) : undefined,
+      ]}
     >
       <Text
         style={{
+          fontFamily: F.bodyBold,
           fontVariant: ['tabular-nums'],
-          fontSize: 18,
-          fontWeight: '700',
-          color: urgent ? A.danger : running ? A.ink : A.inkFaint,
+          fontSize: 19,
+          color: fg,
         }}
       >
         {mm}:{String(ss).padStart(2, '0')}
