@@ -1,0 +1,14 @@
+{
+  "name": "co-platform",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*", "apps/*"],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "tsc --build --clean",
+    "test": "npm run build && node --test packages/*/dist/**/*.test.js",
+    "typecheck": "tsc --build --dry"
+  },
+  "devDependencies": { "typescript": "^5.6.3", "@types/node": "^22.7.5" }
+}
