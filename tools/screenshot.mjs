@@ -49,10 +49,15 @@ await page.goto(`${URL_BASE}/`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(2000);
 await shot('01-sanh');
 
+console.log('Sảnh: cuộn xuống lưới bộ môn');
+await page.getByLabel('Bộ môn').click();
+await page.waitForTimeout(900);
+await shot('02-sanh-bo-mon');
+
 console.log('Bàn cờ caro');
-await tap('Vào chơi');
+await tap('Đấu với máy', { exact: false });
 await page.waitForTimeout(1200);
-await shot('02-caro-ban-trong');
+await shot('03-caro-ban-trong');
 
 /** Bấm vào một ô của bàn cờ theo toạ độ (hàng, cột), 0-indexed. */
 const cell = async (r, c) => {
@@ -70,24 +75,39 @@ for (const [r, c] of [
 ]) {
   await cell(r, c);
 }
-await shot('03-caro-dang-danh');
+await shot('04-caro-dang-danh');
 
-console.log('Đổi mức máy sang Khó');
-await tap('Khó');
-await shot('04-caro-muc-kho');
+/** Mức máy nằm sau một tấm chọn, không chiếm chỗ thường trực dưới bàn cờ. */
+const openLevels = async () => {
+  await page.getByLabel('Đổi mức máy').click();
+  await page.waitForTimeout(500);
+};
+const setLevel = async (name) => {
+  await openLevels();
+  await page.getByText(name, { exact: true }).first().click();
+  await page.waitForTimeout(600);
+};
+
+console.log('Tấm chọn mức máy');
+await openLevels();
+await shot('05-caro-chon-muc');
+await page.getByText('Khó', { exact: true }).first().click();
+await page.waitForTimeout(600);
 
 /**
- * Đánh tới khi ra kết quả, để xem vệt dạ quang đánh dấu chuỗi thắng.
+ * Đánh tới khi ra kết quả, để xem vệt dạ quang đánh dấu chuỗi thắng và tấm
+ * kết quả.
  *
  * Không gọi thẳng vào engine: bấm đúng như người dùng bấm, ô nào máy đã
  * chiếm thì bỏ qua. Chụp ảnh mà đi đường tắt qua giao diện thì ảnh không
  * chứng minh được gì.
  */
 console.log('Đánh tới khi ra kết quả (mức Dễ)');
-await tap('Ván mới');
-await tap('Dễ');
+await page.getByLabel('Ván mới').click();
+await page.waitForTimeout(600);
+await setLevel('Dễ');
 
-const status = async () => (await page.locator('body').innerText()).match(/Bạn thắng|Máy thắng|Hoà/)?.[0] ?? null;
+const status = async () => (await page.locator('body').innerText()).match(/Bạn thắng|Bạn thua|Hoà/)?.[0] ?? null;
 // Vài đường tấn công: hết đường này thì sang đường khác.
 const lines = [
   [6, 4], [6, 5], [6, 6], [6, 7], [6, 8], [6, 9], [6, 3],
@@ -105,7 +125,7 @@ for (const [r, c] of lines) {
   if (done) break;
 }
 console.log('  kết quả:', done ?? 'chưa xong');
-await shot('05-caro-ket-qua');
+await shot('06-caro-ket-qua');
 
 if (problems.length) {
   console.log('\nLỖI TRÊN TRANG:');
