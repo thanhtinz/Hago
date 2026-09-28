@@ -41,7 +41,19 @@ export interface GameFace {
   /** Nền của hình thu nhỏ — chính là chất liệu bàn cờ. */
   surface: string;
   material: string;
-  seats: string;
+  /**
+   * Nhãn trên thẻ, đúng loại nhãn mà các sảnh game nhiều người vẫn dùng: chế
+   * độ và thời lượng một ván. Hai thứ đó quyết định người ta có bấm vào hay
+   * không — "còn mười lăm phút nữa phải đi, chơi được ván nào?".
+   *
+   * Không có nhãn "đang có bao nhiêu người chơi" vì chưa có máy chủ nào đếm.
+   * Nhãn số người online là nhãn mạnh nhất trong mọi sảnh game, nhưng bịa ra
+   * một con số thì nó thành nhãn dối, và người chơi phát hiện ngay lần đầu
+   * bấm vào phòng trống.
+   */
+  mode: string;
+  /** Thời lượng một ván thường gặp, không phải kỷ lục. */
+  minutes: string;
   ready: boolean;
   Motif: () => React.ReactElement;
 }
@@ -207,7 +219,8 @@ export const FACES: GameFace[] = [
     accent: '#25428F',
     surface: '#FBF8EF',
     material: 'Giấy ô ly',
-    seats: '2 người',
+    mode: '1v1',
+    minutes: '~5 phút',
     ready: true,
     Motif: () => (
       <Frame bg="#FBF8EF">
@@ -254,7 +267,8 @@ export const FACES: GameFace[] = [
     accent: '#C06030',
     surface: '#E8D3BC',
     material: 'Sân gạch',
-    seats: '2 người',
+    mode: '1v1',
+    minutes: '~10 phút',
     ready: false,
     Motif: () => (
       <Frame bg="#E8D3BC">
@@ -344,7 +358,8 @@ export const FACES: GameFace[] = [
     accent: '#6E8F4A',
     surface: '#D9CBB0',
     material: 'Sỏi đất',
-    seats: '2 người',
+    mode: '1v1',
+    minutes: '~15 phút',
     ready: false,
     Motif: () => {
       const rnd = seeded(99);
@@ -421,7 +436,8 @@ export const FACES: GameFace[] = [
     accent: '#A33B2A',
     surface: '#D8B98A',
     material: 'Gỗ tre',
-    seats: '2 người',
+    mode: '1v1',
+    minutes: '~25 phút',
     ready: false,
     Motif: () => (
       <Frame bg="#D8B98A">
@@ -473,7 +489,8 @@ export const FACES: GameFace[] = [
     accent: '#7C8AA0',
     surface: '#EDE7DC',
     material: 'Đá',
-    seats: '2 người',
+    mode: '1v1',
+    minutes: '~25 phút',
     ready: false,
     Motif: () => (
       <Frame bg="#EDE7DC">
@@ -538,7 +555,8 @@ export const FACES: GameFace[] = [
     accent: '#8A6A3B',
     surface: '#B08E5E',
     material: 'Gỗ sẫm',
-    seats: '2 người',
+    mode: '1v1',
+    minutes: '~20 phút',
     ready: false,
     Motif: () => (
       <Frame bg="#B08E5E">
@@ -591,7 +609,8 @@ export const FACES: GameFace[] = [
     accent: '#1F8A8A',
     surface: '#F2EFE6',
     material: 'Nhựa bóng',
-    seats: '2–4 người',
+    mode: '2–4 người',
+    minutes: '~30 phút',
     ready: false,
     Motif: () => {
       const peg = (x: number, y: number, c: string, d: string) => (
@@ -671,7 +690,8 @@ export const FACES: GameFace[] = [
     accent: '#4C4740',
     surface: '#E3BE7C',
     material: 'Gỗ kaya',
-    seats: '2 người',
+    mode: '1v1',
+    minutes: '~45 phút',
     ready: false,
     Motif: () => (
       <Frame bg="#E3BE7C">
@@ -729,7 +749,8 @@ export const FACES: GameFace[] = [
     accent: '#C2477E',
     surface: '#EAF0E6',
     material: 'Bìa cứng',
-    seats: '2–4 người',
+    mode: '2–4 người',
+    minutes: '~60 phút',
     ready: false,
     Motif: () => (
       <Frame bg="#EAF0E6">

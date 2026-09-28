@@ -7,7 +7,7 @@ import { registry } from '@co/core';
 import '../src/catalog';
 import { FACES, type GameFace } from '../src/games/faces';
 import { Icon, type IconName } from '../src/ui/Icon';
-import { Avatar, Btn, Tag, Txt } from '../src/ui/kit';
+import { Avatar, Btn, Txt } from '../src/ui/kit';
 import { AppBackdrop, Panel, Rule, WoodFill } from '../src/ui/surface';
 import { A, R, S, glow, lift } from '../src/ui/theme';
 
@@ -197,26 +197,54 @@ function GameCard({
             {/* Bóng đổ của khung hắt vào trong hình, để hình lõm xuống dưới
                 mặt gỗ chứ không nổi lên trên. */}
             <InsetShade />
+            {/* Trạng thái nằm trên hình chứ không xen vào hàng nhãn: ba nhãn
+                một hàng thì thẻ "2–4 người" bị xuống dòng, và hai thẻ cùng
+                hàng cao thấp khác nhau. */}
+            {ready ? null : (
+              <View style={{ position: 'absolute', top: 6, right: 6 }}>
+                <Chip label="Sắp có" muted />
+              </View>
+            )}
           </View>
         </View>
-        <View style={{ paddingHorizontal: S.md, paddingBottom: S.md, paddingTop: 2, gap: 2 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-            <Txt size={15} weight="display" color={ready ? A.ink : A.inkSoft} style={{ flex: 1 }} numberOfLines={1}>
-              {face.nameVi}
-            </Txt>
-            {ready ? null : <Icon name="lock" size={11} color={A.inkFaint} />}
-          </View>
-          <Txt size={10.5} color={A.inkFaint} numberOfLines={1}>
-            {face.material} · {face.seats}
+        <View style={{ paddingHorizontal: S.md, paddingBottom: S.md, paddingTop: 2, gap: 6 }}>
+          <Txt size={15} weight="display" color={ready ? A.ink : A.inkSoft} numberOfLines={1}>
+            {face.nameVi}
           </Txt>
-        </View>
-        {ready ? (
-          <View style={{ position: 'absolute', top: 12, right: 12 }}>
-            <Tag label="Chơi được" color={A.jade} bg="#12291A" />
+          {/* Nhãn kiểu sảnh game nhiều người: chế độ, thời lượng ván, và
+              trạng thái nếu chưa mở. Nhãn "chơi được" dán lên thẻ chơi được
+              là nhãn thừa — thẻ sáng, có viền vàng, bấm được; tám thẻ kia mờ
+              và ghi rõ "sắp có". Nhãn chỉ nên nói thứ nhìn vào chưa biết. */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5 }}>
+            <Chip label={face.mode} />
+            <Chip label={face.minutes} />
           </View>
-        ) : null}
+        </View>
       </Panel>
     </Pressable>
+  );
+}
+
+/**
+ * Nhãn nhỏ trên thẻ: khắc chìm vào mặt gỗ, không phải miếng dán nổi. Ba nhãn
+ * cạnh nhau mà cái nào cũng có viền sáng thì chúng đánh nhau với tên game.
+ */
+function Chip({ label, muted }: { label: string; muted?: boolean }) {
+  return (
+    <View
+      style={{
+        paddingHorizontal: 7,
+        paddingVertical: 2.5,
+        borderRadius: R.sm,
+        backgroundColor: muted ? '#40290FEE' : '#00000038',
+        borderWidth: muted ? 1 : 0,
+        borderColor: A.goldDeep,
+      }}
+    >
+      <Txt size={10} weight="semi" color={muted ? A.gold : A.inkFaint}>
+        {label}
+      </Txt>
+    </View>
   );
 }
 
