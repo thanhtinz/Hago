@@ -36,6 +36,20 @@ export type Wrapped<A> = { t: 'game'; a: A } | MetaAction;
 
 export interface MetaState<S> extends BaseState {
   inner: S;
+  /**
+   * Số meta-action đã áp dụng. `ply` của lớp bọc = `inner.ply + metaPlies`.
+   *
+   * Không có trường này thì `ply` **thụt lùi**: cầu hoà cộng 1 vào ply của
+   * lớp bọc nhưng không đụng tới ply bên trong, rồi nước cờ kế tiếp lại lấy
+   * thẳng ply bên trong ra dùng — thế là hai input liên tiếp mang cùng một
+   * số. Mà client reconnect bằng `(matchId, ply)`, nên ply trùng nghĩa là
+   * người vào lại phòng nhận đúng state cũ và mất một nước.
+   *
+   * Lỗi này ẩn kỹ ở game có nhiều nước đi: bốc ngẫu nhiên trong 225 nước
+   * caro thì hiếm khi trúng cầu hoà. Ô ăn quan chỉ có 10 nước nên nó lộ ra
+   * ngay lần chạy bộ kiểm đầu tiên.
+   */
+  metaPlies: number;
   seats: Seat[];
   /** Ghế đã rời cuộc, theo thứ tự rời — dùng để xếp hạng ngược. */
   out: { seat: Seat; why: 'resign' | 'flag' | 'abandon' }[];
@@ -82,14 +96,20 @@ export function withStandardMeta<S extends BaseState, A, V, Ev>(
     ...s,
     ...extra,
     inner: next,
-    ply: next.ply,
+    ply: next.ply + s.metaPlies,
     rngCursor: next.rngCursor,
+  });
+
+  /** Một meta-action: ply của lớp bọc tiến lên, ply bên trong đứng yên. */
+  const bump = (s: MetaState<S>): Pick<MetaState<S>, 'ply' | 'metaPlies'> => ({
+    ply: s.ply + 1,
+    metaPlies: s.metaPlies + 1,
   });
 
   /** Ghi một ghế rời cuộc, và kết thúc ván nếu không còn đủ người. */
   const exit = (s: MetaState<S>, seat: Seat, why: 'resign' | 'flag' | 'abandon'): MetaState<S> => {
     if (s.ended || s.out.some((o) => o.seat === seat)) return s;
-    const after: MetaState<S> = { ...s, out: [...s.out, { seat, why }], drawOffer: null, ply: s.ply + 1 };
+    const after: MetaState<S> = { ...s, out: [...s.out, { seat, why }], drawOffer: null, ...bump(s) };
     const left = alive(after);
     if (left.length >= 2) return after;
     const reason = why === 'resign' ? 'đối thủ đầu hàng' : why === 'flag' ? 'đối thủ hết giờ' : 'đối thủ bỏ trận';
@@ -116,6 +136,7 @@ export function withStandardMeta<S extends BaseState, A, V, Ev>(
         ply: s0.ply,
         rngCursor: s0.rngCursor,
         inner: s0,
+        metaPlies: 0,
         seats: [...seats],
         out: [],
         drawOffer: null,
@@ -175,20 +196,20 @@ export function withStandardMeta<S extends BaseState, A, V, Ev>(
           if ((s.drawOffers[seat] ?? 0) >= MAX_DRAW_OFFERS) throw new Error('TOO_MANY_DRAW_OFFERS');
           return {
             ...s,
-            ply: s.ply + 1,
+            ...bump(s),
             drawOffer: { by: seat, atPly: s.ply },
             drawOffers: { ...s.drawOffers, [seat]: (s.drawOffers[seat] ?? 0) + 1 },
           };
         }
         case 'decline-draw': {
           if (!s.drawOffer || s.drawOffer.by === seat) throw new Error('NO_DRAW_OFFER');
-          return { ...s, ply: s.ply + 1, drawOffer: null };
+          return { ...s, ...bump(s), drawOffer: null };
         }
         case 'accept-draw': {
           if (!s.drawOffer || s.drawOffer.by === seat) throw new Error('NO_DRAW_OFFER');
           return {
             ...s,
-            ply: s.ply + 1,
+            ...bump(s),
             drawOffer: null,
             ended: {
               winner: null,
@@ -223,6 +244,7 @@ export function withStandardMeta<S extends BaseState, A, V, Ev>(
       return JSON.stringify({
         ply: s.ply,
         rngCursor: s.rngCursor,
+        metaPlies: s.metaPlies,
         seats: s.seats,
         out: s.out,
         drawOffer: s.drawOffer,

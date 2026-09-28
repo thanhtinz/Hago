@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { applyChecked, RngCursorDesync } from './driver.js';
 import { makeRng } from './rng.js';
+import { withStandardMeta, type Wrapped } from './meta.js';
 import { assertLegalityAgrees, assertNoLeak, assertSnapshotResume } from './testkit.js';
 import type { BaseState, Engine, GameSpec, Seat } from './types.js';
 
@@ -175,4 +176,38 @@ test('shuffle tiêu thụ đúng n-1 giá trị bất kể nội dung', () => {
     rng.shuffle(Array.from({ length: n }, (_, i) => i));
     assert.equal(rng.cursor, Math.max(0, n - 1), `mảng ${n} phần tử`);
   }
+});
+
+/**
+ * `ply` phải tiến đơn điệu qua **mọi** input, kể cả meta-action.
+ *
+ * Bộ kiểm đã bắt được đúng lỗi này ở lõi: cầu hoà cộng 1 vào ply của lớp
+ * bọc nhưng không đụng ply bên trong, rồi nước cờ kế tiếp lấy thẳng ply bên
+ * trong ra dùng — hai input liên tiếp mang cùng một số. Client reconnect
+ * bằng `(matchId, ply)`, nên ply trùng là người vào lại phòng mất một nước.
+ *
+ * Lỗi ẩn kỹ ở game nhiều nước đi và chỉ lộ ở game ít nước, nên phải có test
+ * riêng chứ không thể trông vào playout ngẫu nhiên của một game bất kỳ.
+ */
+test('ply tiến đơn điệu khi xen kẽ nước cờ và meta-action', () => {
+  const engine = withStandardMeta(makeToy('none'));
+  const seats = [0, 1];
+  let s = engine.init(seats, {}, makeRng('meta-ply', 0));
+  let last = s.ply;
+  const script: { seat: Seat; a: Wrapped<ToyAction> }[] = [
+    { seat: 0, a: { t: 'game', a: { n: 1 } } },
+    { seat: 1, a: { t: 'offer-draw' } },
+    { seat: 0, a: { t: 'decline-draw' } },
+    { seat: 1, a: { t: 'game', a: { n: 1 } } },
+    { seat: 0, a: { t: 'game', a: { n: 1 } } },
+    { seat: 1, a: { t: 'offer-draw' } },
+  ];
+  for (const { seat, a } of script) {
+    s = engine.reduce(s, seat, a, makeRng('meta-ply', s.rngCursor));
+    assert.ok(s.ply > last, `ply phải tăng: ${last} -> ${s.ply} sau ${a.t}`);
+    last = s.ply;
+  }
+  // Và phải sống sót qua vòng mã hoá, nếu không snapshot khôi phục sẽ tụt
+  // ply về đúng cái lỗi vừa sửa.
+  assert.equal(engine.decode(engine.encode(s)).ply, s.ply);
 });
