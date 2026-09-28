@@ -83,3 +83,30 @@ npm test        # tsc --build --force + toàn bộ test
   nữa, kiểm luật trước là mỗi lần client mất mạng retry đều nhận `ILLEGAL`.
 - `flag` và `abandon` chỉ máy chủ phát được. Nhận từ client là mở đường cho ai
   cũng tự tuyên bố đối thủ hết giờ.
+
+## 7. Tài khoản và dữ liệu lâu dài
+
+- Kho là **SQLite qua `node:sqlite`** (`apps/server/src/db.ts`), không thêm
+  dịch vụ nào. Nó sẽ hết cửa khi cần chạy nhiều tiến trình máy chủ; mọi câu
+  lệnh là SQL chuẩn nên đường đổi sang Postgres là đổi driver.
+- **Trận đang chạy không nằm trong cơ sở dữ liệu.** `Rooms` vẫn giữ trong bộ
+  nhớ. Ghi mỗi nước cờ xuống đĩa là biến ván cờ thành hàng đợi I/O.
+- Mật khẩu băm bằng **scrypt** có muối riêng từng người. Không bao giờ dùng
+  một hàm băm nhanh: rò cơ sở dữ liệu sẽ thành rò mật khẩu.
+- "Email chưa đăng ký" và "sai mật khẩu" trả **cùng một lời báo lỗi**. Khác
+  nhau là cho không một công cụ dò xem email nào đã có tài khoản.
+- Đăng nhập Google: máy chủ **tự kiểm chữ ký** ID token, và phải kiểm cả `aud`
+  — không kiểm `aud` thì token Google cấp cho ứng dụng bất kỳ khác cũng vào
+  được. Không bao giờ nhận `sub` client gửi thẳng.
+- Chỉ **ván ghép cặp** vào sổ thành tích. Phòng riêng mở bằng mã thì không:
+  hai người quen nhau thay nhau xin thua là bơm điểm xong.
+- `PRAGMA foreign_keys = ON` phải bật tay. SQLite mặc định **im lặng bỏ qua**
+  mọi ràng buộc khoá ngoại.
+
+## 8. Điều hướng trong app
+
+Về sảnh thì dùng `backToLobby(router)` (`src/nav.ts`), **không** dùng
+`router.replace('/')`. `replace` từ một màn được `push` lên trên sảnh chỉ thay
+màn trên cùng, sảnh cũ vẫn nằm dưới, và app có hai sảnh cùng gắn vào cây: mọi
+nút có hai bản, mỗi màn chơi online mở thêm một socket. Đã mắc lỗi này ở cả ba
+màn cùng lúc.

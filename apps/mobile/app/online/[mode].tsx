@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { backToLobby } from '../../src/nav';
 import { OnlineTable } from '../../src/net/OnlineTable';
 import type { Intent } from '../../src/net/useOnline';
 
@@ -24,5 +25,5 @@ export default function OnlineScreen() {
         ? { kind: 'create', gameId: String(game ?? 'co-caro') }
         : { kind: 'quick', gameId: String(game ?? 'co-caro') };
 
-  return <OnlineTable intent={intent} onHome={() => router.replace('/')} />;
+  return <OnlineTable intent={intent} onHome={() => backToLobby(router)} />;
 }

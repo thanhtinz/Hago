@@ -239,6 +239,51 @@ test('chơi trọn một ván caro qua máy chủ, tới nước thắng thật'
   assert.equal(b.last('state')!.outcome!.winner, 0, 'cả hai bên đều nhận kết quả');
 });
 
+test('ván ghép cặp vào sổ thành tích, phòng riêng thì không', () => {
+  const got: { gameId: string; rated: boolean; seats: (string | null)[]; winner: number | null }[] = [];
+  const rooms = new Rooms({
+    serverSeed: 'test',
+    random: fixedCodes(),
+    onFinish: (e) => got.push({ gameId: e.gameId, rated: e.rated, seats: e.seats, winner: e.outcome.winner }),
+  });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+
+  // Phòng riêng: xin thua xong vẫn báo ra, nhưng mang cờ rated = false.
+  rooms.create(a.id, 'co-caro', {});
+  rooms.join(b.id, a.last('room')!.code);
+  rooms.act(b.id, 'r', { t: 'resign' });
+  assert.equal(got.length, 1);
+  assert.equal(got[0]!.rated, false);
+  assert.equal(got[0]!.winner, 0);
+  assert.deepEqual(got[0]!.seats, ['a', 'b']);
+
+  // Ghép cặp: tính xếp hạng.
+  rooms.leave(a.id);
+  rooms.leave(b.id);
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+  rooms.act(a.id, 'r2', { t: 'resign' });
+  assert.equal(got.length, 2);
+  assert.equal(got[1]!.rated, true);
+  assert.equal(got[1]!.winner, 1);
+});
+
+test('bỏ trận giữa chừng vẫn vào sổ, dù ghế đã trống', () => {
+  const got: { seats: (string | null)[]; winner: number | null }[] = [];
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes(), onFinish: (e) => got.push({ seats: e.seats, winner: e.outcome.winner }) });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+  rooms.leave(b.id);
+  assert.equal(got.length, 1);
+  assert.equal(got[0]!.winner, 0);
+  // Ghế 1 đã rời, nhưng phải còn tên trong sổ — nếu không thì bỏ trận là cách
+  // tránh bị ghi một ván thua.
+  assert.deepEqual(got[0]!.seats, ['a', 'b']);
+});
+
 test('ba bộ môn đều mở phòng và đi được nước đầu qua máy chủ', () => {
   const opens: [string, unknown][] = [
     ['co-caro', { t: 'game', a: { r: 7, c: 7 } }],

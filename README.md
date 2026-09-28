@@ -44,7 +44,8 @@ packages/
   protocol/             giao thức client ↔ máy chủ — hai bên cùng dùng một bản
 apps/
   mobile/               app Expo: sảnh + màn chơi, mỗi game một bộ mặt
-  server/               máy chủ trọng tài: phòng, ghép cặp, đồng hồ, WebSocket
+  server/               máy chủ trọng tài: phòng, ghép cặp, đồng hồ, WebSocket,
+                        tài khoản và bạn bè (SQLite)
 tools/
   screenshot.mjs        chụp màn hình app thật để kiểm chứng giao diện
   two-players.mjs       hai cửa sổ trình duyệt đánh nhau qua máy chủ thật
@@ -59,7 +60,7 @@ docs/
 ```bash
 npm install
 npm run build      # biên dịch packages/
-npm test           # 60 test: hợp đồng engine + luật ba game + bot + máy chủ
+npm test           # 76 test: hợp đồng engine + luật ba game + bot + máy chủ
 
 npm run web        # đóng gói app cho web để xem thử
 npm run serve      # mở ở http://localhost:8080
@@ -128,6 +129,10 @@ Không sửa file nào trong `packages/core` để thêm game. Phải sửa ngh�
 | App di động + sảnh + ba bàn cờ chơi với máy: gợi ý, lùi lại, tỉ số phiên | ✅ |
 | Máy chủ: phòng, ghép cặp, đồng hồ, chống gửi lặp | ✅ `apps/server` |
 | App nối máy chủ: ghép cặp, tạo phòng, vào mã — chơi với người thật | ✅ |
+| Tài khoản: đăng ký, đăng nhập, Google, chơi thử | ✅ `apps/server/src/accounts.ts` |
+| Trang cá nhân + thành tích theo bộ môn | ✅ |
+| Bạn bè: kết bạn, tỷ thí, xoá, chặn | ⏳ API xong, chưa có giao diện |
+| Nhắn tin: chung, riêng, trong phòng, thông báo hệ thống | ⏳ |
 | Hàng đợi bot chạy trên máy chủ | ⏳ |
 | Cờ lật, cờ ba quân, cờ Hex (luật gọn, làm trước) | ⏳ |
 | Cờ hùm (dùng lại bàn Alquerque của cờ gánh) | ⏳ |

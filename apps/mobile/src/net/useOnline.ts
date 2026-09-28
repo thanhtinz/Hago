@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Outcome, Seat, Turn } from '@co/core';
 import type { SeatInfo } from '@co/protocol';
-import { GameClient, guestName, type Phase, type RoomInfo, type StateMsg } from './client';
+import { token } from './api';
+import { GameClient, type Phase, type RoomInfo, type StateMsg } from './client';
 
 /**
  * Một ván với người thật, chạy qua máy chủ.
@@ -36,8 +37,7 @@ export interface Online {
   leave: () => void;
 }
 
-export function useOnline(intent: Intent, displayName?: string): Online {
-  const [name] = useState(() => displayName ?? guestName());
+export function useOnline(intent: Intent): Online {
   const [phase, setPhase] = useState<Phase>('off');
   const [room, setRoom] = useState<RoomInfo | null>(null);
   const [st, setSt] = useState<StateMsg | null>(null);
@@ -50,7 +50,15 @@ export function useOnline(intent: Intent, displayName?: string): Online {
   const first = useRef(intent);
 
   useEffect(() => {
-    const c = new GameClient(name, {
+    // Chưa đăng nhập thì không mở dây: máy chủ sẽ từ chối `hello` không token,
+    // và mở socket rồi bị đá ra là một vòng nối lại vô ích.
+    const t = token();
+    if (!t) {
+      setError('Phải đăng nhập mới chơi với người thật được');
+      setPhase('off');
+      return;
+    }
+    const c = new GameClient(t, {
       phase: setPhase,
       room: (r) => {
         // Đổi phòng thì **vứt `view` cũ đi ngay**.
@@ -81,7 +89,7 @@ export function useOnline(intent: Intent, displayName?: string): Online {
       c.close();
       client.current = null;
     };
-  }, [name]);
+  }, []);
 
   const mySeat = room?.yourSeat ?? null;
   const turn = st?.turn ?? null;

@@ -3,6 +3,9 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { registry } from '@co/core';
 import './catalog.js';
 import { PORT, type ClientMsg } from '@co/protocol';
+import { Accounts } from './accounts.js';
+import { openDb } from './db.js';
+import { handleApi } from './http.js';
 import { Rooms } from './rooms.js';
 
 /**
@@ -14,17 +17,38 @@ import { Rooms } from './rooms.js';
  * tới phòng, đồng hồ hay ván đấu.
  */
 
-const rooms = new Rooms();
-let nextId = 1;
+const db = openDb();
+const accounts = new Accounts(db);
+
+/**
+ * Chỉ **ván ghép cặp** mới vào sổ thành tích.
+ *
+ * Phòng riêng mở bằng mã là phòng mời bạn: hai người quen nhau muốn bơm điểm
+ * cho nhau chỉ cần mở phòng rồi thay nhau xin thua vài chục lần. Đây cũng
+ * đúng là lý do `rated` có mặt từ đầu trong `Rooms`.
+ */
+const rooms = new Rooms({
+  onFinish: ({ gameId, rated, seats, outcome }) => {
+    if (!rated) return;
+    for (const [seat, userId] of seats.entries()) {
+      if (!userId) continue;
+      const r = outcome.winner === null ? 'draw' : outcome.winner === seat ? 'win' : 'loss';
+      accounts.recordResult(userId, gameId, r);
+    }
+  },
+});
 
 const http = createServer((req, res) => {
-  if (req.url === '/health') {
-    res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, games: registry.catalog().map((g) => g.id), ...rooms.stats() }));
-    return;
-  }
-  res.writeHead(404);
-  res.end();
+  void handleApi(req, res, { accounts, onRename: (u) => rooms.rename(u.id, u.name) }).then((done) => {
+    if (done) return;
+    if (req.url === '/health') {
+      res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
+      res.end(JSON.stringify({ ok: true, games: registry.catalog().map((g) => g.id), ...rooms.stats() }));
+      return;
+    }
+    res.writeHead(404);
+    res.end();
+  });
 });
 
 const wss = new WebSocketServer({ server: http });
@@ -42,15 +66,21 @@ wss.on('connection', (ws: WebSocket) => {
     } catch {
       return send({ t: 'error', code: 'BAD_JSON', msg: 'Không đọc được thông điệp' });
     }
-    // `hello` mang theo id cũ thì nối lại phiên; không có thì mở phiên mới.
+    /**
+     * `hello` mang theo **token phiên**, và token quyết định mình là ai.
+     *
+     * Trước đây id do máy chủ phát rồi client nhớ lấy, nên ai gửi lại đúng
+     * chuỗi đó là thành người đó. Giờ danh tính đến từ phiên đăng nhập: không
+     * có token hợp lệ thì không vào được phòng nào.
+     *
+     * Vào lại cũng là `hello` với cùng token — không cần trường `id` nữa, vì
+     * `userId` **chính là** khoá ghế trong phòng.
+     */
     if (msg.t === 'hello') {
-      const want = msg.id;
-      if (want && rooms.reconnect(want, send)) {
-        id = want;
-        return;
-      }
-      id = `p${nextId++}`;
-      rooms.connect(id, msg.name || 'Khách', send);
+      const user = msg.token ? accounts.bearer(msg.token) : null;
+      if (!user) return send({ t: 'error', code: 'NO_AUTH', msg: 'Phải đăng nhập trước' });
+      id = user.id;
+      if (!rooms.reconnect(user.id, send)) rooms.connect(user.id, user.name, send);
       return;
     }
     if (!id) return send({ t: 'error', code: 'NO_HELLO', msg: 'Phải gửi hello trước' });

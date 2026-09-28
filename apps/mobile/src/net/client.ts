@@ -55,46 +55,12 @@ export function serverUrl(): string {
 }
 
 /**
- * `playerId` sống qua một lần tải lại trang, nên F5 giữa ván là vào lại đúng
- * ghế cũ chứ không phải xử thua. Trên web dùng `localStorage`; chỗ nào không
- * có thì giữ trong bộ nhớ — mất khi tắt app, và như vậy là đúng mức trung
- * thực: chưa cài kho lưu cho máy thật thì đừng vờ như đã có.
- */
-const memory: Record<string, string> = {};
-const store = {
-  get(k: string): string | null {
-    try {
-      return globalThis.localStorage?.getItem(k) ?? memory[k] ?? null;
-    } catch {
-      return memory[k] ?? null;
-    }
-  },
-  set(k: string, v: string) {
-    memory[k] = v;
-    try {
-      globalThis.localStorage?.setItem(k, v);
-    } catch {
-      /* chế độ riêng tư chặn localStorage — vẫn chơi được, chỉ mất khả năng F5 */
-    }
-  },
-};
-
-/**
- * Tên hiển thị khi chưa có tài khoản.
+ * Không còn kho `playerId` riêng ở đây nữa.
  *
- * Phải **phân biệt được hai người**: hai thanh người chơi cùng ghi "Khách" thì
- * không ai biết thanh nào là mình. Số thứ tự bốc một lần rồi giữ, nên vào lại
- * vẫn là đúng cái tên đối thủ đã thấy. Đây là chỗ giữ tạm cho tới khi có tài
- * khoản thật — không giả vờ là đã có hồ sơ người chơi.
+ * Trước kia client tự nhớ một chuỗi id do máy chủ phát, và ai gửi lại đúng
+ * chuỗi đó là thành người đó. Giờ danh tính đến từ **token đăng nhập**, do
+ * `src/net/api.ts` giữ — một chỗ duy nhất trong app.
  */
-export function guestName(): string {
-  const saved = store.get('co.guestName');
-  if (saved) return saved;
-  const n = `Khách ${Math.floor(Math.random() * 90) + 10}`;
-  store.set('co.guestName', n);
-  return n;
-}
-
 /** Chờ bao lâu trước lần nối lại thứ n. Tăng dần, trần 8 giây. */
 const backoff = (n: number) => Math.min(8000, 400 * 2 ** n);
 
@@ -108,7 +74,8 @@ export class GameClient {
   private nonce = 0;
 
   constructor(
-    private readonly name: string,
+    /** Token phiên đăng nhập. Danh tính và ghế trong phòng đều từ nó mà ra. */
+    private readonly token: string,
     private readonly on: Partial<ClientEvents>,
   ) {}
 
@@ -120,8 +87,7 @@ export class GameClient {
 
     ws.onopen = () => {
       this.tries = 0;
-      const id = store.get('co.playerId');
-      this.raw(id ? { t: 'hello', name: this.name, id } : { t: 'hello', name: this.name });
+      this.raw({ t: 'hello', token: this.token });
       this.on.phase?.('ready');
       if (this.pending) {
         this.raw(this.pending);
@@ -138,7 +104,7 @@ export class GameClient {
       }
       switch (m.t) {
         case 'welcome':
-          return store.set('co.playerId', m.youId);
+          return; // id đã biết từ hồ sơ đăng nhập, không cần nhớ thêm
         case 'room':
           // Có phòng nghĩa là đã hết xếp hàng. Không tắt cờ `queued` ở đây thì
           // dải "đang tìm đối thủ" treo lại suốt ván sau khi ghép xong.

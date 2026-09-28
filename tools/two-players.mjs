@@ -33,6 +33,17 @@ const open = async (label) => {
   page.on('pageerror', (e) => note(e.stack || e.message));
   await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1500);
+  // Ba chế độ online cần tài khoản. Đi đúng đường người dùng đi: bấm vào thẻ
+  // người chơi, đăng ký một tài khoản thật, rồi mới vào phòng.
+  await page.getByLabel('Đăng nhập').first().click();
+  await page.waitForTimeout(800);
+  await page.getByText('Chưa có tài khoản? Đăng ký').click();
+  await page.waitForTimeout(300);
+  await page.getByLabel('Tên hiển thị').fill(label === 'A' ? 'An Nguyễn' : 'Bình Trần');
+  await page.getByLabel('Email').fill(`${label.toLowerCase()}${Date.now()}@vidu.com`);
+  await page.getByLabel('Mật khẩu').fill('matkhaudai');
+  await page.getByText('Đăng ký', { exact: true }).click();
+  await page.waitForTimeout(1800);
   return page;
 };
 const shot = async (page, name) => {
@@ -87,7 +98,7 @@ console.log(`  A thấy "Bạn thắng": ${won > 0} · B thấy "Bạn thua": ${
 console.log('Ghép cặp cờ gánh');
 for (const p of [A, B]) {
   await p.goto(`${BASE}/`, { waitUntil: 'networkidle' });
-  await p.waitForTimeout(1200);
+  await p.waitForTimeout(1500);
   await p.getByLabel('Ghép cặp').click();
   await p.waitForTimeout(400);
   await p.getByLabel('Cờ Gánh', { exact: true }).click();
@@ -99,10 +110,28 @@ await shot(A, '25-online-ganh-ghep-cap');
 const ganhOk = (await A.getByText('Cờ Gánh').count()) > 0 && (await A.getByLabel('Xin thua').count()) > 0;
 console.log(`  vào được bàn cờ gánh: ${ganhOk}`);
 
+// Ván ghép cặp vừa xong phải hiện trong trang cá nhân. Đây là chỗ nối giữa
+// máy chủ và hồ sơ người chơi, và nó im lặng hỏng rất dễ.
+console.log('Trang cá nhân ghi nhận ván vừa đánh');
+await A.getByLabel('Xin thua').click();
+await A.waitForTimeout(600);
+await A.getByText('Về sảnh').click();
+await A.waitForTimeout(1500);
+await shot(A, '25b-sau-khi-ve-sanh');
+await A.getByLabel('Tôi').click();
+await A.waitForTimeout(1500);
+await shot(A, '26-trang-ca-nhan');
+const hasStats = (await A.getByText('Cờ Gánh').count()) > 0;
+console.log(`  thành tích cờ gánh hiện ra: ${hasStats}`);
+
 await browser.close();
 if (errors.length) {
   console.error('\nLỗi trên trang:');
   for (const e of errors) console.error('  ' + e);
+  process.exit(1);
+}
+if (!hasStats) {
+  console.error('\nVán ghép cặp không vào sổ thành tích.');
   process.exit(1);
 }
 if (!ganhOk) {

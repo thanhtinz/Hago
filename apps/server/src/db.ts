@@ -1,0 +1,128 @@
+import { DatabaseSync } from 'node:sqlite';
+import { mkdirSync } from 'node:fs';
+import path from 'node:path';
+
+/**
+ * Kho dữ liệu lâu dài: tài khoản, bạn bè, tin nhắn.
+ *
+ * **SQLite qua `node:sqlite`**, không phải Postgres, và đây là lựa chọn có ý
+ * thức. Hồ sơ người chơi, danh sách bạn và tin nhắn là dữ liệu quan hệ nhỏ,
+ * đọc nhiều ghi ít, một máy chủ phục vụ. SQLite làm đúng việc đó mà không cần
+ * dựng thêm một dịch vụ nào, không thêm một dependency nào (`node:sqlite` nằm
+ * sẵn trong Node 22), và tệp `.db` sao lưu bằng cách chép một tệp.
+ *
+ * **Chỗ nó sẽ hết cửa, nói trước:** một tiến trình ghi tại một thời điểm. Khi
+ * nào cần chạy nhiều tiến trình máy chủ thì phải đổi sang Postgres. Mọi câu
+ * lệnh ở đây là SQL chuẩn nên đường đổi là đổi driver, không phải viết lại.
+ *
+ * **Trận đấu KHÔNG nằm ở đây.** Ván đang chạy vẫn sống trong bộ nhớ của
+ * `Rooms` như cũ. Trộn hai thứ vào một chỗ là biến mỗi nước cờ thành một lần
+ * ghi đĩa.
+ */
+
+export interface User {
+  id: string;
+  /** Tên hiển thị, đổi được. Không phải khoá. */
+  name: string;
+  /** Email đăng nhập, hoặc null nếu chỉ đăng nhập bằng Google. */
+  email: string | null;
+  /** `sub` của Google, hoặc null. */
+  googleId: string | null;
+  avatar: string | null;
+  createdAt: number;
+}
+
+export interface UserRow extends User {
+  passHash: string | null;
+}
+
+const SCHEMA = `
+CREATE TABLE IF NOT EXISTS users (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  email      TEXT UNIQUE,
+  google_id  TEXT UNIQUE,
+  pass_hash  TEXT,
+  avatar     TEXT,
+  created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  token      TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);
+
+-- Thành tích, cộng dồn theo bộ môn. Tách khỏi users để thêm bộ môn không
+-- phải thêm cột.
+CREATE TABLE IF NOT EXISTS stats (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  game_id TEXT NOT NULL,
+  win     INTEGER NOT NULL DEFAULT 0,
+  draw    INTEGER NOT NULL DEFAULT 0,
+  loss    INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, game_id)
+);
+
+-- Quan hệ bạn bè lưu **một hàng cho một cặp**, với a < b theo thứ tự chuỗi.
+-- Lưu hai chiều là mời hai hàng lệch nhau: một bên thấy bạn, bên kia không.
+CREATE TABLE IF NOT EXISTS friends (
+  a          TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  b          TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  -- 'pending' thì "by" là người gửi lời mời; 'accepted' thì "by" vô nghĩa.
+  status     TEXT NOT NULL,
+  by         TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (a, b),
+  CHECK (a < b)
+);
+
+-- Chặn thì **một chiều**: tôi chặn anh không có nghĩa anh chặn tôi.
+CREATE TABLE IF NOT EXISTS blocks (
+  blocker    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  blocked    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (blocker, blocked)
+);
+
+-- Tin nhắn. "channel" là nơi nhắn:
+--   'chung'        sảnh chung
+--   'rieng:<a>|<b>' nhắn riêng, hai id sắp xếp nên hai bên cùng một kênh
+--   'phong:<mã>'    trong một phòng đấu
+--   'he-thong'      thông báo hệ thống cho tất cả
+-- "to" khác null là thông báo hệ thống gửi riêng một người.
+CREATE TABLE IF NOT EXISTS messages (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  channel    TEXT NOT NULL,
+  from_id    TEXT,
+  to_id      TEXT,
+  body       TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS messages_channel ON messages(channel, id);
+CREATE INDEX IF NOT EXISTS messages_to ON messages(to_id, id);
+`;
+
+export function openDb(file = process.env.DB_FILE ?? 'data/co.db'): DatabaseSync {
+  if (file !== ':memory:') mkdirSync(path.dirname(path.resolve(file)), { recursive: true });
+  const db = new DatabaseSync(file);
+  // WAL cho đọc song song với ghi; foreign_keys phải bật tay ở SQLite, mặc
+  // định nó **im lặng bỏ qua** mọi ràng buộc khoá ngoại khai ở trên.
+  db.exec('PRAGMA journal_mode = WAL');
+  db.exec('PRAGMA foreign_keys = ON');
+  db.exec(SCHEMA);
+  return db;
+}
+
+/** Cặp bạn bè luôn lưu theo thứ tự chuỗi, để một cặp chỉ có một hàng. */
+export function pairOf(x: string, y: string): [string, string] {
+  return x < y ? [x, y] : [y, x];
+}
+
+/** Kênh nhắn riêng giữa hai người — cùng một tên với cả hai bên. */
+export function dmChannel(x: string, y: string): string {
+  const [a, b] = pairOf(x, y);
+  return `rieng:${a}|${b}`;
+}

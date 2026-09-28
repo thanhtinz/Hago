@@ -40,6 +40,13 @@ interface Room {
   clockSpec: ClockSpec;
   /** Người chơi theo ghế. Ghế i là `players[i]`. */
   players: (Player | null)[];
+  /**
+   * Id người từng ngồi mỗi ghế, **không xoá khi họ rời phòng**.
+   *
+   * `players[i]` thành null lúc bỏ trận, mà bỏ trận chính là lúc phải ghi
+   * thành tích. Không giữ riêng thì ván thua vì bỏ trận không vào sổ ai cả.
+   */
+  seated: (string | undefined)[];
   match: LiveMatch<BaseState> | null;
   /** Thời gian còn lại của từng ghế, mili giây. */
   clocks: number[];
@@ -53,6 +60,14 @@ interface Room {
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 export interface RoomsOptions {
+  /**
+   * Gọi đúng **một lần** khi một ván kết thúc, để ghi thành tích.
+   *
+   * `Rooms` không biết gì về cơ sở dữ liệu: nó chỉ báo ra "ván này xong, kết
+   * quả thế này". Cắm thẳng lớp tài khoản vào đây là biến mọi bài test phòng
+   * thành bài test có ổ đĩa.
+   */
+  onFinish?: (e: { gameId: string; rated: boolean; seats: (string | null)[]; outcome: Outcome }) => void;
   /** Hạt giống bí mật của máy chủ. Trộn với mã phòng ra hạt giống của ván. */
   serverSeed?: string;
   /** Nguồn ngẫu nhiên để sinh mã phòng — test truyền vào để có mã đoán trước. */
@@ -66,10 +81,14 @@ export class Rooms {
   private readonly queues = new Map<string, string[]>();
   private readonly serverSeed: string;
   private readonly random: () => number;
+  private readonly onFinish: RoomsOptions['onFinish'];
+  /** Ván đã báo kết thúc rồi, để không cộng thành tích hai lần. */
+  private readonly finished = new Set<string>();
 
   constructor(o: RoomsOptions = {}) {
     this.serverSeed = o.serverSeed ?? `s${Date.now()}`;
     this.random = o.random ?? Math.random;
+    this.onFinish = o.onFinish;
   }
 
   connect(id: string, name: string, send: (m: ServerMsg) => void): Player {
@@ -91,6 +110,17 @@ export class Rooms {
     if (!p) return;
     p.connected = false;
     this.dequeue(id);
+    if (p.code) {
+      const room = this.rooms.get(p.code);
+      if (room) this.broadcastRoom(room);
+    }
+  }
+
+  /** Đổi tên hiển thị: mọi phòng người đó đang ngồi phải thấy tên mới ngay. */
+  rename(id: string, name: string): void {
+    const p = this.players.get(id);
+    if (!p) return;
+    p.name = name;
     if (p.code) {
       const room = this.rooms.get(p.code);
       if (room) this.broadcastRoom(room);
@@ -128,6 +158,7 @@ export class Rooms {
       engine,
       clockSpec: engine.spec.defaultClock,
       players: [p, null],
+      seated: [p.id, undefined],
       match: null,
       clocks: [engine.spec.defaultClock.initialMs, engine.spec.defaultClock.initialMs],
       turnSince: null,
@@ -152,6 +183,7 @@ export class Rooms {
     this.leave(id);
     const seat = room.players.findIndex((x) => x === null);
     room.players[seat] = p;
+    room.seated[seat] = p.id;
     p.code = room.code;
     this.broadcastRoom(room);
     this.startIfReady(room);
@@ -186,6 +218,7 @@ export class Rooms {
         engine,
         clockSpec: engine.spec.defaultClock,
         players: [other, p],
+        seated: [other.id, p.id],
         match: null,
         clocks: [engine.spec.defaultClock.initialMs, engine.spec.defaultClock.initialMs],
         turnSince: null,
@@ -221,7 +254,10 @@ export class Rooms {
     if (room.match && !room.match.outcome()) {
       this.serverAction(room, { t: 'abandon', seat });
     }
-    if (room.players.every((x) => x === null)) this.rooms.delete(code);
+    if (room.players.every((x) => x === null)) {
+      this.rooms.delete(code);
+      this.finished.delete(code);
+    }
     else this.broadcastRoom(room);
   }
 
@@ -374,6 +410,18 @@ export class Rooms {
     const seats = this.seatInfos(room);
     const turn = room.engine.turn(room.match.s);
     const outcome: Outcome | null = room.match.outcome();
+    // Mọi đường kết thúc ván — thắng theo luật, xin thua, hết giờ, bỏ trận —
+    // đều đi qua đây, nên đây là chỗ duy nhất cần canh. Đặt ở từng nhánh là
+    // chắc chắn sẽ quên một nhánh.
+    if (outcome && !this.finished.has(room.code)) {
+      this.finished.add(room.code);
+      this.onFinish?.({
+        gameId: room.gameId,
+        rated: room.rated,
+        seats: room.seated.map((x) => x ?? null),
+        outcome,
+      });
+    }
     for (const [seat, p] of room.players.entries()) {
       if (!p) continue;
       const view = room.engine.view(room.match.s, seat);

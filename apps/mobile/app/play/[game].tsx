@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { backToLobby } from '../../src/nav';
 import type { BotLevel } from '@co/core';
 import { CaroTable } from '../../src/games/co-caro/Table';
 import { GanhTable } from '../../src/games/co-ganh/Table';
@@ -21,7 +22,7 @@ export default function PlayScreen() {
   const { game } = useLocalSearchParams<{ game: string }>();
   const router = useRouter();
   const [level, setLevel] = useState<BotLevel>(2);
-  const home = () => router.replace('/');
+  const home = () => backToLobby(router);
 
   if (game === 'co-caro') return <CaroTable level={level} onLevel={setLevel} onHome={home} />;
   if (game === 'co-ganh') return <GanhTable level={level} onLevel={setLevel} onHome={home} />;

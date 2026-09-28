@@ -69,6 +69,21 @@ await page.mouse.wheel(0, 1700);
 await page.waitForTimeout(900);
 await shot('02b-sanh-bo-mon-duoi');
 
+console.log('Đăng nhập và trang cá nhân');
+await page.getByLabel('Đăng nhập').first().click();
+await page.waitForTimeout(900);
+await shot('16-dang-nhap');
+await page.getByText('Chưa có tài khoản? Đăng ký').click();
+await page.waitForTimeout(400);
+await shot('17-dang-ky');
+await page.getByText('Chơi thử, không cần tài khoản').click();
+await page.waitForTimeout(1500);
+await page.getByLabel('Tôi').first().click();
+await page.waitForTimeout(1200);
+await shot('27-trang-ca-nhan-khach');
+await page.goto(`${URL_BASE}/`, { waitUntil: 'networkidle' });
+await page.waitForTimeout(1500);
+
 console.log('Bàn cờ caro');
 await tap('Đấu với máy', { exact: false });
 await page.waitForTimeout(1200);

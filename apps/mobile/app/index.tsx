@@ -6,6 +6,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { registry } from '@co/core';
 import '../src/catalog';
 import { FACES, type GameFace } from '../src/games/faces';
+import { useAuth, useRestoreOnce } from '../src/net/api';
 import { Icon, type IconName } from '../src/ui/Icon';
 import { Avatar, Btn, Txt } from '../src/ui/parts';
 import { AppBackdrop, Panel, Rule, WoodFill } from '../src/ui/surface';
@@ -29,6 +30,10 @@ export default function Lobby() {
   const router = useRouter();
   /** Chế độ online đang chọn bộ môn, hoặc 'join' đang nhập mã. */
   const [sheet, setSheet] = useState<'quick' | 'create' | 'join' | null>(null);
+  useRestoreOnce();
+  const { me } = useAuth();
+  /** Ba chế độ online đều cần danh tính, nên chưa đăng nhập là đưa sang màn đăng nhập. */
+  const online = (go: () => void) => (me ? go() : router.push('/auth'));
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const w = Math.min(width, 460);
@@ -62,19 +67,24 @@ export default function Lobby() {
 
         <View style={{ paddingHorizontal: S.lg, paddingTop: S.lg, gap: S.md }}>
           <Panel radius={R.md} tone={1} seed={9} style={lift(0.4, 12, 5)}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md }}>
-              <Avatar name="Khách" size={46} active />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={me ? 'Trang cá nhân' : 'Đăng nhập'}
+              onPress={() => router.push(me ? '/me' : '/auth')}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md }}
+            >
+              <Avatar name={me?.name ?? '?'} size={46} active={!!me} />
               <View style={{ flex: 1 }}>
                 <Txt size={17} weight="display">
-                  Khách
+                  {me?.name ?? 'Chưa đăng nhập'}
                 </Txt>
-                {/* Không bịa elo hay số trận khi chưa có máy chủ ghi lại. */}
+                {/* Không bịa elo hay số trận. Chưa có xếp hạng thì nói là chưa có. */}
                 <Txt size={11.5} color={A.inkFaint}>
-                  Chưa xếp hạng · chơi ngoại tuyến
+                  {me ? (me.email ? 'Chưa xếp hạng · đã đăng nhập' : 'Tài khoản khách · chỉ trên máy này') : 'Đăng nhập để chơi với người thật'}
                 </Txt>
               </View>
               <Icon name="chevron" size={17} color={A.inkFaint} />
-            </View>
+            </Pressable>
           </Panel>
 
           <Btn
@@ -86,13 +96,13 @@ export default function Lobby() {
           />
 
           <View style={{ flexDirection: 'row', gap: S.sm }}>
-            <Mode icon="bolt" label="Ghép cặp" onPress={() => setSheet('quick')} />
-            <Mode icon="door" label="Tạo phòng" onPress={() => setSheet('create')} />
-            <Mode icon="key" label="Vào mã" onPress={() => setSheet('join')} />
+            <Mode icon="bolt" label="Ghép cặp" onPress={() => online(() => setSheet('quick'))} />
+            <Mode icon="door" label="Tạo phòng" onPress={() => online(() => setSheet('create'))} />
+            <Mode icon="key" label="Vào mã" onPress={() => online(() => setSheet('join'))} />
           </View>
 
           <Txt size={11} color={A.inkFaint} center style={{ paddingHorizontal: S.sm }}>
-            Ghép cặp tính xếp hạng. Phòng riêng mở bằng mã thì không.
+            {me ? 'Ghép cặp tính xếp hạng. Phòng riêng mở bằng mã thì không.' : 'Ba chế độ trên cần đăng nhập. Đấu với máy thì không.'}
           </Txt>
         </View>
 
@@ -129,17 +139,30 @@ export default function Lobby() {
         insetBottom={insets.bottom}
         onHome={() => scroller.current?.scrollTo({ y: 0, animated: true })}
         onGrid={() => scroller.current?.scrollTo({ y: gridY.current, animated: true })}
+        onMe={() => router.push(me ? '/me' : '/auth')}
       />
 
       {/* Đặt sau `BottomNav`: tấm trượt phải nằm **trên** thanh điều hướng.
           Để trước thì thanh dưới cùng đè lên mất nút Đóng của tấm. */}
+      {/* Đóng tấm **trước khi** chuyển màn. Sảnh vẫn nằm dưới trong ngăn xếp,
+          nên quay lui từ ván đấu là thấy lại đúng tấm đang mở hôm trước. */}
       {sheet === 'join' ? (
-        <CodeSheet onClose={() => setSheet(null)} onGo={(code) => router.push(`/online/join?code=${code}`)} />
+        <CodeSheet
+          onClose={() => setSheet(null)}
+          onGo={(code) => {
+            setSheet(null);
+            router.push(`/online/join?code=${code}`);
+          }}
+        />
       ) : sheet ? (
         <PickGameSheet
           mode={sheet}
           onClose={() => setSheet(null)}
-          onPick={(id) => router.push(`/online/${sheet}?game=${id}`)}
+          onPick={(id) => {
+            const m = sheet;
+            setSheet(null);
+            router.push(`/online/${m}?game=${id}`);
+          }}
         />
       ) : null}
     </View>
@@ -389,17 +412,19 @@ function BottomNav({
   insetBottom,
   onHome,
   onGrid,
+  onMe,
 }: {
   width: number;
   insetBottom: number;
   onHome: () => void;
   onGrid: () => void;
+  onMe: () => void;
 }) {
   const h = 56 + insetBottom;
   const items: { icon: IconName; label: string; onPress?: () => void; active?: boolean }[] = [
     { icon: 'home', label: 'Sảnh', onPress: onHome, active: true },
     { icon: 'grid', label: 'Bộ môn', onPress: onGrid },
-    { icon: 'user', label: 'Tôi' },
+    { icon: 'user', label: 'Tôi', onPress: onMe },
   ];
   return (
     <View style={{ height: h, flexDirection: 'row', overflow: 'hidden' }}>

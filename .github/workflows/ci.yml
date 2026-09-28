@@ -60,20 +60,23 @@ jobs:
       - name: Dựng bản web
         run: npm run web
 
-      - name: Chụp màn hình app thật
-        run: |
-          npx serve -l 8080 -s apps/mobile/dist &
-          npx wait-on -t 60000 http://127.0.0.1:8080
-          node tools/screenshot.mjs
-
-      # Hai cửa sổ trình duyệt riêng đánh nhau qua máy chủ thật. Đây là bài
-      # duy nhất chứng minh được cả đường dây: engine ở máy chủ, `view` cắt
-      # theo ghế, nước đi qua WebSocket, hai màn hình cùng đổi.
-      - name: Hai người thật đấu nhau qua máy chủ
+      # Máy chủ chạy trước cả bài chụp màn hình, vì màn đăng nhập gọi
+      # /api/auth/config ngay khi mở.
+      - name: Dựng máy chủ và trang web
         run: |
           node apps/server/dist/index.js &
-          npx wait-on -t 60000 http://127.0.0.1:8787/health
-          node tools/two-players.mjs
+          npx serve -l 8080 -s apps/mobile/dist &
+          npx wait-on -t 60000 http://127.0.0.1:8787/health http://127.0.0.1:8080
+
+      - name: Chụp màn hình app thật
+        run: node tools/screenshot.mjs
+
+      # Hai cửa sổ trình duyệt riêng đăng ký tài khoản rồi đánh nhau. Đây là
+      # bài duy nhất chứng minh được cả đường dây: tài khoản, engine ở máy chủ,
+      # `view` cắt theo ghế, nước đi qua WebSocket, hai màn hình cùng đổi, và
+      # kết quả vào sổ thành tích.
+      - name: Hai người thật đấu nhau qua máy chủ
+        run: node tools/two-players.mjs
 
       # Ảnh chụp được giữ lại để soi tay. Nhiều lỗi giao diện của dự án này
       # chỉ lộ ra khi phóng to ảnh chụp, không lộ ra ở bất kỳ bài test nào.
