@@ -131,16 +131,22 @@ export function Btn({
       ]}
     >
       {tone === 'gold' && !disabled && box.w > 0 ? <GoldFill width={box.w} height={box.h} radius={radius} /> : null}
-      {icon ? <Icon name={icon} size={lg ? 27 : 18} color={fg} strokeWidth={2} /> : null}
-      <View>
-        <Txt weight={lg ? 'display' : 'bold'} size={lg ? 19 : 14} color={fg}>
-          {label}
-        </Txt>
-        {sub ? (
-          <Txt size={12} color={fg} style={{ opacity: 0.75 }}>
-            {sub}
+      {/* Icon và chữ phải nằm chung một View, không đặt thẳng làm con của
+          Pressable bên cạnh tấm vàng. Tấm vàng là SVG định vị tuyệt đối, và
+          trên web nó phủ lên mọi phần tử tĩnh đứng cạnh: chữ vẫn đè lên
+          được, còn icon thì biến mất hẳn. */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.md }}>
+        {icon ? <Icon name={icon} size={lg ? 27 : 18} color={fg} strokeWidth={2} /> : null}
+        <View>
+          <Txt weight={lg ? 'display' : 'bold'} size={lg ? 19 : 14} color={fg}>
+            {label}
           </Txt>
-        ) : null}
+          {sub ? (
+            <Txt size={12} color={fg} style={{ opacity: 0.75 }}>
+              {sub}
+            </Txt>
+          ) : null}
+        </View>
       </View>
     </Pressable>
   );
