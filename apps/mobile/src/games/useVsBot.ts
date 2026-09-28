@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { makeRng, type BaseState, type BotLevel, type Engine, type Outcome, type Rng, type Seat } from '@co/core';
 
 /**
@@ -41,6 +41,15 @@ export interface VsBot<S, A> {
   canUndo: boolean;
   /** Số lần lùi còn lại trong ván này. */
   undosLeft: number;
+  /** Tỉ số từ lúc mở màn chơi tới giờ. */
+  tally: Tally;
+}
+
+/** Thắng – hoà – thua trong phiên đấu này. */
+export interface Tally {
+  win: number;
+  draw: number;
+  loss: number;
 }
 
 /**
@@ -104,6 +113,14 @@ export function useVsBot<S extends BaseState, A>(
   const [hintsLeft, setHintsLeft] = useState(HINTS_PER_MATCH);
   const [undosLeft, setUndosLeft] = useState(UNDOS_PER_MATCH);
   const [hint, setHint] = useState<A | null>(null);
+  /**
+   * Kết quả từng ván, khoá theo hạt giống của ván.
+   *
+   * Đếm theo khoá chứ không cộng dồn mỗi lần thấy ván kết thúc: lùi lại một
+   * ván đã xong rồi đánh tiếp sẽ kết thúc lần nữa, mà cộng dồn thì ván đó
+   * bị tính hai lần. Ghi theo khoá thì ghi bao nhiêu lần cũng ra một.
+   */
+  const [results, setResults] = useState<Record<string, 'win' | 'draw' | 'loss'>>({});
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const outcome = engine.outcome(state);
@@ -166,6 +183,25 @@ export function useVsBot<S extends BaseState, A>(
     setHintsLeft((n) => n - 1);
   }, [hintsLeft, outcome, toMove, state, seed, pickBotMove, o.budgetMs]);
 
+  useEffect(() => {
+    const r = outcome ? (outcome.winner === null ? 'draw' : outcome.winner === ME ? 'win' : 'loss') : null;
+    setResults((prev) => {
+      if (r === null) {
+        // Lùi lại làm ván chưa xong nữa thì rút kết quả ra khỏi bảng.
+        if (!(seed in prev)) return prev;
+        const { [seed]: _gone, ...rest } = prev;
+        return rest;
+      }
+      return prev[seed] === r ? prev : { ...prev, [seed]: r };
+    });
+  }, [outcome, seed]);
+
+  const tally = useMemo<Tally>(() => {
+    const t: Tally = { win: 0, draw: 0, loss: 0 };
+    for (const r of Object.values(results)) t[r]++;
+    return t;
+  }, [results]);
+
   // Gợi ý biến mất ngay khi bàn cờ đổi: một mũi tên chỉ vào thế cờ đã qua
   // còn tệ hơn là không có gợi ý nào.
   useEffect(() => {
@@ -222,6 +258,7 @@ export function useVsBot<S extends BaseState, A>(
     // ta muốn rút lại nhất.
     canUndo: rewindTo >= 0 && undosLeft > 0,
     undosLeft,
+    tally,
   };
 }
 

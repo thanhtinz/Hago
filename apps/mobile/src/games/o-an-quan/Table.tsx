@@ -54,7 +54,7 @@ export function QuanTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
     if (!myTurn) setPicked(null);
   }, [myTurn]);
 
-  const boardW = Math.min(width - S.lg * 2, 460);
+  const boardW = Math.min(width - S.lg * 2, 440);
   const [p0, p1] = view.projected;
   const mine = mySide === 0 ? p0 : p1;
   const theirs = mySide === 0 ? p1 : p0;
@@ -82,6 +82,7 @@ export function QuanTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
       canUndo={m.canUndo}
       onUndo={m.undo}
       undosLeft={m.undosLeft}
+      tally={m.tally}
       // Thu quân có thể lật ngược kết quả, nên phải cho thấy điểm dự kiến
       // ngay lúc đang chơi. Không hiện thì người chơi ăn nốt con quan cuối
       // rồi mới biết mình vừa tự kết thúc ván ở thế thua.

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BotLevel, Outcome } from '@co/core';
+import type { Tally } from '../games/useVsBot';
 import { Icon } from './Icon';
 import { Btn, Clock, IconBtn, Panel, Tag, Txt } from './parts';
 import { AppBackdrop, Rule } from './surface';
@@ -58,6 +59,7 @@ export interface MatchShellProps {
   canUndo: boolean;
   onUndo: () => void;
   undosLeft: number;
+  tally: Tally;
   children: React.ReactNode;
 }
 
@@ -105,6 +107,8 @@ export function MatchShell(p: MatchShellProps) {
           </Txt>
         </Pressable>
       </View>
+
+      <Scoreboard tally={p.tally} />
 
       {/* Mặt bàn trải hết khối giữa, không chỉ sau bàn cờ. Nhờ vậy hai thanh
           người chơi thành hai tấm biển đặt trên bàn, và khoảng trống trên
@@ -159,6 +163,40 @@ export function MatchShell(p: MatchShellProps) {
           onClose={() => setPicking(false)}
         />
       ) : null}
+    </View>
+  );
+}
+
+/**
+ * Tỉ số của phiên đấu.
+ *
+ * Một ván đơn lẻ thắng hay thua không nói lên gì; cái người ta nhớ là
+ * "hôm nay mình đấu với máy mức Vừa được mấy ván". Đặt ngay dưới tên bộ
+ * môn để liếc một cái là thấy, và luôn hiện kể cả khi còn 0–0, vì con số
+ * chỉ có nghĩa khi người chơi biết nó vẫn được đếm từ đầu.
+ */
+function Scoreboard({ tally }: { tally: Tally }) {
+  const cell = (n: number, label: string, color: string) => (
+    <View style={{ alignItems: 'center', minWidth: 54 }}>
+      <Txt size={19} weight="display" color={color}>
+        {n}
+      </Txt>
+      <Txt size={9.5} weight="semi" color={A.inkFaint} style={{ letterSpacing: 1 }}>
+        {label}
+      </Txt>
+    </View>
+  );
+  return (
+    <View style={{ alignItems: 'center', paddingBottom: S.sm }}>
+      <Panel radius={R.pill} tone={1} seed={29} hairline={false} style={{ borderWidth: 1, borderColor: A.lineSoft }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: S.md, paddingVertical: 3 }}>
+          {cell(tally.win, 'THẮNG', A.gold)}
+          <View style={{ width: 1, height: 22, backgroundColor: A.lineSoft }} />
+          {cell(tally.draw, 'HOÀ', A.inkSoft)}
+          <View style={{ width: 1, height: 22, backgroundColor: A.lineSoft }} />
+          {cell(tally.loss, 'THUA', A.sealLit)}
+        </View>
+      </Panel>
     </View>
   );
 }

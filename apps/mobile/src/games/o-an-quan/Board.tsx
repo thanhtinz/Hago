@@ -33,8 +33,14 @@ export interface QuanBoardProps {
 }
 
 export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled, hint }: QuanBoardProps) {
-  const H = width * 0.56;
-  const quanW = width * 0.15;
+  /**
+   * Tỉ lệ lấy từ bàn thật: năm ô ngang, hai hàng, ô gần vuông, hai đầu là
+   * hai bán nguyệt rộng khoảng nửa ô. Bản trước để bàn cao bằng 0,56 bề
+   * ngang nên mỗi ô cao gấp đôi bề ngang của nó — nhìn ra cái thang chứ
+   * không ra bàn ô ăn quan.
+   */
+  const H = width * 0.4;
+  const quanW = width * 0.095;
   const cellW = (width - quanW * 2) / 5;
   const cellH = H / 2;
 
@@ -129,7 +135,7 @@ export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled
           // Ô quan là hình bán nguyệt, càng ra xa tâm theo chiều dọc thì
           // càng hẹp. Rải sỏi theo cùng độ giãn như ô vuông là sỏi tràn ra
           // ngoài vòng cung, trông như rơi sang ô bên cạnh.
-          const spread = isQuanCell ? [quanW * 0.2, H * 0.14] : [cellW * 0.3, cellH * 0.28];
+          const spread = isQuanCell ? [quanW * 0.24, H * 0.1] : [cellW * 0.3, cellH * 0.28];
           const shown = Math.min(cell.dan, isQuanCell ? 8 : 12);
           return (
             <G key={screen} clipPath={screen === 0 ? 'url(#clip-west)' : screen === 6 ? 'url(#clip-east)' : undefined}>
@@ -148,7 +154,7 @@ export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled
                   <Circle
                     key={k}
                     cx={cx + jx * spread[0]!}
-                    cy={cy + jy * spread[1]! + (cell.quan > 0 ? H * 0.19 : 0)}
+                    cy={cy + jy * spread[1]! + (cell.quan > 0 ? H * 0.13 : 0)}
                     r={rPeb}
                     fill="url(#quan-peb)"
                   />
@@ -157,7 +163,10 @@ export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled
               {cell.dan > 0 ? (
                 <SvgText
                   x={cx}
-                  y={cy + (isQuanCell ? H * 0.38 : cellH * 0.42)}
+                  // Ô quan hẹp dần về hai đầu nên con số phải đứng cao hơn
+                  // ô vuông, nếu không nó chạm vòng cung và bị cắt mất một
+                  // bên.
+                  y={cy + (isQuanCell ? H * 0.27 : cellH * 0.42)}
                   fontSize={width * 0.036}
                   fill="#3A2E1C"
                   textAnchor="middle"

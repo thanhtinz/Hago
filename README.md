@@ -108,7 +108,7 @@ Không sửa file nào trong `packages/core` để thêm game. Phải sửa ngh�
 | Cờ caro (engine + bot) | ✅ |
 | Cờ gánh (engine + bot, perft khớp bảng chuẩn) | ✅ |
 | Ô ăn quan (engine + bot) | ✅ |
-| App di động + sảnh + ba bàn cờ chơi với máy, 3 gợi ý và 5 lần lùi mỗi ván | ✅ |
+| App di động + sảnh + ba bàn cờ chơi với máy: gợi ý, lùi lại, tỉ số phiên | ✅ |
 | Máy chủ: phòng, ghép cặp, hàng đợi bot | ⏳ |
 | App di động | ⏳ |
 | Cờ vua, cờ tướng, cờ úp, cá ngựa | ⏳ |
