@@ -330,24 +330,34 @@ export const FACES: GameFace[] = [
             </G>
           );
         })()}
-        {[
-          [18, 8],
-          [50, 8],
-          [82, 8],
-          [34, 20],
-          [66, 44],
-        ].map(([x, y]) => (
-          <Disc key={`d${x}-${y}`} x={x!} y={y!} r={5.6} grad="ganh-d" rim="#5A2212" />
-        ))}
-        {[
-          [18, 56],
-          [50, 56],
-          [82, 56],
-          [50, 32],
-          [34, 44],
-        ].map(([x, y]) => (
-          <Disc key={`l${x}-${y}`} x={x!} y={y!} r={5.6} grad="ganh-l" rim="#A98A6C" />
-        ))}
+        {/* Thế xuất phát thật: mỗi bên 8 quân, 5 quân hàng cuối của mình,
+            2 quân hai đầu hàng thứ hai, 1 quân đầu hàng thứ ba. Chín điểm
+            trong lòng bàn để trống — đó là chỗ để gánh nhau. */}
+        {(() => {
+          const px = (i: number) => 18 + i * 16;
+          const py = (j: number) => 8 + j * 12;
+          const dark: [number, number][] = [
+            [0, 0],
+            [1, 0],
+            [2, 0],
+            [3, 0],
+            [4, 0],
+            [0, 1],
+            [4, 1],
+            [0, 2],
+          ];
+          const light: [number, number][] = dark.map(([i, j]) => [4 - i, 4 - j]);
+          return (
+            <G>
+              {dark.map(([i, j]) => (
+                <Disc key={`d${i}${j}`} x={px(i)} y={py(j)} r={5} grad="ganh-d" rim="#5A2212" />
+              ))}
+              {light.map(([i, j]) => (
+                <Disc key={`l${i}${j}`} x={px(i)} y={py(j)} r={5} grad="ganh-l" rim="#A98A6C" />
+              ))}
+            </G>
+          );
+        })()}
       </Frame>
     ),
   },
@@ -363,8 +373,9 @@ export const FACES: GameFace[] = [
     ready: false,
     Motif: () => {
       const rnd = seeded(99);
+      let pk = 0;
       const pebble = (x: number, y: number, r: number, big = false) => (
-        <G key={`${x}-${y}`}>
+        <G key={`p${pk++}`}>
           <Ellipse cx={x + 0.3} cy={y + r * 0.6} rx={r} ry={r * 0.42} fill="#6B5B42" opacity={0.3} />
           <Circle cx={x} cy={y} r={r} fill={`url(#quan-${big ? 'q' : 'd'})`} />
           <Ellipse cx={x - r * 0.3} cy={y - r * 0.35} rx={r * 0.4} ry={r * 0.26} fill="#FFFFFF" opacity={0.5} />
@@ -410,21 +421,29 @@ export const FACES: GameFace[] = [
           ))}
           {carved('M22 13 A11 19 0 0 0 22 51', '#6B5636', '#EFE2C8', 1.3)}
           {carved('M82 13 A11 19 0 0 1 82 51', '#6B5636', '#EFE2C8', 1.3)}
-          {[
-            [27, 21],
-            [30, 26],
-            [26.5, 27.5],
-            [40, 22],
-            [44, 25],
-            [63, 41],
-            [67, 44],
-            [64, 46],
-            [76, 22],
-            [79, 25],
-            [52, 43],
-          ].map(([x, y]) => pebble(x!, y!, 2.1 + rnd() * 0.9))}
-          {pebble(16.5, 30, 4.4, true)}
-          {pebble(87.5, 34, 4.4, true)}
+          {/* Thế mở ván thật: mỗi ô dân đúng 5 viên, mỗi ô quan một viên
+              lớn. Đây là hình ai từng chơi cũng nhận ra ngay — bày vài viên
+              rải rác thì chỉ là mấy hòn sỏi trên nền đất. */}
+          {[0, 1, 2, 3, 4].flatMap((col) =>
+            [0, 1].flatMap((row) => {
+              const cx = 28 + col * 12;
+              const cy = row === 0 ? 22 : 41;
+              // Năm viên xếp như mặt xúc xắc, lệch đi một chút cho khỏi đều
+              // như in.
+              const spots: [number, number][] = [
+                [-2.5, -3],
+                [2.5, -3],
+                [0, 0],
+                [-2.5, 3],
+                [2.5, 3],
+              ];
+              return spots.map(([dx, dy]) =>
+                pebble(cx + dx + (rnd() - 0.5) * 1.1, cy + dy + (rnd() - 0.5) * 1.1, 1.45 + rnd() * 0.35),
+              );
+            }),
+          )}
+          {pebble(15.5, 31, 5, true)}
+          {pebble(88.5, 33, 5, true)}
         </Frame>
       );
     },
@@ -516,9 +535,19 @@ export const FACES: GameFace[] = [
           </ClipPath>
         </Defs>
         <G clipPath="url(#vua-clip)">
-          {Array.from({ length: 8 }, (_, r) =>
-            Array.from({ length: 13 }, (_, c) => (
-              <Rect key={`${r}-${c}`} x={c * 8} y={r * 8} width={8} height={8} fill={(r + c) % 2 === 0 ? 'url(#vua-d)' : 'url(#vua-l)'} />
+          {/* Ô to đúng tỉ lệ bàn tám cột. Ô 8px như bản trước cho ra hai
+              mươi mấy ô li ti — nhìn ra hoạ tiết ca-rô, không ra bàn cờ vua,
+              và quân cờ thì đứng vắt qua hai ô. */}
+          {Array.from({ length: 5 }, (_, r) =>
+            Array.from({ length: 8 }, (_, c) => (
+              <Rect
+                key={`${r}-${c}`}
+                x={c * 12.5}
+                y={r * 12.8}
+                width={12.5}
+                height={12.8}
+                fill={(r + c) % 2 === 0 ? 'url(#vua-d)' : 'url(#vua-l)'}
+              />
             )),
           )}
           {/* Mạch đá: vài đường mảnh chạy xiên qua cả bàn. */}
@@ -534,12 +563,12 @@ export const FACES: GameFace[] = [
           ))}
         </G>
         {/* Vua đen và tốt trắng, có bệ và bóng đổ. */}
-        <G>
+        <G transform="translate(7.75, 0)">
           <Ellipse cx={36} cy={50} rx={11} ry={3.2} fill="#2A2622" opacity={0.3} />
           <Path d="M28 49 q1.5-4 5-5.5 l-1.5-9 q-3.5-2 0-4 l3-0.5 v-2.5 h-2 v-2.5 h2 v-2.5 h3 v2.5 h2 v2.5 h-2 v2.5 l3 0.5 q3.5 2 0 4 l-1.5 9 q3.5 1.5 5 5.5 z" fill="url(#vua-pb)" />
           <Path d="M31 33 q5-1.5 10 0" stroke="#FFFFFF" strokeWidth={0.7} fill="none" opacity={0.35} />
         </G>
-        <G>
+        <G transform="translate(4.75, 0)">
           <Ellipse cx={64} cy={50} rx={9} ry={2.8} fill="#2A2622" opacity={0.28} />
           <Path d="M57 49 q1-4 4.5-6 l-1-7 q-3-1.5 0-3 h7 q3 1.5 0 3 l-1 7 q3.5 2 4.5 6 z" fill="url(#vua-pw)" stroke="#8D93A0" strokeWidth={0.6} />
           <Circle cx={64} cy={30} r={4.6} fill="url(#vua-pw)" stroke="#8D93A0" strokeWidth={0.6} />
@@ -716,14 +745,10 @@ export const FACES: GameFace[] = [
         {woodGrain(17, 12, '#A97F44', 0.22)}
         {grid(8, '#6E5330', 0.5, 0.75)}
         {/* Sao: chấm mốc trên bàn vây thật, thiếu nó là nhìn ra ngay. */}
-        {[
-          [24, 16],
-          [72, 16],
-          [24, 48],
-          [72, 48],
-          [48, 32],
-        ].map(([x, y], i) => (
-          <Circle key={i} cx={x} cy={y} r={1.1} fill="#4A3418" />
+        {/* Chín điểm sao, đúng thế bàn 19×19: bốn góc, bốn cạnh và thiên
+            nguyên ở giữa. Thiếu chúng thì mặt gỗ chỉ là một tấm lưới. */}
+        {[24, 48, 72].flatMap((x) => [16, 32, 48].map((y) => [x, y] as const)).map(([x, y], i) => (
+          <Circle key={i} cx={x} cy={y} r={1.15} fill="#4A3418" />
         ))}
         {[
           [32, 16, true],
