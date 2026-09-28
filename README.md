@@ -1,12 +1,26 @@
 # Nền tảng cờ online
 
 Chơi cờ với người thật hoặc với bot, ghép cặp tự động hoặc tự mở phòng mời bạn.
-Chín bộ môn: cờ caro, cờ gánh, ô ăn quan, cờ vua, cờ úp, cá ngựa, cờ tướng,
-cờ vây, cờ tỷ phú. Mỗi game có bộ mặt mỹ thuật riêng trên một khung app chung.
+Mười ba bộ môn, **tất cả đều là cờ hai người**: cờ caro, cờ gánh, ô ăn quan,
+cờ đam, cờ lật, cờ hùm, cờ ba quân, cờ Hex, cờ vua, cờ tướng, cờ úp, cờ Nhật,
+cờ vây. Mỗi game có bộ mặt mỹ thuật riêng trên một khung app chung.
 
 > **Trạng thái:** đang dựng nền. Xem [Lộ trình](#lộ-trình) để biết cái gì đã
-> chạy được và cái gì chưa. Chưa hứa đủ chín game cho tới khi game thứ chín
-> thật sự lên store.
+> chạy được và cái gì chưa. Không in con số bộ môn lên store cho tới khi bộ
+> môn cuối cùng thật sự chạy.
+
+### Vì sao chỉ cờ hai người
+
+Cá ngựa và cờ tỷ phú đã bị **bỏ khỏi lộ trình**. Chúng là hai game duy nhất
+cần nhiều hơn hai ghế, và chúng kéo theo ba thứ mà mười ba game còn lại không
+cần: bàn 4 ghế, ghép cặp phải chờ đủ người, và bot phải thay ghế người bỏ
+trận. Cờ tỷ phú còn cần đồng hồ đếm ngược thời gian thực và đấu giá đồng thời
+— chính tài liệu thẩm định kiến trúc đã dự đoán nó sẽ "cưỡng ép" hợp đồng
+engine khoảng 20%.
+
+Bỏ hai game đó, mọi bàn đều là 1v1: hàng chờ ghép được ngay khi có hai người,
+người bỏ trận là xử thua chứ không cần bot chen vào giữa ván, và không còn
+game nào cần `realtime`. Đổi lại, số bộ môn tăng từ 9 lên 13.
 
 ## Ý tưởng trung tâm
 
@@ -97,13 +111,13 @@ không bao giờ đỏ thì chỉ là trang trí.
 4. `registry.register(withStandardMeta(engine))`. Lõi không cần biết tên game.
 
 Không sửa file nào trong `packages/core` để thêm game. Phải sửa nghĩa là hợp
-đồng thiếu một chỗ — sửa hợp đồng cho cả chín game, đừng đặc cách một game.
+đồng thiếu một chỗ — sửa hợp đồng cho mọi bộ môn, đừng đặc cách một game.
 
 ## Lộ trình
 
 | Hạng mục | Trạng thái |
 |---|---|
-| Khảo sát luật 9 game | ✅ `docs/rules/` |
+| Khảo sát luật 13 bộ môn | ✅ `docs/rules/` |
 | Thẩm định kiến trúc | ✅ `docs/architecture-review.md` |
 | Hợp đồng engine + bộ kiểm | ✅ `packages/core` |
 | Cờ caro (engine + bot) | ✅ |
@@ -112,5 +126,9 @@ Không sửa file nào trong `packages/core` để thêm game. Phải sửa ngh�
 | App di động + sảnh + ba bàn cờ chơi với máy: gợi ý, lùi lại, tỉ số phiên | ✅ |
 | Máy chủ: phòng, ghép cặp, đồng hồ, chống gửi lặp | ✅ `apps/server` |
 | Nối app vào máy chủ, hàng đợi bot trên máy chủ | ⏳ |
-| Cờ vua, cờ tướng, cờ úp, cá ngựa | ⏳ |
-| Cờ vây, cờ tỷ phú | ⏳ tốn công gấp nhiều lần phần còn lại |
+| Cờ lật, cờ ba quân, cờ Hex (luật gọn, làm trước) | ⏳ |
+| Cờ hùm (dùng lại bàn Alquerque của cờ gánh) | ⏳ |
+| Cờ đam | ⏳ |
+| Cờ vua, cờ tướng, cờ úp | ⏳ |
+| Cờ Nhật (shogi) | ⏳ |
+| Cờ vây | ⏳ tốn công gấp nhiều lần phần còn lại |

@@ -11,7 +11,7 @@ import { A, R, S, glow, lift } from './theme';
 /**
  * Khung chung của mọi màn chơi.
  *
- * Chín bộ môn dùng chung đúng bộ khung này: thanh tiêu đề, hai thanh người
+ * Mọi bộ môn dùng chung đúng bộ khung này: thanh tiêu đề, hai thanh người
  * chơi có đồng hồ, hàng nút, tấm kết quả, tấm chọn mức máy. Chỉ **mặt bàn và
  * bàn cờ** là riêng của từng game.
  *

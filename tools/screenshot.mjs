@@ -54,6 +54,14 @@ await page.getByLabel('Bộ môn').click();
 await page.waitForTimeout(900);
 await shot('02-sanh-bo-mon');
 
+// Lưới 13 bộ môn dài hơn một màn hình, nên phải chụp cả nửa dưới — nếu không
+// thì sáu game thêm sau cùng không bao giờ được nhìn tận mắt.
+console.log('Sảnh: nửa dưới lưới bộ môn');
+await page.mouse.move(215, 600);
+await page.mouse.wheel(0, 1700);
+await page.waitForTimeout(900);
+await shot('02b-sanh-bo-mon-duoi');
+
 console.log('Bàn cờ caro');
 await tap('Đấu với máy', { exact: false });
 await page.waitForTimeout(1200);

@@ -3,7 +3,7 @@
 Tài liệu này là **hợp đồng ràng buộc**. Mọi mã trong repo phải theo. Chỗ nào
 thấy mã lệch khỏi đây thì mã sai, không phải tài liệu sai.
 
-Nền tảng: 9 game cờ, ghép cặp tự động, đấu bot, tạo phòng mời bạn. Mỗi game có
+Nền tảng: 13 bộ môn cờ **hai người**, ghép cặp tự động, đấu bot, tạo phòng mời bạn. Mỗi game có
 bộ mặt mỹ thuật riêng trên một khung app chung.
 
 ---
@@ -27,14 +27,29 @@ chết người cả hai phương án cùng mắc**. Chín lỗi đó thành ch�
 | Ô ăn quan | 2 | lượt | không | không | 2/5 |
 | Cờ vua | 2 | lượt | không | không | 3/5 |
 | Cờ úp | 2 | lượt | **có** | **có** | 3/5 |
-| Cá ngựa | 2–4 | lượt | **có** | không | 3/5 |
 | Cờ tướng | 2 | lượt | không | không | 4/5 |
 | Cờ vây | 2 | lượt | không | không | 5/5 |
-| Cờ tỷ phú | 2–4 | **thực** | **có** | **có** | 5/5 |
+| Cờ đam | 2 | lượt | không | không | 3/5 |
+| Cờ lật | 2 | lượt | không | không | 1/5 |
+| Cờ hùm | 2 | lượt | không | không | 2/5 |
+| Cờ ba quân | 2 | lượt | không | không | 1/5 |
+| Cờ Hex | 2 | lượt | không | không | 2/5 |
+| Cờ Nhật | 2 | lượt | không | không | 4/5 |
 
-Ba trục quyết định hình dạng hợp đồng: **nhiều hơn 2 ghế**, **ngẫu nhiên do
-server gieo**, **thông tin phải che**. Cờ tỷ phú chạm cả ba — nên nó là phép
-thử cuối, không phải game làm đầu tiên.
+**Mọi bộ môn đều là 2 ghế.** Cá ngựa và cờ tỷ phú — hai game duy nhất cần nhiều
+hơn hai ghế — đã bị bỏ khỏi lộ trình. Cùng với chúng biến mất ba thứ: bàn nhiều
+ghế, chế độ `realtime`, và nhu cầu bot thay ghế người bỏ trận giữa ván.
+
+Ba trục quyết định hình dạng hợp đồng vẫn còn hai: **ngẫu nhiên do server gieo**
+và **thông tin phải che** — cả hai giờ chỉ còn **cờ úp** chạm tới (chia quân úp
+lúc bắt đầu ván). Nên cờ úp là phép thử cuối của hợp đồng, không phải game làm
+đầu tiên.
+
+Hai nguyên thể `Turn.sealed` và `enumerateChance?/applyChance?` được thêm vào
+hợp đồng **chỉ vì** cá ngựa và cờ tỷ phú. Chúng **được giữ lại**, nhưng phải
+nói thẳng: hiện không bộ môn nào dùng `sealed`, và chỉ cờ úp sẽ dùng `chance`.
+Giữ vì gỡ ra rồi lắp lại là cửa một chiều (log cũ mất khả năng phát lại), chứ
+không phải vì chúng đang có ích.
 
 ---
 
@@ -74,7 +89,7 @@ biết tên game nào; mỗi game tự khai `spec` và gọi `registry.register(
 ### R4 — Meta-action thuộc về lõi, không thuộc từng engine
 
 Đầu hàng, hết giờ, mất kết nối, cầu hoà, bỏ trận, bot tiếp quản — ngữ nghĩa
-giống hệt nhau ở cả 9 game. Để từng engine tự xử là 9 × 6 = 54 chỗ sai lặng
+giống hệt nhau ở mọi bộ môn. Để từng engine tự xử là 13 × 6 = 78 chỗ sai lặng
 lẽ. Một wrapper `withStandardMeta(engine)` sở hữu toàn bộ; engine chỉ nhìn thấy
 nước đi game.
 

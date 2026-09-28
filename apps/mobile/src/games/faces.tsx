@@ -632,87 +632,6 @@ export const FACES: GameFace[] = [
     ),
   },
   {
-    id: 'co-ca-ngua',
-    nameVi: 'Cờ Cá Ngựa',
-    taglineVi: 'Bốn người, xúc xắc, về chuồng trước là thắng',
-    accent: '#1F8A8A',
-    surface: '#F2EFE6',
-    material: 'Nhựa bóng',
-    mode: '2–4 người',
-    minutes: '~30 phút',
-    ready: false,
-    Motif: () => {
-      const peg = (x: number, y: number, c: string, d: string) => (
-        <G key={`${x}-${y}`}>
-          <Ellipse cx={x} cy={y + 5} rx={3.4} ry={1.2} fill="#2A2622" opacity={0.25} />
-          <Path d={`M${x - 3.2} ${y + 5} q0.6-3.6 3.2-5.2 q2.6 1.6 3.2 5.2 z`} fill={d} />
-          <Circle cx={x} cy={y - 3} r={3.4} fill={c} />
-          <Circle cx={x - 1.1} cy={y - 4.2} r={1.1} fill="#FFFFFF" opacity={0.75} />
-        </G>
-      );
-      return (
-        <Frame bg="#F2EFE6">
-          <Defs>
-            <LinearGradient id="ngua-b" x1="0" y1="0" x2="0.4" y2="1">
-              <Stop offset="0" stopColor="#FBFAF5" />
-              <Stop offset="1" stopColor="#E4E0D3" />
-            </LinearGradient>
-            <LinearGradient id="ngua-die" x1="0" y1="0" x2="0.4" y2="1">
-              <Stop offset="0" stopColor="#FFFFFF" />
-              <Stop offset="1" stopColor="#D8D3C4" />
-            </LinearGradient>
-          </Defs>
-          <Rect x={0} y={0} width={100} height={64} fill="url(#ngua-b)" />
-          {/* Bàn chữ thập, bốn nhà bốn góc. */}
-          <Rect x={0} y={23} width={100} height={18} fill="#FFFFFF" stroke="#C9C2B4" strokeWidth={0.7} />
-          <Rect x={37} y={0} width={26} height={64} fill="#FFFFFF" stroke="#C9C2B4" strokeWidth={0.7} />
-          {Array.from({ length: 12 }, (_, i) => (
-            <Line key={`c${i}`} x1={i * 8.4} y1={23} x2={i * 8.4} y2={41} stroke="#E0DACB" strokeWidth={0.6} />
-          ))}
-          {Array.from({ length: 8 }, (_, i) => (
-            <Line key={`r${i}`} x1={37} y1={i * 8.5} x2={63} y2={i * 8.5} stroke="#E0DACB" strokeWidth={0.6} />
-          ))}
-          {[
-            [2, 25, '#E24A4A'],
-            [84, 25, '#2E9E5B'],
-          ].map(([x, y, c], i) => (
-            <G key={i}>
-              <Rect x={x as number} y={y as number} width={14} height={14} rx={2.5} fill={c as string} />
-              <Rect x={(x as number) + 1.4} y={(y as number) + 1.4} width={11.2} height={4.6} rx={1.6} fill="#FFFFFF" opacity={0.28} />
-            </G>
-          ))}
-          {[
-            [43, 2, '#3B76D1'],
-            [43, 48, '#E8B23A'],
-          ].map(([x, y, c], i) => (
-            <G key={i}>
-              <Rect x={x as number} y={y as number} width={14} height={14} rx={2.5} fill={c as string} />
-              <Rect x={(x as number) + 1.4} y={(y as number) + 1.4} width={11.2} height={4.6} rx={1.6} fill="#FFFFFF" opacity={0.28} />
-            </G>
-          ))}
-          {peg(22, 32, '#E24A4A', '#B33333')}
-          {peg(78, 32, '#2E9E5B', '#217544')}
-          {peg(50, 12, '#3B76D1', '#2A56A0')}
-          {/* Xúc xắc đang nằm trên bàn, nghiêng một chút cho có động. */}
-          <G transform="rotate(-11 74 50)">
-            <Rect x={66} y={43} width={15} height={15} rx={3.4} fill="#BFB8A8" />
-            <Rect x={66} y={42} width={15} height={15} rx={3.4} fill="url(#ngua-die)" stroke="#A8A193" strokeWidth={0.6} />
-            {[
-              [70, 46],
-              [77, 46],
-              [73.5, 49.5],
-              [70, 53],
-              [77, 53],
-            ].map(([x, y], i) => (
-              <Circle key={i} cx={x} cy={y} r={1.6} fill="#2A2622" />
-            ))}
-            <Rect x={67.4} y={43.4} width={12} height={3.4} rx={1.4} fill="#FFFFFF" opacity={0.5} />
-          </G>
-        </Frame>
-      );
-    },
-  },
-  {
     id: 'co-vay',
     nameVi: 'Cờ Vây',
     taglineVi: 'Vây đất, bắt khí — ván cờ dài nhất trong chín bộ',
@@ -768,61 +687,389 @@ export const FACES: GameFace[] = [
     ),
   },
   {
-    id: 'co-ty-phu',
-    nameVi: 'Cờ Tỷ Phú',
-    taglineVi: 'Mua đất, thu tiền, đấu giá kín — bốn người',
-    accent: '#C2477E',
-    surface: '#EAF0E6',
-    material: 'Bìa cứng',
-    mode: '2–4 người',
-    minutes: '~60 phút',
+    id: 'co-dam',
+    nameVi: 'Cờ Đam',
+    taglineVi: 'Ăn là bắt buộc, và phải ăn chuỗi dài nhất',
+    accent: '#8C2F2F',
+    surface: '#D9C0A0',
+    material: 'Gỗ mun và gỗ thích',
+    mode: '1v1',
+    minutes: '~15 phút',
     ready: false,
     Motif: () => (
-      <Frame bg="#EAF0E6">
+      <Frame bg="#D9C0A0">
         <Defs>
-          <LinearGradient id="typhu-b" x1="0" y1="0" x2="0.4" y2="1">
-            <Stop offset="0" stopColor="#F3F7EF" />
-            <Stop offset="1" stopColor="#DDE6D7" />
+          <LinearGradient id="dam-w" x1="0" y1="0" x2="0.3" y2="1">
+            <Stop offset="0" stopColor="#E7D2B4" />
+            <Stop offset="1" stopColor="#C9AC88" />
           </LinearGradient>
-          <LinearGradient id="typhu-card" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#FFFFFF" />
-            <Stop offset="1" stopColor="#EFEFE6" />
-          </LinearGradient>
+          <RadialGradient id="dam-dark" cx="0.34" cy="0.28" r="0.85">
+            <Stop offset="0" stopColor="#4A4038" />
+            <Stop offset="1" stopColor="#1E1815" />
+          </RadialGradient>
+          <RadialGradient id="dam-light" cx="0.34" cy="0.28" r="0.85">
+            <Stop offset="0" stopColor="#FBF0DB" />
+            <Stop offset="1" stopColor="#D2B98F" />
+          </RadialGradient>
         </Defs>
-        <Rect x={0} y={0} width={100} height={64} fill="url(#typhu-b)" />
-        {speckle(55, 90, '#B9C6B2', 0.4, 0.3)}
-        <Rect x={4} y={3} width={92} height={58} rx={2} fill="#F7FAF4" stroke="#B8C4AE" strokeWidth={0.9} />
-        <Rect x={17} y={16} width={66} height={32} rx={1.5} fill="#E7EEE2" stroke="#B8C4AE" strokeWidth={0.8} />
-        {/* Dải màu các nhóm đất, viền đen như bìa in thật. */}
-        {['#C2477E', '#E8B23A', '#3B76D1', '#2E9E5B', '#E24A4A'].map((c, i) => (
-          <G key={c}>
-            <Rect x={17 + i * 13.2} y={3.6} width={13.2} height={7} fill={c} />
-            <Rect x={17 + i * 13.2} y={3.6} width={13.2} height={7} fill="none" stroke="#2A2622" strokeWidth={0.4} opacity={0.5} />
+        <Rect x={0} y={0} width={100} height={64} fill="url(#dam-w)" />
+        {woodGrain(19, 13, '#A8865E', 0.28)}
+        {/* Chỉ ô sẫm mới dùng được — vẽ đúng 32 ô, không vẽ cả 64. */}
+        {Array.from({ length: 8 }, (_, r) =>
+          Array.from({ length: 8 }, (_, c) =>
+            (r + c) % 2 === 1 ? (
+              <Rect key={`${r}-${c}`} x={18 + c * 8} y={r * 8} width={8} height={8} fill="#5A3A1E" opacity={0.72} />
+            ) : null,
+          ),
+        )}
+        <Rect x={18} y={0} width={64} height={64} fill="none" stroke="#5A3B22" strokeWidth={1} opacity={0.55} />
+        {/* Quân sẫm ở dưới, quân nhạt ở trên, và một quân đã phong vương. */}
+        {/* Tâm ô sẫm `(r,c)` là `(22 + c*8, 4 + r*8)` — quân phải nằm đúng tâm ô,
+            lệch nửa ô là nhìn ra ngay dù thẻ chỉ cao 64 đơn vị. */}
+        {[
+          [30, 52, true],
+          [46, 52, true],
+          [54, 44, true],
+          [30, 20, false],
+          [54, 12, false],
+        ].map(([x, y, dark]) => (
+          <G key={`${x}-${y}`}>
+            <Ellipse cx={(x as number) + 0.4} cy={(y as number) + 2.6} rx={4.4} ry={1.5} fill="#2A1C0E" opacity={0.3} />
+            <Circle cx={x as number} cy={y as number} r={4.4} fill={dark ? 'url(#dam-dark)' : 'url(#dam-light)'} />
+            <Circle cx={x as number} cy={y as number} r={3} fill="none" stroke={dark ? '#6A5C4E' : '#A98C60'} strokeWidth={0.6} opacity={0.7} />
           </G>
         ))}
-        {['#7B4BC2', '#2E9E5B', '#E8B23A', '#3B76D1'].map((c, i) => (
-          <G key={c}>
-            <Rect x={17 + i * 13.2} y={53.4} width={13.2} height={7} fill={c} />
-            <Rect x={17 + i * 13.2} y={53.4} width={13.2} height={7} fill="none" stroke="#2A2622" strokeWidth={0.4} opacity={0.5} />
-          </G>
-        ))}
-        {/* Thẻ bài úp và một tờ tiền nhô ra dưới — đấu giá kín là điểm riêng. */}
-        <G transform="rotate(-7 44 32)">
-          <Rect x={31} y={22} width={26} height={19} rx={1.6} fill="#D3DCCB" />
-          <Rect x={30} y={21} width={26} height={19} rx={1.6} fill="url(#typhu-card)" stroke="#B8C4AE" strokeWidth={0.7} />
-          <SvgText x={43} y={34} fontSize={11} fill="#2A7A4A" textAnchor="middle" fontWeight="bold">
-            ₫
-          </SvgText>
-        </G>
-        {/* Quân: một ngôi nhà nhỏ. */}
+        {/* Vương = hai quân chồng lên nhau, đúng cách người ta đánh dấu trên bàn thật. */}
         <G>
-          <Ellipse cx={72} cy={39} rx={6} ry={1.6} fill="#2A2622" opacity={0.22} />
-          <Path d="M66 38 v-7 l6-4.5 l6 4.5 v7 z" fill="#2E9E5B" />
-          <Path d="M66 31 l6-4.5 l6 4.5" fill="none" stroke="#1F6B3A" strokeWidth={1.1} />
-          <Rect x={70} y={33.5} width={4} height={4.5} fill="#1F6B3A" opacity={0.6} />
+          <Ellipse cx={70.4} cy={32.6} rx={4.6} ry={1.6} fill="#2A1C0E" opacity={0.3} />
+          <Circle cx={70} cy={31} r={4.4} fill="url(#dam-dark)" />
+          <Circle cx={70} cy={28} r={4.4} fill="url(#dam-dark)" />
+          <Circle cx={70} cy={28} r={3} fill="none" stroke="#C9A24A" strokeWidth={0.8} opacity={0.9} />
         </G>
       </Frame>
     ),
+  },
+  {
+    id: 'co-lat',
+    nameVi: 'Cờ Lật',
+    taglineVi: 'Kẹp hai đầu là lật màu — đếm quân lúc hết bàn',
+    accent: '#2E9E6B',
+    surface: '#1E6B47',
+    material: 'Nỉ xanh',
+    mode: '1v1',
+    minutes: '~8 phút',
+    ready: false,
+    Motif: () => (
+      <Frame bg="#1E6B47">
+        <Defs>
+          <RadialGradient id="lat-felt" cx="0.42" cy="0.3" r="0.95">
+            <Stop offset="0" stopColor="#2A835A" />
+            <Stop offset="1" stopColor="#144A31" />
+          </RadialGradient>
+          <RadialGradient id="lat-b" cx="0.36" cy="0.28" r="0.9">
+            <Stop offset="0" stopColor="#4C4C52" />
+            <Stop offset="1" stopColor="#141417" />
+          </RadialGradient>
+          <RadialGradient id="lat-w" cx="0.36" cy="0.28" r="0.9">
+            <Stop offset="0" stopColor="#FFFFFF" />
+            <Stop offset="1" stopColor="#CFCBC0" />
+          </RadialGradient>
+        </Defs>
+        <Rect x={0} y={0} width={100} height={64} fill="url(#lat-felt)" />
+        {/* Sợi nỉ: hạt li ti sáng hơn nền, không phải chấm đen. */}
+        {speckle(31, 130, '#5FBF8C', 0.32, 0.16)}
+        {Array.from({ length: 9 }, (_, i) => (
+          <Line key={`v${i}`} x1={18 + i * 8} y1={0} x2={18 + i * 8} y2={64} stroke="#0E3A26" strokeWidth={0.6} opacity={0.7} />
+        ))}
+        {Array.from({ length: 9 }, (_, i) => (
+          <Line key={`h${i}`} x1={18} y1={i * 8} x2={82} y2={i * 8} stroke="#0E3A26" strokeWidth={0.6} opacity={0.7} />
+        ))}
+        {/* Bốn chấm mốc của bàn Othello thật. */}
+        {[[34, 16], [66, 16], [34, 48], [66, 48]].map(([x, y]) => (
+          <Circle key={`${x}-${y}`} cx={x} cy={y} r={1.1} fill="#0E3A26" opacity={0.85} />
+        ))}
+        {[
+          [30, 20, 0], [38, 20, 1], [46, 20, 1],
+          [38, 28, 1], [46, 28, 0], [54, 28, 0],
+          [38, 36, 0], [46, 36, 1], [54, 36, 1], [62, 36, 1],
+          [46, 44, 1], [54, 44, 0],
+        ].map(([x, y, d]) => (
+          <G key={`${x}-${y}`}>
+            <Ellipse cx={(x as number) + 0.3} cy={(y as number) + 2.4} rx={3.3} ry={1.1} fill="#08251A" opacity={0.4} />
+            <Circle cx={x as number} cy={y as number} r={3.3} fill={d ? 'url(#lat-b)' : 'url(#lat-w)'} />
+            <Ellipse cx={(x as number) - 1} cy={(y as number) - 1.1} rx={1.2} ry={0.8} fill="#FFFFFF" opacity={d ? 0.3 : 0.7} transform={`rotate(-28 ${x} ${y})`} />
+          </G>
+        ))}
+        {/* Một quân đang lật dở: bề ngang co lại, cạnh dày lộ ra. */}
+        <G>
+          <Ellipse cx={70.3} cy={31} rx={2.4} ry={1} fill="#08251A" opacity={0.45} />
+          <Ellipse cx={70} cy={28} rx={2.2} ry={3.3} fill="url(#lat-w)" />
+          <Path d="M70 24.7 a2.2 3.3 0 0 0 0 6.6 z" fill="#1E1E22" />
+          <Ellipse cx={70} cy={28} rx={2.2} ry={3.3} fill="none" stroke="#0E3A26" strokeWidth={0.4} opacity={0.6} />
+        </G>
+      </Frame>
+    ),
+  },
+  {
+    id: 'co-hum',
+    nameVi: 'Cờ Hùm',
+    taglineVi: 'Hai hùm săn mười hai dê — hai bên hai luật khác nhau',
+    accent: '#D08A2C',
+    surface: '#9C7A54',
+    material: 'Đất nện',
+    mode: '1v1 · bất đối xứng',
+    minutes: '~6 phút',
+    ready: false,
+    Motif: () => {
+      // Đúng hình cờ gánh: 5 ngang, 5 dọc, 2 chéo lớn, 4 đường nối trung điểm.
+      const px = (c: number) => 26 + c * 12;
+      const py = (r: number) => 8 + r * 12;
+      return (
+        <Frame bg="#9C7A54">
+          <Defs>
+            <RadialGradient id="hum-earth" cx="0.45" cy="0.3" r="1">
+              <Stop offset="0" stopColor="#8E6F4B" />
+              <Stop offset="1" stopColor="#523C26" />
+            </RadialGradient>
+            <RadialGradient id="hum-tiger" cx="0.34" cy="0.28" r="0.9">
+              <Stop offset="0" stopColor="#F0A63C" />
+              <Stop offset="1" stopColor="#9A5310" />
+            </RadialGradient>
+            <RadialGradient id="hum-goat" cx="0.34" cy="0.28" r="0.9">
+              <Stop offset="0" stopColor="#F6EFE2" />
+              <Stop offset="1" stopColor="#C4B49A" />
+            </RadialGradient>
+          </Defs>
+          <Rect x={0} y={0} width={100} height={64} fill="url(#hum-earth)" />
+          {speckle(23, 150, '#3A2A18', 0.5, 0.32)}
+          {speckle(91, 70, '#BFA179', 0.4, 0.25)}
+          {/* Nét vạch trên đất: rãnh tối có mép sáng, không phải nét bút. */}
+          {Array.from({ length: 5 }, (_, i) => (
+            <G key={`g${i}`}>
+              {carved(`M${px(0)} ${py(i)} H${px(4)}`, '#33240F', '#CBAE85', 0.9)}
+              {carved(`M${px(i)} ${py(0)} V${py(4)}`, '#33240F', '#CBAE85', 0.9)}
+            </G>
+          ))}
+          {carved(`M${px(0)} ${py(0)} L${px(4)} ${py(4)}`, '#33240F', '#CBAE85', 0.9)}
+          {carved(`M${px(4)} ${py(0)} L${px(0)} ${py(4)}`, '#33240F', '#CBAE85', 0.9)}
+          {carved(`M${px(2)} ${py(0)} L${px(4)} ${py(2)} L${px(2)} ${py(4)} L${px(0)} ${py(2)} Z`, '#33240F', '#CBAE85', 0.9)}
+          {/* Dê: đĩa nhỏ nhạt, đứng thành khối. */}
+          {[[1, 0], [2, 0], [3, 0], [0, 1], [2, 1], [1, 2], [3, 2], [2, 3]].map(([c, r]) => (
+            <G key={`d${c}-${r}`}>
+              <Ellipse cx={px(c) + 0.3} cy={py(r) + 2} rx={3} ry={1} fill="#3E2C18" opacity={0.35} />
+              <Circle cx={px(c)} cy={py(r)} r={3} fill="url(#hum-goat)" stroke="#9A876A" strokeWidth={0.5} />
+            </G>
+          ))}
+          {/* Hùm: to hơn hẳn, có vằn. Nhìn xa phải thấy ngay ai là kẻ đi săn. */}
+          {[[0, 0], [4, 4]].map(([c, r]) => (
+            <G key={`h${c}-${r}`}>
+              <Ellipse cx={px(c) + 0.4} cy={py(r) + 3.2} rx={4.8} ry={1.6} fill="#3E2C18" opacity={0.4} />
+              <Circle cx={px(c)} cy={py(r)} r={4.8} fill="url(#hum-tiger)" stroke="#5A2C04" strokeWidth={1.1} />
+              {/* Vằn hổ: nét cong dày mảnh xen kẽ, không phải gờ đồng xu đều tăm tắp. */}
+              {[[-2.6, 1.5], [-0.4, 1.1], [1.9, 1.4]].map(([o, wdt]) => (
+                <Path
+                  key={o}
+                  d={`M${px(c) + o - 0.9} ${py(r) - 3.9} q1.5 3.9 0.2 7.8`}
+                  stroke="#43200A"
+                  strokeWidth={wdt}
+                  strokeLinecap="round"
+                  fill="none"
+                  opacity={0.85}
+                />
+              ))}
+            </G>
+          ))}
+        </Frame>
+      );
+    },
+  },
+  {
+    id: 'co-ba-quan',
+    nameVi: 'Cờ Ba Quân',
+    taglineVi: 'Ba quân thành hàng là thắng — một ván chưa tới một phút',
+    accent: '#7FA3C8',
+    surface: '#6F6B63',
+    material: 'Phấn trên nền xi măng',
+    mode: '1v1 · ván chớp',
+    minutes: '~1 phút',
+    ready: false,
+    Motif: () => (
+      <Frame bg="#6F6B63">
+        <Defs>
+          <RadialGradient id="bq-ce" cx="0.44" cy="0.3" r="1">
+            <Stop offset="0" stopColor="#837E74" />
+            <Stop offset="1" stopColor="#55524C" />
+          </RadialGradient>
+          <RadialGradient id="bq-peb" cx="0.34" cy="0.28" r="0.9">
+            <Stop offset="0" stopColor="#6B7686" />
+            <Stop offset="1" stopColor="#2E3540" />
+          </RadialGradient>
+          <RadialGradient id="bq-shell" cx="0.34" cy="0.28" r="0.9">
+            <Stop offset="0" stopColor="#FFFBF0" />
+            <Stop offset="1" stopColor="#D3C8B2" />
+          </RadialGradient>
+        </Defs>
+        <Rect x={0} y={0} width={100} height={64} fill="url(#bq-ce)" />
+        {speckle(47, 170, '#3F3C37', 0.55, 0.3)}
+        {speckle(83, 90, '#A9A498', 0.4, 0.22)}
+        {/* Phấn: nét trắng hơi nhoè, bề dày không đều, đứt quãng chỗ nền rỗ. */}
+        {[[34, 10, 34, 54], [50, 10, 50, 54], [66, 10, 66, 54], [30, 20, 70, 20], [30, 32, 70, 32], [30, 44, 70, 44]].map(
+          ([x1, y1, x2, y2], i) => (
+            <G key={i}>
+              <Line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#F2EEE2" strokeWidth={2.4} strokeLinecap="round" opacity={0.2} />
+              <Line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#F7F4EA" strokeWidth={1.1} strokeLinecap="round" opacity={0.8} />
+            </G>
+          ),
+        )}
+        {/* Sỏi thắng một hàng chéo, vỏ sò chặn không kịp. */}
+        {[[34, 20], [50, 32], [66, 44]].map(([x, y]) => (
+          <G key={`p${x}`}>
+            <Ellipse cx={x + 0.4} cy={y + 3} rx={4.2} ry={1.4} fill="#26241F" opacity={0.42} />
+            <Circle cx={x} cy={y} r={4.2} fill="url(#bq-peb)" />
+            <Ellipse cx={x - 1.3} cy={y - 1.5} rx={1.5} ry={1} fill="#FFFFFF" opacity={0.3} transform={`rotate(-30 ${x} ${y})`} />
+          </G>
+        ))}
+        {[[66, 20], [34, 32], [50, 44]].map(([x, y]) => (
+          <G key={`s${x}-${y}`}>
+            <Ellipse cx={x + 0.4} cy={y + 3} rx={4} ry={1.3} fill="#26241F" opacity={0.4} />
+            <Circle cx={x} cy={y} r={4} fill="url(#bq-shell)" />
+            {[0, 1, 2].map((k) => (
+              <Path
+                key={k}
+                d={`M${x - 3.2} ${y + 1.4 - k * 1.5} q3.2 -1.6 6.4 0`}
+                stroke="#BBAE94"
+                strokeWidth={0.45}
+                fill="none"
+                opacity={0.75}
+              />
+            ))}
+          </G>
+        ))}
+        {/* Nét phấn gạch chéo qua hàng thắng — cách người ta chốt ván trên sân. */}
+        <Line x1={28} y1={14} x2={72} y2={50} stroke="#F7F4EA" strokeWidth={2} strokeLinecap="round" opacity={0.7} />
+      </Frame>
+    ),
+  },
+  {
+    id: 'co-hex',
+    nameVi: 'Cờ Hex',
+    taglineVi: 'Nối hai bờ của mình — không bao giờ có ván hoà',
+    accent: '#C0392B',
+    surface: '#E6DAC4',
+    material: 'Gạch men lục giác',
+    mode: '1v1',
+    minutes: '~10 phút',
+    ready: false,
+    Motif: () => {
+      // Hình thoi 7×5 ô lục giác: hàng dưới lệch sang phải nửa ô, đúng cách
+      // bàn Hex thật nghiêng đi — vẽ thành hình chữ nhật là vẽ sai game.
+      const w = 9.6;
+      const h = 8.4;
+      const hexAt = (r: number, c: number) => {
+        const cx = 16 + c * w + r * (w / 2);
+        const cy = 12 + r * h;
+        const pts = Array.from({ length: 6 }, (_, k) => {
+          const a = ((60 * k - 30) * Math.PI) / 180;
+          return `${(cx + (w / 2) * Math.cos(a) * 1.08).toFixed(2)},${(cy + (w / 2) * Math.sin(a) * 1.08).toFixed(2)}`;
+        });
+        return { cx, cy, d: `M${pts.join('L')}Z` };
+      };
+      const red = [[0, 1], [1, 1], [2, 2], [3, 2], [4, 2]];
+      const blue = [[1, 3], [2, 0], [2, 4], [3, 4], [1, 5]];
+      return (
+        <Frame bg="#E6DAC4">
+          <Defs>
+            <LinearGradient id="hex-bg" x1="0" y1="0" x2="0.4" y2="1">
+              <Stop offset="0" stopColor="#F0E6D4" />
+              <Stop offset="1" stopColor="#D6C6A9" />
+            </LinearGradient>
+            <LinearGradient id="hex-r" x1="0" y1="0" x2="0.3" y2="1">
+              <Stop offset="0" stopColor="#D9564A" />
+              <Stop offset="1" stopColor="#9E2A1E" />
+            </LinearGradient>
+            <LinearGradient id="hex-b" x1="0" y1="0" x2="0.3" y2="1">
+              <Stop offset="0" stopColor="#5A8FD0" />
+              <Stop offset="1" stopColor="#25508F" />
+            </LinearGradient>
+          </Defs>
+          <Rect x={0} y={0} width={100} height={64} fill="url(#hex-bg)" />
+          {speckle(59, 60, '#B8A588', 0.4, 0.25)}
+          {Array.from({ length: 5 }, (_, r) =>
+            Array.from({ length: 6 }, (_, c) => {
+              const { d } = hexAt(r, c);
+              const isR = red.some(([rr, cc]) => rr === r && cc === c);
+              const isB = blue.some(([rr, cc]) => rr === r && cc === c);
+              return (
+                <Path
+                  key={`${r}-${c}`}
+                  d={d}
+                  fill={isR ? 'url(#hex-r)' : isB ? 'url(#hex-b)' : '#EFE7D7'}
+                  stroke={isR ? '#7C1F14' : isB ? '#193A6B' : '#BCA986'}
+                  strokeWidth={0.7}
+                />
+              );
+            }),
+          )}
+        </Frame>
+      );
+    },
+  },
+  {
+    id: 'co-nhat',
+    nameVi: 'Cờ Nhật',
+    taglineVi: 'Quân ăn được thả lại xuống bàn làm quân mình',
+    accent: '#A8702A',
+    surface: '#E9CE96',
+    material: 'Gỗ hoàng dương',
+    mode: '1v1',
+    minutes: '~25 phút',
+    ready: false,
+    Motif: () => {
+      // Quân shogi là miếng gỗ ngũ giác, đầu nhọn chỉ về phía đối phương —
+      // hướng quay chính là thứ phân biệt hai bên, không phải màu.
+      const koma = (x: number, y: number, flip: boolean, ch: string, col: string) => (
+        <G key={`${x}-${y}-${ch}`} transform={flip ? `rotate(180 ${x} ${y})` : undefined}>
+          <Path d={`M${x} ${y - 6} l4.6 2.4 l1.5 9.6 h-12.2 l1.5 -9.6 z`} fill="#3A2A14" opacity={0.28} transform="translate(0.5 1.4)" />
+          <Path d={`M${x} ${y - 6} l4.6 2.4 l1.5 9.6 h-12.2 l1.5 -9.6 z`} fill="url(#nhat-koma)" stroke="#8A6524" strokeWidth={0.6} />
+          <SvgText x={x} y={y + 4} fontSize={7} fill={col} textAnchor="middle" fontWeight="bold">
+            {ch}
+          </SvgText>
+        </G>
+      );
+      return (
+        <Frame bg="#E9CE96">
+          <Defs>
+            <LinearGradient id="nhat-board" x1="0" y1="0" x2="0.3" y2="1">
+              <Stop offset="0" stopColor="#F2DCAB" />
+              <Stop offset="1" stopColor="#DDBE81" />
+            </LinearGradient>
+            <LinearGradient id="nhat-koma" x1="0" y1="0" x2="0.2" y2="1">
+              <Stop offset="0" stopColor="#FCEFCC" />
+              <Stop offset="1" stopColor="#E0C286" />
+            </LinearGradient>
+          </Defs>
+          <Rect x={0} y={0} width={100} height={64} fill="url(#nhat-board)" />
+          {woodGrain(37, 16, '#C09A57', 0.26)}
+          {Array.from({ length: 10 }, (_, i) => (
+            <Line key={`v${i}`} x1={14 + i * 8} y1={2} x2={14 + i * 8} y2={62} stroke="#6B4A18" strokeWidth={0.5} opacity={0.72} />
+          ))}
+          {Array.from({ length: 10 }, (_, i) => (
+            <Line key={`h${i}`} x1={14} y1={2 + i * 6.67} x2={86} y2={2 + i * 6.67} stroke="#6B4A18" strokeWidth={0.5} opacity={0.72} />
+          ))}
+          {/* Bốn chấm 星 đánh dấu vùng phong ba hàng. */}
+          {[[38, 22], [62, 22], [38, 42], [62, 42]].map(([x, y]) => (
+            <Circle key={`${x}-${y}`} cx={x} cy={y} r={1} fill="#6B4A18" opacity={0.85} />
+          ))}
+          {koma(26, 50, false, '歩', '#3A2A14')}
+          {koma(42, 50, false, '銀', '#3A2A14')}
+          {koma(58, 42, false, '飛', '#3A2A14')}
+          {koma(74, 50, false, 'と', '#A8302A')}
+          {koma(34, 14, true, '歩', '#3A2A14')}
+          {koma(66, 14, true, '角', '#3A2A14')}
+          {koma(50, 22, true, '桂', '#3A2A14')}
+        </Frame>
+      );
+    },
   },
 ];
 

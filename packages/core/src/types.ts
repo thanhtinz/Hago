@@ -68,8 +68,12 @@ export type Turn =
   /** Engine còn việc tự làm; `delayMs` để client kịp chạy hoạt hoạ. */
   | { kind: 'auto'; delayMs: number }
   /**
-   * Thu kín rồi mở đồng loạt. Cần cho roll-off "ai đi trước" của cá ngựa và
-   * đấu giá của cờ tỷ phú. Để giá đi tới theo thứ tự đến thì đó không phải
+   * Thu kín rồi mở đồng loạt.
+   *
+   * Thêm vào **chỉ vì** cá ngựa và cờ tỷ phú, mà hai game đó đã bị bỏ khỏi lộ
+   * trình — nên hiện **không bộ môn nào dùng**. Giữ lại vì gỡ một nguyên thể
+   * khỏi hợp đồng rồi lắp lại là cửa một chiều: log cũ mất khả năng phát lại.
+   * Để giá đi tới theo thứ tự đến thì đó không phải
    * đấu giá, đó là đo đường truyền.
    */
   | { kind: 'sealed'; seats: Seat[]; closesAt: number }
@@ -167,7 +171,7 @@ export interface Engine<S extends BaseState, A, V, Ev> {
   encode(s: S): string;
   decode(x: string): S;
 
-  /** Năng lực tuỳ chọn — chỉ cá ngựa và cờ tỷ phú cài. */
+  /** Năng lực tuỳ chọn — sau khi bỏ cá ngựa và cờ tỷ phú thì chỉ còn cờ úp cài. */
   enumerateChance?(s: S): ChanceOutcome[];
   applyChance?(s: S, draw: unknown): S;
 }

@@ -1,5 +1,13 @@
 # Phụ lục — biên bản thẩm định kiến trúc
 
+> **Ghi chú bổ sung (sau khi tài liệu này được viết):** lộ trình đã đổi — **cá
+> ngựa và cờ tỷ phú bị bỏ**, nền tảng chỉ còn cờ **hai người**, và số bộ môn
+> tăng lên 13. Phần lớn rủi ro nặng nhất mà bản thẩm định này nêu ra (cờ tỷ phú
+> cưỡng ép hợp đồng, xếp hạng Glicko vô nghĩa với game may rủi, bỏ ván 30–50%,
+> bàn 4 ghế) **không còn tồn tại**. Tài liệu giữ nguyên làm biên bản lịch sử —
+> nó ghi lại vì sao hợp đồng có hình dạng hiện tại, kể cả những phần giờ đã
+> thừa. Đừng sửa nó cho khớp hiện tại; xem `README.md` và `ARCHITECTURE.md`.
+
 > Sinh tự động. Hai kiến trúc độc lập, hai giám khảo chấm chéo.
 > Phần đáng giá nhất là **lỗi chết người mà cả hai phương án cùng mắc** — chúng
 > trở thành ràng buộc bắt buộc trong `docs/ARCHITECTURE.md`.

@@ -101,7 +101,7 @@ export default function Lobby() {
           style={{ alignItems: 'center', paddingTop: S.xxl, paddingBottom: S.md, gap: 2 }}
         >
           <Txt size={20} weight="display" color={A.ink}>
-            Chín bộ môn
+            Cờ hai người
           </Txt>
           <Txt size={11.5} color={A.inkFaint}>
             {READY.size} trên {FACES.length} đã mở
