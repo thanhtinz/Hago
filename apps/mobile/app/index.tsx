@@ -184,7 +184,11 @@ function GameCard({
         <View style={{ padding: 6 }}>
           <View
             style={{
-              height: 84,
+              // Khung ảnh phải đúng tỉ lệ 100:64 của hình, không đặt chiều
+              // cao cố định. Lệch tỉ lệ thì hình co lại cho vừa chiều cao và
+              // hở ra hai bên; chỗ hở lộ nền phẳng của thẻ, thành một cái
+              // khung vuông thứ hai nằm bên trong khung bo góc.
+              aspectRatio: 100 / 64,
               borderRadius: 7,
               overflow: 'hidden',
               backgroundColor: face.surface,
