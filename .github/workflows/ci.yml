@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Đẩy liên tiếp lên cùng một nhánh thì chỉ chạy lần cuối.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  luat:
+    name: Luật và máy chủ
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      # `tsc --build --force` chứ không phải `--build`: bản dịch cũ còn nằm đó
+      # thì bài test mới có thể im lặng không chạy, và suite vẫn báo xanh. Đã
+      # dính đúng lỗi này hai lần.
+      - name: Kiểm kiểu và chạy toàn bộ test
+        run: npm test
+
+      - name: Kiểm kiểu app di động
+        run: npx tsc --noEmit -p apps/mobile
+
+  giao-dien:
+    name: Giao diện chạy thật
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      # Build web thật, mở bằng Chromium ở kích thước điện thoại, bấm đúng như
+      # người dùng bấm. `tools/screenshot.mjs` thoát khác 0 nếu có bất kỳ lỗi
+      # console hay lỗi trang nào — nên đây vừa là ảnh chụp, vừa là bài kiểm
+      # "app có thật sự chạy không".
+      - name: Dựng bản web
+        run: npm run web
+
+      - name: Chụp màn hình app thật
+        run: |
+          npx serve -l 8080 -s apps/mobile/dist &
+          npx wait-on -t 60000 http://127.0.0.1:8080
+          node tools/screenshot.mjs
+
+      # Ảnh chụp được giữ lại để soi tay. Nhiều lỗi giao diện của dự án này
+      # chỉ lộ ra khi phóng to ảnh chụp, không lộ ra ở bất kỳ bài test nào.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: anh-chup-man-hinh
+          path: docs/screenshots/
+          retention-days: 14

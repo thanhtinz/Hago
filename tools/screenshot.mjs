@@ -10,19 +10,26 @@
  *   node tools/screenshot.mjs
  */
 import { chromium } from 'playwright';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'docs/screenshots');
 const URL_BASE = process.env.APP_URL ?? 'http://localhost:8080';
-/** Chromium cài sẵn trong máy ảnh; không tải thêm. */
-const CHROME = process.env.CHROME_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+/**
+ * Chromium cài sẵn trong máy ảnh; không tải thêm. Máy nào không có sẵn (CI,
+ * máy của người khác) thì để trống và dùng bản Playwright tự quản — đường dẫn
+ * cứng là lý do một bộ kiểm giao diện chỉ chạy được trên đúng một cái máy.
+ */
+const LOCAL_CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+// `CHROME_PATH=` (rỗng) nghĩa là "đừng dùng đường dẫn cứng", nên phải lọc
+// chuỗi rỗng — `??` chỉ bắt null/undefined và sẽ truyền '' xuống Playwright.
+const CHROME = process.env.CHROME_PATH || (existsSync(LOCAL_CHROME) ? LOCAL_CHROME : undefined);
 
 mkdirSync(OUT, { recursive: true });
 
-const browser = await chromium.launch({ executablePath: CHROME });
+const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
 const ctx = await browser.newContext({
   viewport: { width: 430, height: 932 },
   deviceScaleFactor: 2,
