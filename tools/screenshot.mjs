@@ -1,0 +1,117 @@
+/**
+ * Chụp màn hình app thật để kiểm chứng giao diện.
+ *
+ * Không dùng ảnh dựng tay hay mô tả bằng lời: build web thật, mở bằng
+ * Chromium ở đúng kích thước điện thoại, bấm đúng như người dùng bấm. Cách
+ * duy nhất để biết cái mình viết có thật sự hiện ra như mình nghĩ không.
+ *
+ *   npm run build -w @co/mobile     # expo export --platform web
+ *   npx serve -l 8080 -s apps/mobile/dist
+ *   node tools/screenshot.mjs
+ */
+import { chromium } from 'playwright';
+import { mkdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const OUT = path.join(ROOT, 'docs/screenshots');
+const URL_BASE = process.env.APP_URL ?? 'http://localhost:8080';
+/** Chromium cài sẵn trong máy ảnh; không tải thêm. */
+const CHROME = process.env.CHROME_PATH ?? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+
+mkdirSync(OUT, { recursive: true });
+
+const browser = await chromium.launch({ executablePath: CHROME });
+const ctx = await browser.newContext({
+  viewport: { width: 430, height: 932 },
+  deviceScaleFactor: 2,
+  isMobile: true,
+  hasTouch: true,
+});
+const page = await ctx.newPage();
+const problems = [];
+page.on('console', (m) => m.type() === 'error' && problems.push(`console: ${m.text().slice(0, 200)}`));
+page.on('pageerror', (e) => problems.push(`pageerror: ${String(e).slice(0, 200)}`));
+
+const shot = async (name) => {
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: path.join(OUT, `${name}.png`) });
+  console.log('  ✓', name);
+};
+const tap = async (text, { exact = true } = {}) => {
+  await page.getByText(text, { exact }).first().click();
+  await page.waitForTimeout(700);
+};
+
+console.log('Sảnh');
+await page.goto(`${URL_BASE}/`, { waitUntil: 'networkidle' });
+await page.waitForTimeout(2000);
+await shot('01-sanh');
+
+console.log('Bàn cờ caro');
+await tap('Vào chơi');
+await page.waitForTimeout(1200);
+await shot('02-caro-ban-trong');
+
+/** Bấm vào một ô của bàn cờ theo toạ độ (hàng, cột), 0-indexed. */
+const cell = async (r, c) => {
+  await page.getByLabel(`Ô hàng ${r + 1} cột ${c + 1}`).click();
+  // Chờ máy đi xong: bot có nhịp trễ 420ms cho người kịp nhìn nước mình đi.
+  await page.waitForTimeout(900);
+};
+
+console.log('Đánh vài nước với máy');
+for (const [r, c] of [
+  [7, 7],
+  [7, 8],
+  [6, 6],
+  [8, 9],
+]) {
+  await cell(r, c);
+}
+await shot('03-caro-dang-danh');
+
+console.log('Đổi mức máy sang Khó');
+await tap('Khó');
+await shot('04-caro-muc-kho');
+
+/**
+ * Đánh tới khi ra kết quả, để xem vệt dạ quang đánh dấu chuỗi thắng.
+ *
+ * Không gọi thẳng vào engine: bấm đúng như người dùng bấm, ô nào máy đã
+ * chiếm thì bỏ qua. Chụp ảnh mà đi đường tắt qua giao diện thì ảnh không
+ * chứng minh được gì.
+ */
+console.log('Đánh tới khi ra kết quả (mức Dễ)');
+await tap('Ván mới');
+await tap('Dễ');
+
+const status = async () => (await page.locator('body').innerText()).match(/Bạn thắng|Máy thắng|Hoà/)?.[0] ?? null;
+// Vài đường tấn công: hết đường này thì sang đường khác.
+const lines = [
+  [6, 4], [6, 5], [6, 6], [6, 7], [6, 8], [6, 9], [6, 3],
+  [9, 4], [9, 5], [9, 6], [9, 7], [9, 8], [9, 9], [9, 3],
+  [11, 4], [11, 5], [11, 6], [11, 7], [11, 8], [11, 9], [11, 3],
+  [3, 4], [3, 5], [3, 6], [3, 7], [3, 8], [3, 9], [3, 3],
+];
+let done = null;
+for (const [r, c] of lines) {
+  const box = page.getByLabel(`Ô hàng ${r + 1} cột ${c + 1}`);
+  if (await box.isDisabled()) continue;
+  await box.click();
+  await page.waitForTimeout(820);
+  done = await status();
+  if (done) break;
+}
+console.log('  kết quả:', done ?? 'chưa xong');
+await shot('05-caro-ket-qua');
+
+if (problems.length) {
+  console.log('\nLỖI TRÊN TRANG:');
+  for (const p of problems.slice(0, 10)) console.log(' -', p);
+  process.exitCode = 1;
+} else {
+  console.log('\nKhông có lỗi nào trên trang.');
+}
+await browser.close();

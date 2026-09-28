@@ -25,7 +25,10 @@ packages/
   core/                 hợp đồng engine, RNG có con trỏ, registry,
                         lớp bọc meta-action, bộ kiểm hợp đồng
   game-co-caro/         engine + bot cờ caro
-apps/                   (chưa có) máy chủ, app di động, trang quản trị
+apps/
+  mobile/               app Expo: sảnh + màn chơi, mỗi game một bộ mặt
+tools/
+  screenshot.mjs        chụp màn hình app thật để kiểm chứng giao diện
 docs/
   ARCHITECTURE.md       hợp đồng ràng buộc — đọc cái này trước
   architecture-review.md biên bản thẩm định kiến trúc
@@ -36,9 +39,18 @@ docs/
 
 ```bash
 npm install
-npm run build
-npm test
+npm run build      # biên dịch packages/
+npm test           # 18 test: hợp đồng engine + luật caro + bot
+
+npm run web        # đóng gói app cho web để xem thử
+npm run serve      # mở ở http://localhost:8080
+npm run shot       # chụp màn hình thật vào docs/screenshots/
 ```
+
+Ảnh trong `docs/screenshots/` **luôn chụp từ app chạy thật**, bằng Chromium ở
+đúng kích thước điện thoại, bấm đúng như người dùng bấm — kể cả ván thắng ở
+ảnh cuối cũng là bấm từng ô cho tới khi thắng thật. Ảnh dựng tay thì không
+chứng minh được gì.
 
 ## Chín ràng buộc
 
@@ -84,6 +96,7 @@ Không sửa file nào trong `packages/core` để thêm game. Phải sửa ngh�
 | Thẩm định kiến trúc | ✅ `docs/architecture-review.md` |
 | Hợp đồng engine + bộ kiểm | ✅ `packages/core` |
 | Cờ caro (engine + bot) | ✅ |
+| App di động + sảnh + bàn caro chơi với máy | ✅ |
 | Cờ gánh, ô ăn quan | ⏳ |
 | Máy chủ: phòng, ghép cặp, hàng đợi bot | ⏳ |
 | App di động | ⏳ |
