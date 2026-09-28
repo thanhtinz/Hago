@@ -62,6 +62,7 @@ export function CaroTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
       onHint={m.askHint}
       canUndo={m.canUndo}
       onUndo={m.undo}
+      undosLeft={m.undosLeft}
       note={m.hint ? 'Gợi ý: nước mà máy mức Khó sẽ chọn ở chỗ bạn' : null}
       ended={m.outcome}
       youWon={m.outcome?.winner === ME}

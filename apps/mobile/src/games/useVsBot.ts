@@ -39,6 +39,8 @@ export interface VsBot<S, A> {
   /** Lùi về thế cờ trước nước gần nhất của người chơi. */
   undo: () => void;
   canUndo: boolean;
+  /** Số lần lùi còn lại trong ván này. */
+  undosLeft: number;
 }
 
 /**
@@ -49,6 +51,15 @@ export interface VsBot<S, A> {
  * gì, mà đánh với máy vốn là để học.
  */
 export const HINTS_PER_MATCH = 3;
+
+/**
+ * Mỗi ván được năm lần lùi.
+ *
+ * Lùi không giới hạn thì không còn là ván cờ mà là dò đáp án: cứ đi thử,
+ * thua thì lùi, đi lại. Năm lần đủ để chữa mấy nước lỡ tay và học lại một
+ * thế khó, không đủ để dò hết cây nước đi.
+ */
+export const UNDOS_PER_MATCH = 5;
 
 export function useVsBot<S extends BaseState, A>(
   engine: Engine<S, A, unknown, unknown>,
@@ -91,6 +102,7 @@ export function useVsBot<S extends BaseState, A>(
   const [thinking, setThinking] = useState(false);
   const [clock, setClock] = useState<[number, number]>([startMs, startMs]);
   const [hintsLeft, setHintsLeft] = useState(HINTS_PER_MATCH);
+  const [undosLeft, setUndosLeft] = useState(UNDOS_PER_MATCH);
   const [hint, setHint] = useState<A | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -112,6 +124,7 @@ export function useVsBot<S extends BaseState, A>(
     setThinking(false);
     setClock([startMs, startMs]);
     setHintsLeft(HINTS_PER_MATCH);
+    setUndosLeft(UNDOS_PER_MATCH);
     setHint(null);
     setFrames({ cur: fresh(next), past: [] });
   }, [fresh, startMs]);
@@ -122,22 +135,23 @@ export function useVsBot<S extends BaseState, A>(
    * Đồng hồ **không** lùi theo. Thời gian đã tiêu là đã tiêu — lùi cả giờ
    * thì người chơi cứ lùi mãi mà không mất gì, đồng hồ thành đồ trang trí.
    */
-  const undo = useCallback(() => {
-    setFrames((f) => {
-      for (let i = f.past.length - 1; i >= 0; i--) {
-        const t = engine.turn(f.past[i]!);
-        if (t.kind === 'seat' && t.seat === ME) {
-          return { cur: f.past[i]!, past: f.past.slice(0, i) };
-        }
-      }
-      return f;
-    });
-  }, [engine]);
+  const rewindTo = (() => {
+    for (let i = frames.past.length - 1; i >= 0; i--) {
+      const t = engine.turn(frames.past[i]!);
+      if (t.kind === 'seat' && t.seat === ME) return i;
+    }
+    return -1;
+  })();
 
-  const canUndo = frames.past.some((p) => {
-    const t = engine.turn(p);
-    return t.kind === 'seat' && t.seat === ME;
-  });
+  const undo = useCallback(() => {
+    // Trừ lượt lùi **chỉ khi thật sự lùi được**. Tính trước ở đây chứ không
+    // tính bên trong `setFrames`: hàm cập nhật state có thể được gọi hai
+    // lần trong chế độ kiểm tra của React, và trừ bên trong đó là mỗi lần
+    // bấm mất hai lượt.
+    if (rewindTo < 0 || undosLeft <= 0) return;
+    setFrames((f) => ({ cur: f.past[rewindTo]!, past: f.past.slice(0, rewindTo) }));
+    setUndosLeft((n) => n - 1);
+  }, [rewindTo, undosLeft]);
 
   /**
    * Gợi ý = hỏi chính con bot mức Khó xem nó sẽ đi nước nào ở chỗ của bạn.
@@ -206,7 +220,8 @@ export function useVsBot<S extends BaseState, A>(
     undo,
     // Lùi được cả khi ván đã xong: nước thua cuối cùng chính là nước người
     // ta muốn rút lại nhất.
-    canUndo,
+    canUndo: rewindTo >= 0 && undosLeft > 0,
+    undosLeft,
   };
 }
 
