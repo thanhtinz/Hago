@@ -123,13 +123,6 @@ export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled
     return out;
   }, [width, bh, cellH, cellW, quanW, L, Tp]);
 
-  const ground = useMemo(() => {
-    const rnd = seeded(8899);
-    return Array.from({ length: 120 }, (_, i) => (
-      <Circle key={i} cx={rnd() * W} cy={rnd() * H} r={0.5 + rnd() * 1.5} fill="#8A6F52" opacity={0.08 + rnd() * 0.16} />
-    ));
-  }, [W, H]);
-
   /**
    * Sỏi thật thì hòn to hòn nhỏ, hòn ngả nâu hòn ngả xám. Vẽ mười hai viên
    * y hệt nhau trong một ô là ra hàng bi nhựa.
@@ -157,15 +150,6 @@ export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled
           {/* Vạt đất là nền **vừa đủ sáng** để sỏi sẫm nổi lên, không phải
               một quầng đèn. Bản đầu tôi lấy màu sáng nhất làm tâm, thành ra
               cả bàn bạc phếch và sỏi chìm nghỉm. */}
-          {/* Chỗ đặt bàn cờ là vạt cát đã **gạt phẳng**, không phải một
-              tấm lót. Nền đã là cát rồi nên vạt này chỉ cần sáng hơn một
-              chút và mờ dần hẳn ra ngoài; tô đậm thành ra một cái đĩa dán
-              lên bãi cát. */}
-          <RadialGradient id="quan-patch" cx="0.5" cy="0.48" r="0.6">
-            <Stop offset="0" stopColor={T.groundLit} stopOpacity="0.55" />
-            <Stop offset="0.6" stopColor={T.ground} stopOpacity="0.3" />
-            <Stop offset="1" stopColor={T.ground} stopOpacity="0" />
-          </RadialGradient>
           <RadialGradient id="peb-0" cx="0.34" cy="0.3" r="0.8">
             <Stop offset="0" stopColor={T.pebbleLit} />
             <Stop offset="1" stopColor={T.pebble} />
@@ -191,9 +175,10 @@ export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled
           </ClipPath>
         </Defs>
 
-        <Ellipse cx={W / 2} cy={H / 2} rx={W * 0.52} ry={H * 0.54} fill="url(#quan-patch)" />
-        {ground}
-
+        {/* Không có vạt sáng nào dưới bàn cờ.
+            Một vầng sáng mờ vẫn là một vầng sáng **có mép**, và mắt bắt mép
+            đó thành cái khung thứ hai bao quanh bàn. Nền đã là cát thì bàn
+            cờ cứ vạch thẳng lên cát, không cần chỗ lót. */}
         {chalk}
 
         {Array.from({ length: RING }, (_, screen) => {
@@ -247,7 +232,7 @@ export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled
                           y={ty}
                           fontSize={fs}
                           fill="none"
-                          stroke={T.groundLit}
+                          stroke="#C6A576"
                           strokeWidth={fs * 0.42}
                           strokeLinejoin="round"
                           textAnchor="middle"

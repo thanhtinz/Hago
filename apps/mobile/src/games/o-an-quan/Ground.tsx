@@ -12,6 +12,11 @@ import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, RadialGradient, Rect,
  * Cát khác đất ở ba chỗ, thiếu cái nào cũng thành nền nâu trơn: hạt lấm tấm
  * dày và có cả hạt sáng lẫn hạt tối, vài gợn sóng dài do gió, và mấy chỗ ẩm
  * sẫm màu loang không đều.
+ *
+ * Không có quầng nắng ở giữa. Một vầng sáng mờ vẫn là một vầng sáng có mép,
+ * và mắt bắt ngay cái mép đó thành một cái khung bầu dục bao quanh bàn cờ —
+ * đúng thứ vừa bỏ đi khi tháo khung. Chiều sâu để cho bốn góc tối dần lo,
+ * vì nó không có mép nào cả.
  */
 export function GroundBackdrop({ width, height }: { width: number; height: number }) {
   const rng = (seed: number) => {
@@ -68,8 +73,7 @@ export function GroundBackdrop({ width, height }: { width: number; height: numbe
         cy={r() * height}
         rx={width * (0.12 + r() * 0.22)}
         ry={height * (0.06 + r() * 0.12)}
-        fill="#8A6A44"
-        opacity={0.07 + r() * 0.06}
+        fill="url(#sand-damp)"
       />
     ));
   }, [width, height]);
@@ -83,12 +87,16 @@ export function GroundBackdrop({ width, height }: { width: number; height: numbe
             <Stop offset="0.45" stopColor="#B08C60" />
             <Stop offset="1" stopColor="#8B6E48" />
           </LinearGradient>
-          <RadialGradient id="sand-sun" cx="0.5" cy="0.44" r="0.7">
-            <Stop offset="0" stopColor="#FFF0CE" stopOpacity="0.3" />
-            <Stop offset="1" stopColor="#FFF0CE" stopOpacity="0" />
-          </RadialGradient>
           {/* Tối dần bốn góc, nếu không thì bãi cát sáng đều trông như một
               mảng màu dán lên màn hình. */}
+          {/* Vệt cát ẩm phải tan dần ra mép. Tô màu đặc rồi hạ độ mờ xuống
+              thì vẫn còn nguyên đường biên — nhạt nhưng vẫn là một cung
+              tròn liền, và mắt bắt nó thành cái khung. */}
+          <RadialGradient id="sand-damp" cx="0.5" cy="0.5" r="0.5">
+            <Stop offset="0" stopColor="#8A6A44" stopOpacity="0.22" />
+            <Stop offset="0.6" stopColor="#8A6A44" stopOpacity="0.1" />
+            <Stop offset="1" stopColor="#8A6A44" stopOpacity="0" />
+          </RadialGradient>
           <RadialGradient id="sand-vig" cx="0.5" cy="0.5" r="0.75">
             <Stop offset="0.5" stopColor="#3A2A16" stopOpacity="0" />
             <Stop offset="1" stopColor="#3A2A16" stopOpacity="0.62" />
@@ -106,7 +114,6 @@ export function GroundBackdrop({ width, height }: { width: number; height: numbe
         {damp}
         {ripples}
         {grains}
-        <Ellipse cx={width / 2} cy={height * 0.46} rx={width * 0.72} ry={height * 0.42} fill="url(#sand-sun)" />
         <Rect x={0} y={0} width={width} height={height} fill="url(#sand-vig)" />
         <Rect x={0} y={0} width={width} height={height * 0.1} fill="url(#sand-top)" />
         <Rect x={0} y={height * 0.9} width={width} height={height * 0.1} fill="url(#sand-bot)" />
