@@ -35,9 +35,11 @@ export interface CaroBoardProps {
   mySeat: number | null;
   onPlay: (r: number, c: number) => void;
   disabled?: boolean;
+  /** Ô đang được gợi ý, vẽ bằng nét chì mờ như người ta ướm thử. */
+  hint?: { r: number; c: number } | null;
 }
 
-export function CaroBoard({ view, size, mySeat, onPlay, disabled }: CaroBoardProps) {
+export function CaroBoard({ view, size, mySeat, onPlay, disabled, hint }: CaroBoardProps) {
   const n = view.size;
   const cell = size / n;
 
@@ -161,6 +163,34 @@ export function CaroBoard({ view, size, mySeat, onPlay, disabled }: CaroBoardPro
               );
             })()
           : null}
+
+        {/* Gợi ý vẽ bằng nét chì mờ, không phải mực: nó là nước *ướm thử*,
+            chưa phải nước đã đi. Vẽ đậm bằng mực thì nhìn thoáng qua tưởng
+            mình đã đánh rồi. */}
+        {hint ? (
+          <G>
+            <Rect
+              x={hint.c * cell + cell * 0.08}
+              y={hint.r * cell + cell * 0.08}
+              width={cell * 0.84}
+              height={cell * 0.84}
+              rx={cell * 0.16}
+              fill={T.highlight}
+              opacity={0.45}
+            />
+            <Rect
+              x={hint.c * cell + cell * 0.08}
+              y={hint.r * cell + cell * 0.08}
+              width={cell * 0.84}
+              height={cell * 0.84}
+              rx={cell * 0.16}
+              stroke={T.pencil}
+              strokeWidth={1.6}
+              strokeDasharray={`${cell * 0.16} ${cell * 0.1}`}
+              fill="none"
+            />
+          </G>
+        ) : null}
 
         {view.cells.map((seat, i) => {
           if (seat < 0) return null;

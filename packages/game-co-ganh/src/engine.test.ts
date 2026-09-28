@@ -180,6 +180,28 @@ test('bot: mức Khó ăn được quân khi có nước gánh rõ ràng', () =>
   assert.equal(mv.t, idx(2, 2), 'bot phải đi vào giữa để gánh hai quân');
 });
 
+/**
+ * Nút gợi ý hỏi chính con bot xem nó sẽ đi nước nào **ở chỗ người chơi**.
+ * Nghĩa là bot bị gọi với ghế mà nó không thường cầm, và nó vẫn phải trả về
+ * nước hợp lệ — nếu không thì bấm gợi ý xong người chơi đi theo và bị engine
+ * từ chối.
+ */
+test('bot trả nước hợp lệ cho cả hai ghế, ở mọi mức', () => {
+  const rng = makeRng('both', 0);
+  let s = fresh('both');
+  for (let k = 0; k < 40; k++) {
+    if (ganhEngine.outcome(s)) s = fresh(`both-${k}`);
+    const legal = new Set(ganhEngine.legal(s, s.toMove).map((m) => `${m.f}>${m.t}`));
+    for (const lv of [1, 2, 3] as const) {
+      const mv = ganhBot.pick(s, s.toMove, lv, makeRng(`p${k}${lv}`, 0), 60);
+      assert.ok(legal.has(`${mv.f}>${mv.t}`), `mức ${lv} trả nước ngoài luật`);
+    }
+    const ms = [...legal].map((x) => x.split('>').map(Number));
+    const [f, t] = ms[rng.int(ms.length)]!;
+    s = ganhEngine.reduce(s, s.toMove, { f: f!, t: t! }, makeRng('z', s.rngCursor));
+  }
+});
+
 test('hợp đồng engine', () => {
   runEngineConformance(ganhEngine, { seats: SEATS });
   runEngineConformance(withStandardMeta(ganhEngine), { seats: SEATS });

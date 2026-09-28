@@ -12,7 +12,7 @@
   "scripts": {
     "build": "tsc --build",
     "clean": "tsc --build --clean",
-    "test": "npm run build && node --test packages/*/dist/**/*.test.js",
+    "test": "tsc --build --force && node --test packages/*/dist/**/*.test.js",
     "typecheck": "tsc --build --dry",
     "web": "npm run build && npm --workspace @co/mobile exec -- expo export --platform web",
     "serve": "npx serve -l 8080 -s apps/mobile/dist",

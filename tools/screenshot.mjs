@@ -77,6 +77,11 @@ for (const [r, c] of [
 }
 await shot('04-caro-dang-danh');
 
+console.log('Gợi ý ở bàn caro');
+await page.getByText('Gợi ý 3', { exact: false }).first().click();
+await page.waitForTimeout(900);
+await shot('04b-caro-goi-y');
+
 /** Mức máy nằm sau một tấm chọn, không chiếm chỗ thường trực dưới bàn cờ. */
 const openLevels = async () => {
   await page.getByLabel('Đổi mức máy').click();
@@ -142,6 +147,11 @@ await shot('08-ganh-chon-quan');
 await page.getByLabel('Điểm hàng 4 cột 2, trống').click();
 await page.waitForTimeout(1400);
 await shot('09-ganh-da-di');
+
+console.log('Gợi ý: ba lần mỗi ván');
+await page.getByText('Gợi ý 3', { exact: false }).first().click();
+await page.waitForTimeout(900);
+await shot('10-ganh-goi-y');
 
 if (problems.length) {
   console.log('\nLỖI TRÊN TRANG:');

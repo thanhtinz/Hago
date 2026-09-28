@@ -50,6 +50,11 @@ export interface MatchShellProps {
   surface?: (w: number, h: number) => React.ReactNode;
   /** Một dòng nhắc trạng thái, ví dụ "bạn đang bị ép đi vào ô đỏ". */
   note?: string | null;
+  /** Nhắc bình thường thì vàng, nhắc ràng buộc luật thì đỏ son. */
+  noteTone?: 'gold' | 'seal';
+  hintsLeft: number;
+  canHint: boolean;
+  onHint: () => void;
   children: React.ReactNode;
 }
 
@@ -110,13 +115,20 @@ export function MatchShell(p: MatchShellProps) {
 
       {p.note ? (
         <View style={{ paddingHorizontal: S.lg, paddingTop: S.xs }}>
-          <Txt size={12} color={A.sealLit} center>
+          <Txt size={12} color={p.noteTone === 'seal' ? A.sealLit : A.gold} center>
             {p.note}
           </Txt>
         </View>
       ) : null}
 
       <View style={{ flexDirection: 'row', gap: S.sm, paddingHorizontal: S.lg, paddingTop: S.md }}>
+        <IconBtn
+          name="bulb"
+          label={`Gợi ý ${p.hintsLeft}`}
+          tone="gold"
+          disabled={!p.canHint}
+          onPress={p.onHint}
+        />
         <IconBtn name="refresh" label="Ván mới" onPress={p.onReset} />
         <IconBtn name="draw" label="Cầu hoà" disabled={!!p.ended} onPress={p.onDraw} />
         <IconBtn name="flag" label="Xin thua" tone="seal" disabled={!!p.ended} onPress={p.onResign} />

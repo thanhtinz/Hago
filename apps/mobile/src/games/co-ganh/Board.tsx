@@ -29,9 +29,11 @@ export interface GanhBoardProps {
   onMove: (f: number, t: number) => void;
   legalTargets: number[];
   disabled?: boolean;
+  /** Nước đang được gợi ý: quân nào đi đâu. */
+  hint?: { f: number; t: number } | null;
 }
 
-export function GanhBoard({ view, size, mySeat, picked, onPick, onMove, legalTargets, disabled }: GanhBoardProps) {
+export function GanhBoard({ view, size, mySeat, picked, onPick, onMove, legalTargets, disabled, hint }: GanhBoardProps) {
   /**
    * Xoay bàn 180° khi người cầm máy ngồi bên trên.
    *
@@ -150,6 +152,25 @@ export function GanhBoard({ view, size, mySeat, picked, onPick, onMove, legalTar
             <Circle key={`t${i}`} cx={cx(i)} cy={cy(i)} r={R * 0.34} fill={T.hint} opacity={0.85} />
           ),
         )}
+
+        {/* Gợi ý: một mũi tên nét đứt từ quân nên đi tới chỗ nên đến. Chỉ
+            tô sáng ô đích thôi thì người chơi không biết nên nhấc quân nào. */}
+        {hint ? (
+          <G opacity={0.9}>
+            <Circle cx={cx(hint.f)} cy={cy(hint.f)} r={R * 1.3} stroke={T.pick} strokeWidth={2.4} strokeDasharray="5 4" fill="none" />
+            <Line
+              x1={cx(hint.f)}
+              y1={cy(hint.f)}
+              x2={cx(hint.t)}
+              y2={cy(hint.t)}
+              stroke={T.pick}
+              strokeWidth={3}
+              strokeDasharray="6 5"
+              strokeLinecap="round"
+            />
+            <Circle cx={cx(hint.t)} cy={cy(hint.t)} r={R * 0.5} fill={T.pick} opacity={0.85} />
+          </G>
+        ) : null}
 
         {view.board.map((seat, i) => {
           if (seat < 0) return null;

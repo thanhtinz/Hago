@@ -41,7 +41,7 @@ docs/
 ```bash
 npm install
 npm run build      # biên dịch packages/
-npm test           # 29 test: hợp đồng engine + luật caro + luật gánh + bot
+npm test           # 31 test: hợp đồng engine + luật caro + luật gánh + bot
 
 npm run web        # đóng gói app cho web để xem thử
 npm run serve      # mở ở http://localhost:8080
@@ -72,6 +72,11 @@ Vài cái đắt nhất:
 - **`GameId` là `string`.** Union đóng trong package lõi biến game thứ mười
   thành một lần sửa file lõi rồi chạy theo mọi `switch` exhaustive trong
   matchmaker, enum DB và bot dispatcher.
+
+`npm test` biên dịch lại **toàn bộ** (`tsc --build --force`) chứ không dựa
+vào bản dựng tăng dần. Đã có lần bản dựng tăng dần bỏ sót một file test vừa
+sửa, và bộ test chạy bản cũ rồi báo xanh — một bộ test âm thầm không chạy
+bài mới thì còn tệ hơn không có bộ test.
 
 Tài liệu không chặn được lỗi im lặng; chỉ test mới chặn được. Nên mỗi engine
 phải gọi `runEngineConformance()`, và bản thân bộ kiểm cũng có test chứng minh

@@ -57,6 +57,10 @@ export function CaroTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
         setTimeout(() => m.send(BOT, { t: 'decline-draw' }), 500);
       }}
       onResign={() => m.send(ME, { t: 'resign' })}
+      hintsLeft={m.hintsLeft}
+      canHint={m.canHint}
+      onHint={m.askHint}
+      note={m.hint ? 'Gợi ý: nước mà máy mức Khó sẽ chọn ở chỗ bạn' : null}
       ended={m.outcome}
       youWon={m.outcome?.winner === ME}
       surface={(w, h) => <DeskBackdrop width={w} height={h} />}
@@ -72,6 +76,7 @@ export function CaroTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
             mySeat={ME}
             onPlay={(r, c) => m.send(ME, { t: 'game', a: { r, c } })}
             disabled={m.toMove !== ME || !!m.outcome}
+            hint={m.hint?.t === 'game' ? m.hint.a : null}
           />
         </View>
       </View>

@@ -27,7 +27,8 @@ export type IconName =
   | 'settings'
   | 'lock'
   | 'chevron'
-  | 'check';
+  | 'check'
+  | 'bulb';
 
 export function Icon({
   name,
@@ -58,6 +59,13 @@ function render(name: IconName, p: Record<string, unknown>, color: string) {
   switch (name) {
     case 'back':
       return <Path d="M15 5 L8 12 L15 19" {...p} />;
+    case 'bulb':
+      return (
+        <>
+          <Path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2h5c.1-.8.5-1.5 1.1-2A6 6 0 0 0 12 3z" {...p} />
+          <Path d="M10 19.5h4M10.5 22h3" {...p} />
+        </>
+      );
     case 'check':
       return <Path d="M5 12.5 L10 17.5 L19 7" {...p} />;
     case 'chevron':

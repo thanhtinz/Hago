@@ -75,13 +75,23 @@ export function GanhTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
         setTimeout(() => m.send(BOT, { t: 'decline-draw' }), 500);
       }}
       onResign={() => m.send(ME, { t: 'resign' })}
+      hintsLeft={m.hintsLeft}
+      canHint={m.canHint}
+      onHint={m.askHint}
       ended={m.outcome}
       youWon={m.outcome?.winner === ME}
       surface={(w, h) => <CourtBackdrop width={w} height={h} />}
       // Luật mở ràng buộc đối thủ chỉ được đi vào mấy ô nhất định. Không nói
       // ra thì người chơi bấm mãi vào chỗ khác mà không hiểu vì sao bàn cờ
       // không nghe lời.
-      note={myTurn && view.forcedTo ? 'Đối thủ vừa mở — bạn buộc phải đi vào ô đánh dấu đỏ' : null}
+      noteTone={m.hint ? 'gold' : 'seal'}
+      note={
+        m.hint
+          ? 'Gợi ý: nước mà máy mức Khó sẽ chọn ở chỗ bạn'
+          : myTurn && view.forcedTo
+            ? 'Đối thủ vừa mở — bạn buộc phải đi vào ô đánh dấu đỏ'
+            : null
+      }
       top={{
         name: 'Máy',
         sub: `Mức ${LEVEL_NAME[level]} · ${theirs} quân`,
@@ -110,6 +120,7 @@ export function GanhTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
             m.send(ME, { t: 'game', a: { f, t } });
           }}
           legalTargets={targets}
+          hint={m.hint?.t === 'game' ? m.hint.a : null}
           disabled={!myTurn}
         />
       </View>

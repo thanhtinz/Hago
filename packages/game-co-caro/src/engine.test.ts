@@ -170,6 +170,24 @@ test('engine không hề nhìn thấy meta-action', () => {
   );
 });
 
+/**
+ * Nút gợi ý hỏi chính con bot xem nó sẽ đi nước nào **ở chỗ người chơi**,
+ * nên bot bị gọi với ghế nó không thường cầm và vẫn phải trả nước hợp lệ.
+ * Sai chỗ này thì người chơi bấm gợi ý, đi theo, rồi bị engine từ chối.
+ */
+test('bot trả nước hợp lệ cho cả hai ghế, ở mọi mức', () => {
+  const rng = makeRng('hint', 0);
+  let s = caroEngine.init(SEATS, { size: 15 }, makeRng('hint', 0));
+  for (let k = 0; k < 20 && !caroEngine.outcome(s); k++) {
+    for (const lv of [1, 2, 3] as const) {
+      const mv = caroBot.pick(s, s.toMove, lv, makeRng(`c${k}${lv}`, 0), 50);
+      assert.ok(caroEngine.isLegalFast!(s, s.toMove, mv), `mức ${lv} trả nước ngoài luật`);
+    }
+    const ms = caroEngine.legal(s, s.toMove);
+    s = caroEngine.reduce(s, s.toMove, ms[rng.int(ms.length)]!, makeRng('z', s.rngCursor));
+  }
+});
+
 test('bot chỉ trả nước hợp lệ, và biết chặn thế thắng của đối thủ', () => {
   for (const level of [1, 2, 3] as const) {
     let s = caroEngine.init(SEATS, { size: 11 }, makeRng('t', 0));
