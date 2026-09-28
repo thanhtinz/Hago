@@ -7,7 +7,7 @@ import { registry } from '@co/core';
 import '../src/catalog';
 import { FACES, type GameFace } from '../src/games/faces';
 import { Icon, type IconName } from '../src/ui/Icon';
-import { Avatar, Btn, Txt } from '../src/ui/kit';
+import { Avatar, Btn, Txt } from '../src/ui/parts';
 import { AppBackdrop, Panel, Rule, WoodFill } from '../src/ui/surface';
 import { A, R, S, glow, lift } from '../src/ui/theme';
 

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Pressable, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import { Icon, type IconName } from './Icon';
 import { GoldFill, Panel } from './surface';
+
+export { Panel } from './surface';
 import { A, F, R, S, glow, lift } from './theme';
 
 /**

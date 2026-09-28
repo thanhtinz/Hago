@@ -25,6 +25,7 @@ packages/
   core/                 hợp đồng engine, RNG có con trỏ, registry,
                         lớp bọc meta-action, bộ kiểm hợp đồng
   game-co-caro/         engine + bot cờ caro
+  game-co-ganh/         engine + bot cờ gánh
 apps/
   mobile/               app Expo: sảnh + màn chơi, mỗi game một bộ mặt
 tools/
@@ -40,7 +41,7 @@ docs/
 ```bash
 npm install
 npm run build      # biên dịch packages/
-npm test           # 18 test: hợp đồng engine + luật caro + bot
+npm test           # 29 test: hợp đồng engine + luật caro + luật gánh + bot
 
 npm run web        # đóng gói app cho web để xem thử
 npm run serve      # mở ở http://localhost:8080
@@ -82,7 +83,10 @@ không bao giờ đỏ thì chỉ là trang trí.
 1. Viết `docs/rules/<id>.md` trước. Luật chốt ở tài liệu, không chốt trong đầu.
 2. `packages/game-<id>/` — cài `Engine<S, A, V, Ev>`. `S` phải mang `ply` và
    `rngCursor`.
-3. Test gọi `runEngineConformance()`. Không xanh thì chưa xong.
+3. Test gọi `runEngineConformance()`. Không xanh thì chưa xong. Game cờ thì
+   viết thêm **perft**: đếm toàn bộ cây nước đi tới vài tầng rồi đối chiếu
+   với bảng trong `docs/rules/`. Sai bất kỳ chỗ nào trong luật cũng làm lệch
+   con số, và nó chỉ ra luôn tầng nào bắt đầu sai.
 4. `registry.register(withStandardMeta(engine))`. Lõi không cần biết tên game.
 
 Không sửa file nào trong `packages/core` để thêm game. Phải sửa nghĩa là hợp
@@ -96,8 +100,9 @@ Không sửa file nào trong `packages/core` để thêm game. Phải sửa ngh�
 | Thẩm định kiến trúc | ✅ `docs/architecture-review.md` |
 | Hợp đồng engine + bộ kiểm | ✅ `packages/core` |
 | Cờ caro (engine + bot) | ✅ |
-| App di động + sảnh + bàn caro chơi với máy | ✅ |
-| Cờ gánh, ô ăn quan | ⏳ |
+| Cờ gánh (engine + bot, perft khớp bảng chuẩn) | ✅ |
+| App di động + sảnh + hai bàn cờ chơi với máy | ✅ |
+| Ô ăn quan | ⏳ |
 | Máy chủ: phòng, ghép cặp, hàng đợi bot | ⏳ |
 | App di động | ⏳ |
 | Cờ vua, cờ tướng, cờ úp, cá ngựa | ⏳ |

@@ -269,7 +269,7 @@ export const FACES: GameFace[] = [
     material: 'Sân gạch',
     mode: '1v1',
     minutes: '~10 phút',
-    ready: false,
+    ready: true,
     Motif: () => (
       <Frame bg="#E8D3BC">
         <Defs>

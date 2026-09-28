@@ -127,6 +127,22 @@ for (const [r, c] of lines) {
 console.log('  kết quả:', done ?? 'chưa xong');
 await shot('06-caro-ket-qua');
 
+console.log('Cờ gánh: vào bàn, chọn quân, đi một nước');
+await page.goto(`${URL_BASE}/`, { waitUntil: 'networkidle' });
+await page.waitForTimeout(1500);
+await page.getByLabel('Chơi Cờ Gánh').click();
+await page.waitForTimeout(1200);
+await shot('07-ganh-ban-dau');
+
+// Chọn một quân của mình rồi đi: bấm đúng như người chơi bấm, không gọi
+// thẳng vào engine.
+await page.getByLabel('Điểm hàng 5 cột 1').click();
+await page.waitForTimeout(400);
+await shot('08-ganh-chon-quan');
+await page.getByLabel('Điểm hàng 4 cột 2, trống').click();
+await page.waitForTimeout(1400);
+await shot('09-ganh-da-di');
+
 if (problems.length) {
   console.log('\nLỖI TRÊN TRANG:');
   for (const p of problems.slice(0, 10)) console.log(' -', p);
