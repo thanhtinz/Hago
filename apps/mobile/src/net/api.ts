@@ -28,6 +28,29 @@ export interface GameStat {
   win: number;
   draw: number;
   loss: number;
+  rating: number;
+  best: number;
+}
+
+export interface MatchRow {
+  id: number;
+  gameId: string;
+  opponent: string;
+  opponentId: string | null;
+  result: 'win' | 'draw' | 'loss';
+  reason: string;
+  rated: boolean;
+  delta: number;
+  at: number;
+}
+
+export interface Profile {
+  user: Me;
+  stats: GameStat[];
+  history: MatchRow[];
+  streak: { kind: 'win' | 'draw' | 'loss'; n: number } | null;
+  friends: number;
+  requests: number;
 }
 
 export interface Friend {
@@ -163,10 +186,19 @@ export const auth = {
     const r = await post<{ user: Me }>('/me/name', { name });
     set({ me: r.user });
   },
+  avatar: async (avatar: string) => {
+    const r = await post<{ user: Me }>('/me/avatar', { avatar });
+    set({ me: r.user });
+  },
+  remove: async (confirm: string) => {
+    await call('/me', { method: 'DELETE', body: JSON.stringify({ confirm }) });
+    write(null);
+    set({ me: null, loading: false });
+  },
 };
 
 export const api = {
-  me: () => call<{ user: Me; stats: GameStat[] }>('/me'),
+  me: () => call<Profile>('/me'),
   user: (id: string) => call<{ user: PublicUser; stats: GameStat[]; friend: boolean; blocked: boolean }>(`/users/${id}`),
   search: (q: string) => call<{ users: PublicUser[] }>(`/users?q=${encodeURIComponent(q)}`),
   friends: () => call<{ friends: Friend[]; blocked: PublicUser[] }>('/friends'),

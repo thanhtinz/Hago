@@ -28,13 +28,19 @@ const accounts = new Accounts(db);
  * đúng là lý do `rated` có mặt từ đầu trong `Rooms`.
  */
 const rooms = new Rooms({
-  onFinish: ({ gameId, rated, seats, outcome }) => {
-    if (!rated) return;
-    for (const [seat, userId] of seats.entries()) {
-      if (!userId) continue;
-      const r = outcome.winner === null ? 'draw' : outcome.winner === seat ? 'win' : 'loss';
-      accounts.recordResult(userId, gameId, r);
-    }
+  onFinish: ({ gameId, code, rated, seats, names, outcome }) => {
+    accounts.recordMatch({
+      gameId,
+      code,
+      seats: [seats[0] ?? null, seats[1] ?? null],
+      names: [names[0] ?? '—', names[1] ?? '—'],
+      winner: outcome.winner,
+      reason: outcome.reason,
+      // Lịch sử ghi **mọi** ván, kể cả phòng riêng; chỉ điểm Elo là không
+      // tính. Giấu cả ván khỏi lịch sử thì người chơi tưởng app quên mất ván
+      // họ vừa đánh với bạn.
+      rated,
+    });
   },
 });
 

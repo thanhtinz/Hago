@@ -153,17 +153,118 @@ test('tìm người chơi theo tên, không trả về chính mình', () => {
   assert.equal(a.search('A', x.id).length, 0, 'một ký tự thì không tìm, tránh quét cả bảng');
 });
 
+/** Ghi một ván giữa hai người, mặc định tính xếp hạng. */
+function play(a: Accounts, x: string, y: string, gameId: string, winner: number | null, rated = true) {
+  a.recordMatch({ gameId, code: 'TEST1', seats: [x, y], names: ['An', 'Bình'], winner, reason: 'thử', rated });
+}
+
 test('thành tích cộng dồn theo từng bộ môn', () => {
   const a = fresh();
   const x = a.register('An', 'an@example.com', 'matkhaudai').user;
-  a.recordResult(x.id, 'co-caro', 'win');
-  a.recordResult(x.id, 'co-caro', 'win');
-  a.recordResult(x.id, 'co-caro', 'loss');
-  a.recordResult(x.id, 'co-ganh', 'draw');
-  assert.deepEqual(a.stats(x.id), [
-    { gameId: 'co-caro', win: 2, draw: 0, loss: 1 },
-    { gameId: 'co-ganh', win: 0, draw: 1, loss: 0 },
-  ]);
+  const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
+  play(a, x.id, y.id, 'co-caro', 0);
+  play(a, x.id, y.id, 'co-caro', 0);
+  play(a, x.id, y.id, 'co-caro', 1);
+  play(a, x.id, y.id, 'co-ganh', null);
+
+  const s = a.stats(x.id);
+  assert.equal(s.length, 2);
+  assert.deepEqual(
+    s.map((r) => [r.gameId, r.win, r.draw, r.loss]),
+    [
+      ['co-caro', 2, 0, 1],
+      ['co-ganh', 0, 1, 0],
+    ],
+  );
+  // Bộ môn chưa đánh ván nào thì **không** hiện ra, thay vì một hàng 0–0–0.
+  assert.equal(a.stats(x.id).some((r) => r.gameId === 'co-vua'), false);
+});
+
+test('Elo: thắng thì lên, thua thì xuống đúng bằng nhau, và hoà giữa hai người ngang điểm là 0', () => {
+  const a = fresh();
+  const x = a.register('An', 'an@example.com', 'matkhaudai').user;
+  const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
+
+  play(a, x.id, y.id, 'co-caro', 0);
+  const sx = a.stats(x.id)[0]!;
+  const sy = a.stats(y.id)[0]!;
+  assert.ok(sx.rating > 1200, 'người thắng phải lên điểm');
+  assert.equal(sx.rating - 1200, 1200 - sy.rating, 'hai bên ngang điểm thì cộng và trừ bằng nhau');
+  assert.equal(sx.best, sx.rating);
+
+  const before = a.stats(x.id)[0]!.rating;
+  play(a, x.id, y.id, 'co-ganh', null);
+  assert.equal(a.stats(x.id).find((r) => r.gameId === 'co-ganh')!.rating, 1200, 'hoà ngang điểm thì không đổi');
+  assert.equal(a.stats(x.id).find((r) => r.gameId === 'co-caro')!.rating, before, 'bộ môn khác không bị đụng');
+});
+
+test('điểm cao nhất không tụt theo điểm hiện tại', () => {
+  const a = fresh();
+  const x = a.register('An', 'an@example.com', 'matkhaudai').user;
+  const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
+  play(a, x.id, y.id, 'co-caro', 0);
+  const peak = a.stats(x.id)[0]!.rating;
+  play(a, x.id, y.id, 'co-caro', 1);
+  play(a, x.id, y.id, 'co-caro', 1);
+  const s = a.stats(x.id)[0]!;
+  assert.ok(s.rating < peak);
+  assert.equal(s.best, peak);
+});
+
+test('phòng riêng vào lịch sử nhưng không đụng tới điểm', () => {
+  const a = fresh();
+  const x = a.register('An', 'an@example.com', 'matkhaudai').user;
+  const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
+  play(a, x.id, y.id, 'co-caro', 0, false);
+  assert.equal(a.stats(x.id)[0]!.rating, 1200, 'phòng riêng không tính điểm');
+  assert.equal(a.stats(x.id)[0]!.win, 1, 'nhưng vẫn cộng vào thắng thua');
+  assert.equal(a.history(x.id).length, 1, 'và vẫn hiện trong lịch sử');
+  assert.equal(a.history(x.id)[0]!.rated, false);
+});
+
+test('lịch sử xoay đúng theo góc nhìn từng người', () => {
+  const a = fresh();
+  const x = a.register('An', 'an@example.com', 'matkhaudai').user;
+  const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
+  play(a, x.id, y.id, 'co-caro', 0);
+
+  const hx = a.history(x.id)[0]!;
+  const hy = a.history(y.id)[0]!;
+  assert.equal(hx.result, 'win');
+  assert.equal(hx.opponent, 'Bình');
+  assert.equal(hy.result, 'loss');
+  assert.equal(hy.opponent, 'An');
+  assert.equal(hx.delta, -hy.delta, 'điểm một bên được đúng bằng bên kia mất');
+});
+
+test('chuỗi tính từ ván gần nhất, và hoà cắt chuỗi', () => {
+  const a = fresh();
+  const x = a.register('An', 'an@example.com', 'matkhaudai').user;
+  const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
+  assert.equal(a.streak(x.id), null, 'chưa đánh ván nào thì chưa có chuỗi');
+
+  play(a, x.id, y.id, 'co-caro', 0);
+  play(a, x.id, y.id, 'co-caro', 0);
+  play(a, x.id, y.id, 'co-caro', 0);
+  assert.deepEqual(a.streak(x.id), { kind: 'win', n: 3 });
+  assert.deepEqual(a.streak(y.id), { kind: 'loss', n: 3 });
+
+  play(a, x.id, y.id, 'co-caro', null);
+  assert.deepEqual(a.streak(x.id), { kind: 'draw', n: 1 }, 'hoà cắt chuỗi thắng');
+});
+
+test('xoá tài khoản không xoá lịch sử của đối thủ', () => {
+  const a = fresh();
+  const x = a.register('An', 'an@example.com', 'matkhaudai').user;
+  const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
+  play(a, x.id, y.id, 'co-caro', 0);
+
+  a.deleteUser(x.id);
+  assert.equal(a.user(x.id), null);
+  const h = a.history(y.id);
+  assert.equal(h.length, 1, 'ván vẫn còn trong lịch sử của người còn lại');
+  assert.equal(h[0]!.opponent, 'An', 'tên chép sẵn nên vẫn đọc được');
+  assert.equal(h[0]!.opponentId, null, 'nhưng không còn hồ sơ để mở');
 });
 
 test('xoá tài khoản kéo theo phiên, bạn bè và thành tích', () => {
@@ -172,12 +273,12 @@ test('xoá tài khoản kéo theo phiên, bạn bè và thành tích', () => {
   const x = a.register('An', 'an@example.com', 'matkhaudai').user;
   const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
   a.requestFriend(x.id, y.id);
-  a.recordResult(x.id, 'co-caro', 'win');
+  play(a, x.id, y.id, 'co-caro', 0);
 
   db.prepare('DELETE FROM users WHERE id = ?').run(x.id);
   // Khoá ngoại ở SQLite **mặc định tắt**; nếu quên bật PRAGMA thì mấy hàng
   // dưới đây vẫn còn và trỏ tới một người không tồn tại.
   assert.equal(a.friends(y.id).length, 0);
-  assert.equal((db.prepare('SELECT COUNT(*) AS n FROM stats').get() as unknown as { n: number }).n, 0);
+  assert.equal((db.prepare('SELECT COUNT(*) AS n FROM stats WHERE user_id = ?').get(x.id) as unknown as { n: number }).n, 0);
   assert.equal((db.prepare('SELECT COUNT(*) AS n FROM sessions').get() as unknown as { n: number }).n, 1);
 });

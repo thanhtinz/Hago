@@ -63,8 +63,38 @@ CREATE TABLE IF NOT EXISTS stats (
   win     INTEGER NOT NULL DEFAULT 0,
   draw    INTEGER NOT NULL DEFAULT 0,
   loss    INTEGER NOT NULL DEFAULT 0,
+  -- Elo, mỗi bộ môn một thang riêng. Mạnh cờ caro không nói gì về cờ vây.
+  rating  INTEGER NOT NULL DEFAULT 1200,
+  best    INTEGER NOT NULL DEFAULT 1200,
   PRIMARY KEY (user_id, game_id)
 );
+
+-- Lịch sử trận. Một hàng một ván, hai người cùng đọc một hàng.
+--
+-- Đây là thứ làm trang cá nhân có nội dung thật: "thắng 12 thua 3" là con số
+-- chết, còn "hôm qua thắng Bình 3 ván cờ gánh liên tiếp" là thứ người ta mở
+-- app ra xem. Cũng là nguồn duy nhất tính được chuỗi thắng.
+CREATE TABLE IF NOT EXISTS matches (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  game_id    TEXT NOT NULL,
+  code       TEXT NOT NULL,
+  a_id       TEXT REFERENCES users(id) ON DELETE SET NULL,
+  b_id       TEXT REFERENCES users(id) ON DELETE SET NULL,
+  -- Tên chép lại lúc kết thúc: người kia xoá tài khoản thì lịch sử của mình
+  -- vẫn đọc được, thay vì thành một hàng trống.
+  a_name     TEXT NOT NULL,
+  b_name     TEXT NOT NULL,
+  -- 0, 1, hoặc NULL nếu hoà.
+  winner     INTEGER,
+  reason     TEXT NOT NULL,
+  rated      INTEGER NOT NULL,
+  -- Điểm Elo đổi bao nhiêu cho ghế 0 (ghế 1 đổi ngược dấu khi không hoà).
+  delta_a    INTEGER NOT NULL DEFAULT 0,
+  delta_b    INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS matches_a ON matches(a_id, id);
+CREATE INDEX IF NOT EXISTS matches_b ON matches(b_id, id);
 
 -- Quan hệ bạn bè lưu **một hàng cho một cặp**, với a < b theo thứ tự chuỗi.
 -- Lưu hai chiều là mời hai hàng lệch nhau: một bên thấy bạn, bên kia không.

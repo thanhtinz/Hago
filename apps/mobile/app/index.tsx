@@ -8,7 +8,8 @@ import '../src/catalog';
 import { FACES, type GameFace } from '../src/games/faces';
 import { useAuth, useRestoreOnce } from '../src/net/api';
 import { Icon, type IconName } from '../src/ui/Icon';
-import { Avatar, Btn, Txt } from '../src/ui/parts';
+import { Btn, Txt } from '../src/ui/parts';
+import { CrestBadge } from '../src/ui/Crest';
 import { AppBackdrop, Panel, Rule, WoodFill } from '../src/ui/surface';
 import { A, R, S, glow, lift } from '../src/ui/theme';
 
@@ -60,6 +61,7 @@ export default function Lobby() {
           accessibilityRole="button"
           accessibilityLabel="Cài đặt"
           hitSlop={10}
+          onPress={() => router.push(me ? '/me?tab=cai-dat' : '/auth')}
           style={{ position: 'absolute', right: S.lg, top: insets.top + S.md }}
         >
           <Icon name="settings" size={20} color={A.inkFaint} />
@@ -73,7 +75,13 @@ export default function Lobby() {
               onPress={() => router.push(me ? '/me' : '/auth')}
               style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md }}
             >
-              <Avatar name={me?.name ?? '?'} size={46} active={!!me} />
+              {me ? (
+                <CrestBadge avatar={me.avatar} id={me.id} size={46} active />
+              ) : (
+                <View style={{ width: 46, height: 46, borderRadius: 23, borderWidth: 1.2, borderColor: A.lineSoft, alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="user" size={22} color={A.inkFaint} />
+                </View>
+              )}
               <View style={{ flex: 1 }}>
                 <Txt size={17} weight="display">
                   {me?.name ?? 'Chưa đăng nhập'}

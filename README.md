@@ -60,7 +60,7 @@ docs/
 ```bash
 npm install
 npm run build      # biên dịch packages/
-npm test           # 76 test: hợp đồng engine + luật ba game + bot + máy chủ
+npm test           # 82 test: hợp đồng engine + luật ba game + bot + máy chủ
 
 npm run web        # đóng gói app cho web để xem thử
 npm run serve      # mở ở http://localhost:8080
@@ -130,7 +130,7 @@ Không sửa file nào trong `packages/core` để thêm game. Phải sửa ngh�
 | Máy chủ: phòng, ghép cặp, đồng hồ, chống gửi lặp | ✅ `apps/server` |
 | App nối máy chủ: ghép cặp, tạo phòng, vào mã — chơi với người thật | ✅ |
 | Tài khoản: đăng ký, đăng nhập, Google | ✅ `apps/server/src/accounts.ts` |
-| Trang cá nhân + thành tích theo bộ môn | ✅ |
+| Trang cá nhân: điểm Elo từng bộ môn, lịch sử trận, chuỗi, con dấu, xoá tài khoản | ✅ |
 | Bạn bè: kết bạn, tỷ thí, xoá, chặn | ⏳ API xong, chưa có giao diện |
 | Nhắn tin: chung, riêng, trong phòng, thông báo hệ thống | ⏳ |
 | Hàng đợi bot chạy trên máy chủ | ⏳ |

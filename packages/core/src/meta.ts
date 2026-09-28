@@ -112,7 +112,15 @@ export function withStandardMeta<S extends BaseState, A, V, Ev>(
     const after: MetaState<S> = { ...s, out: [...s.out, { seat, why }], drawOffer: null, ...bump(s) };
     const left = alive(after);
     if (left.length >= 2) return after;
-    const reason = why === 'resign' ? 'đối thủ đầu hàng' : why === 'flag' ? 'đối thủ hết giờ' : 'đối thủ bỏ trận';
+    /**
+     * Lý do viết **trung lập**, không đứng về bên nào.
+     *
+     * "đối thủ đầu hàng" chỉ đúng khi người đọc là bên thắng. Cùng một chuỗi
+     * đó hiện trong lịch sử của bên thua thành "THUA · đối thủ đầu hàng", tự
+     * mâu thuẫn ngay trên một dòng. `Outcome` được cả hai bên đọc, nên nó
+     * không được mang góc nhìn của ai.
+     */
+    const reason = why === 'resign' ? 'xin thua' : why === 'flag' ? 'hết giờ' : 'bỏ trận';
     return {
       ...after,
       ended: {

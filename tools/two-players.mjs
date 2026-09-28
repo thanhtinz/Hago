@@ -124,10 +124,24 @@ await shot(A, '26-trang-ca-nhan');
 const hasStats = (await A.getByText('Cờ Gánh').count()) > 0;
 console.log(`  thành tích cờ gánh hiện ra: ${hasStats}`);
 
+// Ba thẻ của trang cá nhân, chụp cả ba để soi tay.
+await A.getByLabel('Thẻ Lịch sử').click();
+await A.waitForTimeout(700);
+await shot(A, '28-lich-su-tran');
+const hasHistory = (await A.getByText('Bình Trần').count()) > 0;
+console.log(`  trận vừa đánh hiện trong lịch sử: ${hasHistory}`);
+await A.getByLabel('Thẻ Cài đặt').click();
+await A.waitForTimeout(700);
+await shot(A, '29-cai-dat');
+
 await browser.close();
 if (errors.length) {
   console.error('\nLỗi trên trang:');
   for (const e of errors) console.error('  ' + e);
+  process.exit(1);
+}
+if (!hasHistory) {
+  console.error('\nLịch sử trận không ghi lại ván vừa đánh.');
   process.exit(1);
 }
 if (!hasStats) {

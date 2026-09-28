@@ -102,12 +102,33 @@ npm test        # tsc --build --force + toàn bộ test
   máy thì không đòi gì. Tài khoản khách chỉ sống trên đúng một trình duyệt,
   nên mọi thành tích nó ghi được đều sẽ mất, và người chơi chỉ phát hiện ra
   sau vài chục ván.
+- **Điểm Elo tính riêng từng bộ môn.** Mạnh cờ caro không nói gì về cờ vây.
+  `K` lớn trong 30 ván đầu rồi nhỏ lại.
+- **`Outcome.reason` phải trung lập**, không đứng về bên nào. "đối thủ đầu
+  hàng" chỉ đúng với bên thắng; cùng chuỗi đó trong lịch sử bên thua thành
+  "THUA · đối thủ đầu hàng", tự mâu thuẫn trên một dòng.
+- Lịch sử trận **chép sẵn tên hai bên**. Đối thủ xoá tài khoản thì lịch sử của
+  mình vẫn đọc được, thay vì thành một hàng trống.
 - Chỉ **ván ghép cặp** vào sổ thành tích. Phòng riêng mở bằng mã thì không:
   hai người quen nhau thay nhau xin thua là bơm điểm xong.
 - `PRAGMA foreign_keys = ON` phải bật tay. SQLite mặc định **im lặng bỏ qua**
   mọi ràng buộc khoá ngoại.
 
-## 8. Điều hướng trong app
+## 8. Trang cá nhân
+
+Nguyên tắc: **mỗi con số phải đến từ một ván có thật**. Không huy hiệu trang
+trí, không thanh tiến độ tới một cấp bậc không tồn tại, không biểu đồ cho ba
+điểm dữ liệu. Chưa đánh ván nào thì nói thẳng là chưa có gì, chứ không bày một
+bộ khung rỗng trông như đang hỏng.
+
+Ảnh đại diện là **con dấu chọn sẵn**, không tải ảnh lên — tải ảnh lên kéo theo
+kho tệp, lọc nội dung và trách nhiệm pháp lý, cho một nhu cầu chỉ là "cho tôi
+khác người bên cạnh". Bộ hình là mười bốn quân cờ tướng, chữ triện. Bản đầu tôi
+tự vẽ thêm sen, tre, nón, rồng bằng nét SVG: ở cỡ 46 điểm chúng đọc ra thành
+dấu thăng, tam giác cảnh báo và một nét nguệch ngoạc. Chữ khắc thì cỡ nào cũng
+sắc.
+
+## 9. Điều hướng trong app
 
 Về sảnh thì dùng `backToLobby(router)` (`src/nav.ts`), **không** dùng
 `router.replace('/')`. `replace` từ một màn được `push` lên trên sảnh chỉ thay

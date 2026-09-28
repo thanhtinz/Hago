@@ -100,9 +100,37 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
       if (token) ctx.accounts.logout(token);
       return json(res, 200, { ok: true }), true;
     }
-    if (p === '/api/me') {
+    if (p === '/api/me' && req.method === 'GET') {
       const u = need();
-      return json(res, 200, { user: u, stats: ctx.accounts.stats(u.id) }), true;
+      return (
+        json(res, 200, {
+          user: u,
+          stats: ctx.accounts.stats(u.id),
+          history: ctx.accounts.history(u.id, 20),
+          streak: ctx.accounts.streak(u.id),
+          friends: ctx.accounts.friends(u.id).filter((f) => f.status === 'accepted').length,
+          requests: ctx.accounts.friends(u.id).filter((f) => f.incoming).length,
+        }),
+        true
+      );
+    }
+    if (p === '/api/me/avatar' && req.method === 'POST') {
+      const u = ctx.accounts.setAvatar(need().id, str(body.avatar) || null);
+      ctx.onRename?.(u);
+      return json(res, 200, { user: u }), true;
+    }
+    /**
+     * Xoá tài khoản. Đòi gõ lại **đúng tên hiển thị** để xác nhận.
+     *
+     * Một nút "xoá" kèm hộp thoại "bạn chắc chứ" thì người ta bấm Có theo phản
+     * xạ. Gõ lại tên buộc phải dừng một nhịp, và đây là thao tác không hoàn
+     * lại được.
+     */
+    if (p === '/api/me' && req.method === 'DELETE') {
+      const u = need();
+      if (str(body.confirm).trim() !== u.name) throw new AuthError('BAD_CONFIRM', 'Gõ đúng tên hiển thị để xác nhận xoá');
+      ctx.accounts.deleteUser(u.id);
+      return json(res, 200, { ok: true }), true;
     }
     if (p === '/api/me/name' && req.method === 'POST') {
       const u = ctx.accounts.rename(need().id, str(body.name));
@@ -120,6 +148,8 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
         json(res, 200, {
           user: publicUser(u),
           stats: ctx.accounts.stats(u.id),
+          history: ctx.accounts.history(u.id, 10),
+          streak: ctx.accounts.streak(u.id),
           friend: viewer ? ctx.accounts.areFriends(viewer, u.id) : false,
           blocked: viewer ? ctx.accounts.isBlockedEither(viewer, u.id) : false,
         }),

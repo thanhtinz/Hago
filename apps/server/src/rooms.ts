@@ -47,6 +47,8 @@ interface Room {
    * thành tích. Không giữ riêng thì ván thua vì bỏ trận không vào sổ ai cả.
    */
   seated: (string | undefined)[];
+  /** Tên lúc ngồi xuống, chép lại để lịch sử đọc được cả khi họ đã rời. */
+  seatedNames: (string | undefined)[];
   match: LiveMatch<BaseState> | null;
   /** Thời gian còn lại của từng ghế, mili giây. */
   clocks: number[];
@@ -67,7 +69,14 @@ export interface RoomsOptions {
    * quả thế này". Cắm thẳng lớp tài khoản vào đây là biến mọi bài test phòng
    * thành bài test có ổ đĩa.
    */
-  onFinish?: (e: { gameId: string; rated: boolean; seats: (string | null)[]; outcome: Outcome }) => void;
+  onFinish?: (e: {
+    gameId: string;
+    code: string;
+    rated: boolean;
+    seats: (string | null)[];
+    names: string[];
+    outcome: Outcome;
+  }) => void;
   /** Hạt giống bí mật của máy chủ. Trộn với mã phòng ra hạt giống của ván. */
   serverSeed?: string;
   /** Nguồn ngẫu nhiên để sinh mã phòng — test truyền vào để có mã đoán trước. */
@@ -159,6 +168,7 @@ export class Rooms {
       clockSpec: engine.spec.defaultClock,
       players: [p, null],
       seated: [p.id, undefined],
+      seatedNames: [p.name, undefined],
       match: null,
       clocks: [engine.spec.defaultClock.initialMs, engine.spec.defaultClock.initialMs],
       turnSince: null,
@@ -184,6 +194,7 @@ export class Rooms {
     const seat = room.players.findIndex((x) => x === null);
     room.players[seat] = p;
     room.seated[seat] = p.id;
+    room.seatedNames[seat] = p.name;
     p.code = room.code;
     this.broadcastRoom(room);
     this.startIfReady(room);
@@ -219,6 +230,7 @@ export class Rooms {
         clockSpec: engine.spec.defaultClock,
         players: [other, p],
         seated: [other.id, p.id],
+        seatedNames: [other.name, p.name],
         match: null,
         clocks: [engine.spec.defaultClock.initialMs, engine.spec.defaultClock.initialMs],
         turnSince: null,
@@ -417,8 +429,10 @@ export class Rooms {
       this.finished.add(room.code);
       this.onFinish?.({
         gameId: room.gameId,
+        code: room.code,
         rated: room.rated,
         seats: room.seated.map((x) => x ?? null),
+        names: room.seatedNames.map((x) => x ?? '—'),
         outcome,
       });
     }

@@ -2,6 +2,41 @@ import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypt
 import type { DatabaseSync } from 'node:sqlite';
 import { pairOf, type User } from './db.js';
 
+export interface GameStat {
+  gameId: string;
+  win: number;
+  draw: number;
+  loss: number;
+  rating: number;
+  best: number;
+}
+
+export interface MatchRow {
+  id: number;
+  gameId: string;
+  opponent: string;
+  opponentId: string | null;
+  result: 'win' | 'draw' | 'loss';
+  reason: string;
+  rated: boolean;
+  delta: number;
+  at: number;
+}
+
+/**
+ * Elo, một thang riêng cho mỗi bộ môn.
+ *
+ * `K` lớn trong 30 ván đầu để điểm bò tới đúng mức nhanh, rồi nhỏ lại để
+ * người đã ổn định không nhảy loạn sau một ván xui. Đây là cách mọi liên đoàn
+ * cờ làm, và lý do là cùng một lý do: điểm phải vừa nhạy lúc chưa biết gì về
+ * người chơi, vừa lì lúc đã biết.
+ */
+export function eloDelta(mine: number, theirs: number, score: number, played: number): number {
+  const k = played < 30 ? 40 : played < 100 ? 24 : 16;
+  const expected = 1 / (1 + 10 ** ((theirs - mine) / 400));
+  return Math.round(k * (score - expected));
+}
+
 /**
  * Tài khoản, phiên đăng nhập, bạn bè, chặn.
  *
@@ -177,6 +212,24 @@ export class Accounts {
     return this.db.prepare('SELECT * FROM users WHERE email = ?').get(email) as unknown as Row | undefined;
   }
 
+  /**
+   * Xoá tài khoản, không hoàn lại được.
+   *
+   * Khoá ngoại lo phần dọn: phiên, thành tích, bạn bè, chặn đều đi theo. Riêng
+   * `matches` để `ON DELETE SET NULL` và đã chép sẵn tên — lịch sử của **đối
+   * thủ** không được biến mất chỉ vì mình xoá tài khoản.
+   */
+  deleteUser(id: string): void {
+    this.db.prepare('DELETE FROM users WHERE id = ?').run(id);
+  }
+
+  setAvatar(id: string, avatar: string | null): User {
+    this.db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(avatar, id);
+    const u = this.user(id);
+    if (!u) throw new AuthError('NO_USER', 'Không có tài khoản này');
+    return u;
+  }
+
   // ---- phiên ---------------------------------------------------------
 
   private openSession(userId: string): Session {
@@ -207,22 +260,144 @@ export class Accounts {
     this.db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
   }
 
-  // ---- thành tích ----------------------------------------------------
+  // ---- thành tích, điểm và lịch sử -----------------------------------
 
-  recordResult(userId: string, gameId: string, r: 'win' | 'draw' | 'loss'): void {
-    this.db
-      .prepare(
-        `INSERT INTO stats (user_id, game_id, ${r}) VALUES (?, ?, 1)
-         ON CONFLICT (user_id, game_id) DO UPDATE SET ${r} = ${r} + 1`,
-      )
-      .run(userId, gameId);
+  private statRow(userId: string, gameId: string): { win: number; draw: number; loss: number; rating: number; best: number } {
+    this.db.prepare('INSERT OR IGNORE INTO stats (user_id, game_id) VALUES (?, ?)').run(userId, gameId);
+    return this.db.prepare('SELECT win, draw, loss, rating, best FROM stats WHERE user_id = ? AND game_id = ?').get(userId, gameId) as unknown as {
+      win: number;
+      draw: number;
+      loss: number;
+      rating: number;
+      best: number;
+    };
   }
 
-  stats(userId: string): { gameId: string; win: number; draw: number; loss: number }[] {
+  /**
+   * Ghi một ván đã kết thúc: thành tích, điểm, và một hàng lịch sử.
+   *
+   * Cả ba đi cùng nhau trong **một transaction**. Cộng thành tích xong mà ngã
+   * trước khi ghi lịch sử là để lại một hồ sơ tự mâu thuẫn — 13 trận trong ô
+   * tổng nhưng 12 dòng trong danh sách — và không có cách nào biết dòng nào
+   * thiếu.
+   */
+  recordMatch(m: {
+    gameId: string;
+    code: string;
+    seats: [string | null, string | null];
+    names: [string, string];
+    winner: number | null;
+    reason: string;
+    rated: boolean;
+  }): void {
+    const [a, b] = m.seats;
+    let dA = 0;
+    let dB = 0;
+    if (m.rated && a && b) {
+      const ra = this.statRow(a, m.gameId).rating;
+      const rb = this.statRow(b, m.gameId).rating;
+      const sa = m.winner === null ? 0.5 : m.winner === 0 ? 1 : 0;
+      dA = eloDelta(ra, rb, sa, this.played(a, m.gameId));
+      dB = eloDelta(rb, ra, 1 - sa, this.played(b, m.gameId));
+    }
+
+    const tx = () => {
+      for (const [seat, id] of [a, b].entries()) {
+        if (!id) continue;
+        const r = m.winner === null ? 'draw' : m.winner === seat ? 'win' : 'loss';
+        const d = seat === 0 ? dA : dB;
+        this.statRow(id, m.gameId);
+        this.db
+          .prepare(
+            `UPDATE stats SET ${r} = ${r} + 1, rating = rating + ?, best = MAX(best, rating + ?)
+             WHERE user_id = ? AND game_id = ?`,
+          )
+          .run(d, d, id, m.gameId);
+      }
+      this.db
+        .prepare(
+          `INSERT INTO matches (game_id, code, a_id, b_id, a_name, b_name, winner, reason, rated, delta_a, delta_b, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(m.gameId, m.code, a, b, m.names[0], m.names[1], m.winner, m.reason, m.rated ? 1 : 0, dA, dB, Date.now());
+    };
+    this.db.exec('BEGIN');
+    try {
+      tx();
+      this.db.exec('COMMIT');
+    } catch (e) {
+      this.db.exec('ROLLBACK');
+      throw e;
+    }
+  }
+
+  private played(userId: string, gameId: string): number {
+    const r = this.statRow(userId, gameId);
+    return r.win + r.draw + r.loss;
+  }
+
+  stats(userId: string): GameStat[] {
     const rows = this.db
-      .prepare('SELECT game_id, win, draw, loss FROM stats WHERE user_id = ? ORDER BY game_id')
-      .all(userId) as unknown as { game_id: string; win: number; draw: number; loss: number }[];
-    return rows.map((r) => ({ gameId: r.game_id, win: r.win, draw: r.draw, loss: r.loss }));
+      .prepare('SELECT game_id, win, draw, loss, rating, best FROM stats WHERE user_id = ? ORDER BY game_id')
+      .all(userId) as unknown as { game_id: string; win: number; draw: number; loss: number; rating: number; best: number }[];
+    return rows
+      .filter((r) => r.win + r.draw + r.loss > 0)
+      .map((r) => ({ gameId: r.game_id, win: r.win, draw: r.draw, loss: r.loss, rating: r.rating, best: r.best }));
+  }
+
+  /** Lịch sử trận, mới nhất trước, đã xoay về góc nhìn của người đang xem. */
+  history(userId: string, limit = 20): MatchRow[] {
+    const rows = this.db
+      .prepare(
+        `SELECT id, game_id, a_id, b_id, a_name, b_name, winner, reason, rated, delta_a, delta_b, created_at
+         FROM matches WHERE a_id = ? OR b_id = ? ORDER BY id DESC LIMIT ?`,
+      )
+      .all(userId, userId, limit) as unknown as {
+      id: number;
+      game_id: string;
+      a_id: string | null;
+      b_id: string | null;
+      a_name: string;
+      b_name: string;
+      winner: number | null;
+      reason: string;
+      rated: number;
+      delta_a: number;
+      delta_b: number;
+      created_at: number;
+    }[];
+    return rows.map((r) => {
+      const mine = r.a_id === userId ? 0 : 1;
+      return {
+        id: r.id,
+        gameId: r.game_id,
+        opponent: mine === 0 ? r.b_name : r.a_name,
+        opponentId: (mine === 0 ? r.b_id : r.a_id) ?? null,
+        result: r.winner === null ? ('draw' as const) : r.winner === mine ? ('win' as const) : ('loss' as const),
+        reason: r.reason,
+        rated: r.rated === 1,
+        delta: mine === 0 ? r.delta_a : r.delta_b,
+        at: r.created_at,
+      };
+    });
+  }
+
+  /**
+   * Chuỗi hiện tại: **liên tiếp cùng một kết quả**, tính từ ván gần nhất.
+   *
+   * Hoà cắt chuỗi. Coi hoà là "không phá chuỗi thắng" thì một người hoà mười
+   * ván giữa hai ván thắng vẫn được ghi chuỗi 2 — con số đó không mô tả gì.
+   */
+  streak(userId: string): { kind: 'win' | 'draw' | 'loss'; n: number } | null {
+    const h = this.history(userId, 50);
+    const first = h[0];
+    if (!first) return null;
+    let n = 0;
+    for (const m of h) {
+      if (m.result !== first.result) break;
+      n++;
+    }
+    return { kind: first.result, n };
   }
 
   // ---- bạn bè và chặn ------------------------------------------------
