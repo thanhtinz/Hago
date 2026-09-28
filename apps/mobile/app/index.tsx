@@ -176,7 +176,11 @@ function GameCard({
       disabled={!ready}
       onPress={onPress}
       style={({ pressed }) => [
-        { width: '47.5%', transform: [{ translateY: pressed ? 1 : 0 }] },
+        // Bo góc phải khai ngay ở đây, chỗ mang bóng đổ. Bóng đổ bám theo bo
+        // góc của chính phần tử mang nó: để trống thì bóng chạy theo hình
+        // chữ nhật vuông góc, và ở bốn góc nó thò ra ngoài thành một đường
+        // viền vuông bao quanh cái thẻ bo tròn.
+        { width: '47.5%', borderRadius: R.md, transform: [{ translateY: pressed ? 1 : 0 }] },
         ready ? glow(0.22, 12) : lift(0.35, 10, 4),
       ]}
     >

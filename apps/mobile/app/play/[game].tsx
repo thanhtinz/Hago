@@ -203,7 +203,8 @@ export default function PlayScreen() {
         <View style={{ alignItems: 'center', paddingVertical: S.sm }}>
           <View style={{ width: board, height: board }}>
             <PaperStack size={board} />
-            <View style={lift(0.6, 26, 12)}>
+            {/* Cùng lý do: bóng đổ bám bo góc của phần tử mang nó. */}
+            <View style={[{ borderRadius: 4 }, lift(0.6, 26, 12)]}>
               <CaroBoard view={view} size={board} mySeat={ME} onPlay={play} disabled={toMove !== ME || !!outcome} />
             </View>
           </View>
