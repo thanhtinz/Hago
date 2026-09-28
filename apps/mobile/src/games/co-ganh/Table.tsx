@@ -6,7 +6,7 @@ import type { BotLevel, MetaState, Seat, Wrapped } from '@co/core';
 import { ganhBot, type GanhAction, type GanhState, type GanhView } from '@co/game-co-ganh';
 import { ganhMeta } from '../../catalog';
 import { LEVEL_NAME, MatchShell } from '../../ui/MatchShell';
-import { S, lift } from '../../ui/theme';
+import { S } from '../../ui/theme';
 import { BOT, ME, useFlagOnTimeout, useVsBot } from '../useVsBot';
 import { GanhBoard, targetsOf } from './Board';
 import { CourtBackdrop } from './Court';
@@ -112,7 +112,8 @@ export function GanhTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
         ms: m.clock[ME],
       }}
     >
-      <View style={[{ borderRadius: 10 }, lift(0.6, 26, 12)]}>
+      {/* Không bọc khung, không đổ bóng: vạch gạch non không có bóng. */}
+      <View>
         <GanhBoard
           view={view}
           size={size}

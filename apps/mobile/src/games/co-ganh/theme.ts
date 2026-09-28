@@ -19,13 +19,13 @@ export const ganhTheme = {
   chalkSoft: '#EADBC4',
 
   /** Quân đất nung của bên dưới. */
-  redFace: '#A8503A',
-  redDeep: '#6E2B1B',
-  redRim: '#5A2212',
+  redFace: '#C05A3C',
+  redDeep: '#6A2413',
+  redRim: '#E8B089',
   /** Quân vỏ nghêu của bên trên. */
   paleFace: '#F8EFDF',
   paleDeep: '#CBB394',
-  paleRim: '#A98A6C',
+  paleRim: '#FFF3DF',
 
   /** Vòng chọn quân và chấm gợi nước đi. */
   pick: '#E3BC72',

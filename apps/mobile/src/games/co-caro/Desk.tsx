@@ -62,11 +62,14 @@ export function DeskBackdrop({ width, height }: { width: number; height: number 
             <Stop offset="0.45" stopColor="#5C4020" />
             <Stop offset="1" stopColor="#38250F" />
           </LinearGradient>
-          {/* Quầng đèn bàn hắt xuống đúng chỗ đặt tờ giấy. */}
-          <RadialGradient id="desk-lamp" cx="0.5" cy="0.44" r="0.62">
-            <Stop offset="0" stopColor="#FFE3B0" stopOpacity="0.22" />
-            <Stop offset="0.6" stopColor="#FFD9A0" stopOpacity="0.07" />
-            <Stop offset="1" stopColor="#000000" stopOpacity="0" />
+          {/* Quầng đèn bàn: trải rộng quá khổ màn hình và nhạt, để trong tầm
+              nhìn không chỗ nào đọc ra được cái mép của nó. Một vầng sáng có
+              mép thì mắt bắt thành khung bầu dục bao quanh bàn cờ — đúng lỗi
+              vừa sửa ở ô ăn quan và cờ gánh. */}
+          <RadialGradient id="desk-lamp" cx="0.5" cy="0.42" r="0.85">
+            <Stop offset="0" stopColor="#FFE3B0" stopOpacity="0.14" />
+            <Stop offset="0.55" stopColor="#FFD9A0" stopOpacity="0.07" />
+            <Stop offset="1" stopColor="#FFD9A0" stopOpacity="0" />
           </RadialGradient>
           <LinearGradient id="desk-fadeTop" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={T.deskFade} stopOpacity="1" />
@@ -80,7 +83,7 @@ export function DeskBackdrop({ width, height }: { width: number; height: number 
         <Rect x={0} y={0} width={width} height={height} fill="url(#desk-wood)" />
         {grain}
         {dust}
-        <Ellipse cx={width / 2} cy={height * 0.46} rx={width * 0.75} ry={height * 0.42} fill="url(#desk-lamp)" />
+        <Ellipse cx={width / 2} cy={height * 0.46} rx={width * 1.05} ry={height * 0.8} fill="url(#desk-lamp)" />
         {/* Hai đầu tan dần vào nền app, để mặt bàn không thành một khối chữ
             nhật dán đè lên màn hình. */}
         <Rect x={0} y={0} width={width} height={height * 0.09} fill="url(#desk-fadeTop)" />

@@ -53,34 +53,6 @@ export function GanhBoard({ view, size, mySeat, picked, onPick, onMove, legalTar
   // và nét kẻ bên dưới biến mất — mà nét kẻ chính là bản đồ nước đi.
   const R = step * 0.3;
 
-  const bricks = useMemo(() => {
-    const rows: React.ReactElement[] = [];
-    const h = size / 5;
-    for (let r = 0; r < 5; r++) {
-      rows.push(
-        <Line key={`m${r}`} x1={0} y1={r * h} x2={size} y2={r * h} stroke={T.mortar} strokeWidth={1.4} opacity={0.5} />,
-      );
-      for (let c = 0; c <= 4; c++) {
-        const x = c * (size / 4) + (r % 2 ? size / 8 : 0);
-        rows.push(<Line key={`b${r}-${c}`} x1={x} y1={r * h} x2={x} y2={r * h + h} stroke={T.mortar} strokeWidth={1.2} opacity={0.4} />);
-      }
-    }
-    return rows;
-  }, [size]);
-
-  const grit = useMemo(() => {
-    let x = 517;
-    const rnd = () => {
-      x ^= x << 13;
-      x ^= x >>> 17;
-      x ^= x << 5;
-      return ((x >>> 0) % 10000) / 10000;
-    };
-    return Array.from({ length: 140 }, (_, i) => (
-      <Circle key={i} cx={rnd() * size} cy={rnd() * size} r={0.4 + rnd() * 1.1} fill="#8A6F52" opacity={0.08 + rnd() * 0.14} />
-    ));
-  }, [size]);
-
   const targets = new Set(legalTargets);
   const forced = new Set(view.forcedTo ?? []);
   const flipped = new Set(view.flipped);
@@ -88,23 +60,13 @@ export function GanhBoard({ view, size, mySeat, picked, onPick, onMove, legalTar
   const cy = (i: number) => py((at(i) / N) | 0);
 
   return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 10,
-        overflow: 'hidden',
-        backgroundColor: T.court,
-        borderWidth: 1,
-        borderColor: T.courtDark,
-      }}
-    >
+    // Không nền, không viền, không bo góc. Bàn cờ gánh là mấy vạch gạch non
+    // kẻ thẳng lên nền sân, nên nền sân phải chạy liền qua dưới nó. Bản
+    // trước là một tấm lát sáng màu đặt trên sân, lại còn tự vẽ gạch ở tỉ lệ
+    // khác hẳn gạch bên dưới — hai lớp gạch lệch nhau nhìn ra ngay.
+    <View style={{ width: size, height: size }}>
       <Svg width={size} height={size}>
         <Defs>
-          <RadialGradient id="ganh-court" cx="0.4" cy="0.3" r="0.9">
-            <Stop offset="0" stopColor={T.courtLit} />
-            <Stop offset="1" stopColor={T.courtDark} />
-          </RadialGradient>
           <RadialGradient id="ganh-red" cx="0.34" cy="0.28" r="0.85">
             <Stop offset="0" stopColor={T.redFace} />
             <Stop offset="1" stopColor={T.redDeep} />
@@ -114,10 +76,6 @@ export function GanhBoard({ view, size, mySeat, picked, onPick, onMove, legalTar
             <Stop offset="1" stopColor={T.paleDeep} />
           </RadialGradient>
         </Defs>
-        <Rect x={0} y={0} width={size} height={size} fill="url(#ganh-court)" />
-        {bricks}
-        {grit}
-
         {/* Nét phấn: 5 ngang, 5 dọc, hai đường chéo lớn, và hình thoi nối bốn
             trung điểm cạnh. Đúng chừng đó, không hơn. */}
         <G opacity={0.92}>
@@ -184,13 +142,17 @@ export function GanhBoard({ view, size, mySeat, picked, onPick, onMove, legalTar
           return (
             <G key={i}>
               <Ellipse cx={px(c) + R * 0.08} cy={py(r) + R * 0.42} rx={R * 0.95} ry={R * 0.3} fill="#4A3320" opacity={0.3} />
+              {/* Vành sáng mảnh quanh quân. Trên nền gạch sẫm, quân đất
+                  nung gần cùng tông với nền; thiếu vành này thì nó lẫn vào
+                  sân đúng lúc người chơi cần đếm quân. */}
               <Circle
                 cx={px(c)}
                 cy={py(r)}
                 r={R}
                 fill={mine ? 'url(#ganh-red)' : 'url(#ganh-pale)'}
                 stroke={flipped.has(i) ? T.flip : mine ? T.redRim : T.paleRim}
-                strokeWidth={flipped.has(i) ? 2.6 : 1}
+                strokeWidth={flipped.has(i) ? 2.6 : 1.2}
+                strokeOpacity={flipped.has(i) ? 1 : 0.55}
               />
               <Path
                 d={`M${px(c) - R * 0.68} ${py(r) - R * 0.38} A ${R * 0.8} ${R * 0.8} 0 0 1 ${px(c) + R * 0.46} ${py(r) - R * 0.66}`}
