@@ -6,7 +6,7 @@ import type { BotLevel, MetaState, Seat, Wrapped } from '@co/core';
 import { quanBot, sideOf, type QuanAction, type QuanState, type QuanView } from '@co/game-o-an-quan';
 import { quanMeta } from '../../catalog';
 import { LEVEL_NAME, MatchShell } from '../../ui/MatchShell';
-import { S, lift } from '../../ui/theme';
+import { S } from '../../ui/theme';
 import { BOT, ME, useFlagOnTimeout, useVsBot } from '../useVsBot';
 import { QuanBoard } from './Board';
 import { GroundBackdrop } from './Ground';
@@ -107,7 +107,9 @@ export function QuanTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
         ms: m.clock[ME],
       }}
     >
-      <View style={[{ borderRadius: 12 }, lift(0.6, 26, 12)]}>
+      {/* Không bọc khung, không đổ bóng: bàn cờ này là vạch phấn trên nền
+          đất, mà nét phấn thì không có bóng. */}
+      <View>
         <QuanBoard
           view={view}
           width={boardW}

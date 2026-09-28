@@ -1,23 +1,27 @@
 import React, { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
-import Svg, { Circle, ClipPath, Defs, Ellipse, G, LinearGradient, Path, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, ClipPath, Defs, Ellipse, G, Path, RadialGradient, Rect, Stop, Text as SvgText } from 'react-native-svg';
 import type { QuanView } from '@co/game-o-an-quan';
 import { quanTheme as T } from './theme';
 
 /**
- * Bàn ô ăn quan.
+ * Bàn ô ăn quan — vạch phấn trên nền đất, **không có khung**.
  *
- * Bàn là một **vòng khép kín 12 ô** nhưng vẽ ra thì là hình chữ nhật mười ô
- * cộng hai hình bán nguyệt hai đầu. Thứ tự vòng phải đúng hình học thật:
- * hàng dưới đọc trái sang phải (1→5), vào quan Đông bên phải (6), rồi hàng
- * trên đọc **phải sang trái** (7→11), rồi về quan Tây bên trái (0). Đánh số
- * hàng trên cùng chiều với hàng dưới là sai và làm lệch mọi ván.
+ * Đây là điểm khác biệt lớn nhất so với tám bộ môn kia: cờ tướng có bàn gỗ,
+ * caro có trang giấy, cờ gánh có sân gạch — đều là một *vật* đặt trên mặt
+ * bàn. Ô ăn quan thì không có vật nào cả: người ta lấy viên gạch non vạch
+ * thẳng xuống nền sân, chơi xong mưa một trận là hết. Đóng nó vào một cái
+ * khung bo góc là biến nó thành thứ khác.
  *
- * Sỏi luôn kèm **con số**. Đếm mười bốn viên sỏi bằng mắt là chuyện không
- * làm được, mà cả game là đếm.
+ * Nên ở đây chỉ có ba lớp: một vạt đất đã quét sạch (mép tan dần, không có
+ * đường biên), nét phấn hơi run tay, và sỏi. Cái nào cũng có thể vẽ ra khỏi
+ * mép mà không lộ chỗ nối.
+ *
+ * Thứ tự vòng vẫn phải đúng hình học thật: hàng dưới đọc trái sang phải
+ * (1→5), vào quan Đông bên phải (6), hàng trên đọc **phải sang trái** (7→11),
+ * rồi về quan Tây bên trái (0).
  */
 
-/** Vị trí trên màn theo thứ tự vòng: 0 quan trái, 1..5 hàng dưới, 6 quan phải, 7..11 hàng trên phải sang trái. */
 const RING = 12;
 
 export interface QuanBoardProps {
@@ -32,99 +36,155 @@ export interface QuanBoardProps {
   hint?: { cell: number; dir: 1 | -1 } | null;
 }
 
+function seeded(seed: number) {
+  let x = seed | 0 || 9;
+  return () => {
+    x ^= x << 13;
+    x ^= x >>> 17;
+    x ^= x << 5;
+    return ((x >>> 0) % 10000) / 10000;
+  };
+}
+
 export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled, hint }: QuanBoardProps) {
-  /**
-   * Tỉ lệ lấy từ bàn thật: năm ô ngang, hai hàng, ô gần vuông, hai đầu là
-   * hai bán nguyệt rộng khoảng nửa ô. Bản trước để bàn cao bằng 0,56 bề
-   * ngang nên mỗi ô cao gấp đôi bề ngang của nó — nhìn ra cái thang chứ
-   * không ra bàn ô ăn quan.
-   */
-  const H = width * 0.4;
+  // Vạt đất rộng hơn bàn cờ, vì mép của nó phải tan dần ra ngoài chứ không
+  // dừng lại ở một đường biên.
+  const pad = width * 0.09;
+  const W = width + pad * 2;
+  const bh = width * 0.4;
+  const H = bh + pad * 2;
   const quanW = width * 0.095;
   const cellW = (width - quanW * 2) / 5;
-  const cellH = H / 2;
+  const cellH = bh / 2;
+  const L = pad;
+  const Tp = pad;
 
-  /**
-   * Xoay bàn nửa vòng khi người cầm máy ngồi hàng trên. Vòng 12 ô nên nửa
-   * vòng đúng bằng `+6`, và phép xoay đó giữ nguyên chiều rải — mũi tên
-   * sang phải vẫn là chiều `+1` ở cả hai cách ngồi.
-   */
   const flip = mySide === 1;
   const real = (screen: number) => (flip ? (screen + 6) % RING : screen);
 
-  /** Tâm của một vị trí trên màn. */
   const centre = (screen: number): [number, number] => {
-    if (screen === 0) return [quanW * 0.52, H / 2];
-    if (screen === 6) return [width - quanW * 0.52, H / 2];
-    if (screen <= 5) return [quanW + (screen - 1) * cellW + cellW / 2, H / 2 + cellH / 2];
-    return [quanW + (11 - screen) * cellW + cellW / 2, cellH / 2];
+    if (screen === 0) return [L + quanW * 0.5, Tp + bh / 2];
+    if (screen === 6) return [L + width - quanW * 0.5, Tp + bh / 2];
+    if (screen <= 5) return [L + quanW + (screen - 1) * cellW + cellW / 2, Tp + bh / 2 + cellH / 2];
+    return [L + quanW + (11 - screen) * cellW + cellW / 2, Tp + cellH / 2];
   };
 
-  const pebbles = useMemo(() => {
-    let x = 20260929;
-    const rnd = () => {
-      x ^= x << 13;
-      x ^= x >>> 17;
-      x ^= x << 5;
-      return ((x >>> 0) % 10000) / 10000;
+  /**
+   * Nét phấn: một nét rộng rất nhạt cho bụi phấn bám quanh, rồi nét chính
+   * hơi cong. Một đường thẳng tắp một màu thì ra nét vector, không ra vạch
+   * gạch non kéo trên nền sân.
+   */
+  const chalk = useMemo(() => {
+    const rnd = seeded(4477);
+    const w = width * 0.007;
+    const line = (key: string, x1: number, y1: number, x2: number, y2: number) => {
+      const bend = (rnd() - 0.5) * width * 0.008;
+      const nx = -(y2 - y1);
+      const ny = x2 - x1;
+      const len = Math.hypot(nx, ny) || 1;
+      const mx = (x1 + x2) / 2 + (nx / len) * bend;
+      const my = (y1 + y2) / 2 + (ny / len) * bend;
+      const d = `M${x1} ${y1} Q${mx} ${my} ${x2} ${y2}`;
+      return (
+        <G key={key}>
+          <Path d={d} stroke={T.chalkSoft} strokeWidth={w * 2.6} opacity={0.3} strokeLinecap="round" fill="none" />
+          <Path d={d} stroke={T.chalk} strokeWidth={w} opacity={0.92} strokeLinecap="round" fill="none" />
+        </G>
+      );
     };
-    // Vị trí sỏi cố định theo hạt giống: mỗi ô có sẵn một chùm toạ độ, vẽ
-    // bao nhiêu viên thì lấy bấy nhiêu toạ độ đầu. Nhờ vậy thêm một viên
-    // vào ô không làm cả đống sỏi nhảy chỗ.
+    const arc = (key: string, x: number, sweep: 0 | 1) => {
+      const d = `M${x} ${Tp} A ${quanW} ${bh / 2} 0 0 ${sweep} ${x} ${Tp + bh}`;
+      return (
+        <G key={key}>
+          <Path d={d} stroke={T.chalkSoft} strokeWidth={w * 2.6} opacity={0.3} strokeLinecap="round" fill="none" />
+          <Path d={d} stroke={T.chalk} strokeWidth={w} opacity={0.92} strokeLinecap="round" fill="none" />
+        </G>
+      );
+    };
+    const x0 = L + quanW;
+    const x1 = L + width - quanW;
+    const out: React.ReactElement[] = [
+      line('top', x0, Tp, x1, Tp),
+      line('mid', x0, Tp + cellH, x1, Tp + cellH),
+      line('bot', x0, Tp + bh, x1, Tp + bh),
+      arc('west', x0, 0),
+      arc('east', x1, 1),
+    ];
+    for (let i = 1; i < 5; i++) {
+      const x = x0 + i * cellW;
+      out.push(line(`v${i}`, x, Tp, x, Tp + bh));
+    }
+    return out;
+  }, [width, bh, cellH, cellW, quanW, L, Tp]);
+
+  const ground = useMemo(() => {
+    const rnd = seeded(8899);
+    return Array.from({ length: 120 }, (_, i) => (
+      <Circle key={i} cx={rnd() * W} cy={rnd() * H} r={0.5 + rnd() * 1.5} fill="#8A6F52" opacity={0.08 + rnd() * 0.16} />
+    ));
+  }, [W, H]);
+
+  /**
+   * Sỏi thật thì hòn to hòn nhỏ, hòn ngả nâu hòn ngả xám. Vẽ mười hai viên
+   * y hệt nhau trong một ô là ra hàng bi nhựa.
+   */
+  const stones = useMemo(() => {
+    const rnd = seeded(20260930);
     return Array.from({ length: RING }, () =>
-      Array.from({ length: 12 }, () => [rnd() * 2 - 1, rnd() * 2 - 1] as [number, number]),
+      Array.from({ length: 12 }, () => ({
+        x: rnd() * 2 - 1,
+        y: rnd() * 2 - 1,
+        r: 0.82 + rnd() * 0.42,
+        tone: rnd() < 0.34 ? 1 : rnd() < 0.6 ? 2 : 0,
+      })),
     );
   }, []);
 
   const eaten = new Set(view.trail.filter((e) => e.t === 'capture').map((e) => (e as { cell: number }).cell));
 
   return (
-    <View style={{ width, height: H, borderRadius: 12, overflow: 'hidden', backgroundColor: T.ground }}>
-      <Svg width={width} height={H}>
+    <View style={{ width: W, height: H }}>
+      <Svg width={W} height={H}>
         <Defs>
-          <RadialGradient id="quan-ground" cx="0.4" cy="0.3" r="0.9">
-            <Stop offset="0" stopColor={T.groundLit} />
-            <Stop offset="1" stopColor={T.groundDark} />
+          {/* Vạt đất đã quét: sáng ở giữa, tan hẳn ra ngoài. Không có mép,
+              nên bàn cờ không thành một tấm dán lên nền. */}
+          {/* Vạt đất là nền **vừa đủ sáng** để sỏi sẫm nổi lên, không phải
+              một quầng đèn. Bản đầu tôi lấy màu sáng nhất làm tâm, thành ra
+              cả bàn bạc phếch và sỏi chìm nghỉm. */}
+          <RadialGradient id="quan-patch" cx="0.5" cy="0.48" r="0.6">
+            <Stop offset="0" stopColor={T.ground} stopOpacity="1" />
+            <Stop offset="0.6" stopColor={T.groundDark} stopOpacity="0.9" />
+            <Stop offset="1" stopColor={T.groundDark} stopOpacity="0" />
           </RadialGradient>
-          <LinearGradient id="quan-pit" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={T.pitDark} />
-            <Stop offset="0.35" stopColor={T.pit} />
-            <Stop offset="1" stopColor={T.pit} />
-          </LinearGradient>
-          <RadialGradient id="quan-peb" cx="0.34" cy="0.3" r="0.8">
+          <RadialGradient id="peb-0" cx="0.34" cy="0.3" r="0.8">
             <Stop offset="0" stopColor={T.pebbleLit} />
             <Stop offset="1" stopColor={T.pebble} />
           </RadialGradient>
+          <RadialGradient id="peb-1" cx="0.34" cy="0.3" r="0.8">
+            <Stop offset="0" stopColor="#8A7358" />
+            <Stop offset="1" stopColor="#3F3324" />
+          </RadialGradient>
+          <RadialGradient id="peb-2" cx="0.34" cy="0.3" r="0.8">
+            <Stop offset="0" stopColor="#8C8C83" />
+            <Stop offset="1" stopColor="#3E3E38" />
+          </RadialGradient>
           <RadialGradient id="quan-big" cx="0.34" cy="0.28" r="0.8">
-            <Stop offset="0" stopColor={T.quanStone} />
+            <Stop offset="0" stopColor="#FFFDF6" />
+            <Stop offset="0.6" stopColor={T.quanStone} />
             <Stop offset="1" stopColor={T.quanStoneDark} />
           </RadialGradient>
-          {/* Cắt theo đúng hình bán nguyệt. Ô quan hẹp dần về hai đầu, nên
-              dù tính toạ độ sỏi khéo đến mấy thì một ô mười mấy dân vẫn có
-              viên thò ra ngoài vòng cung — cắt là cách duy nhất chắc chắn. */}
           <ClipPath id="clip-west">
-            <Path d={`M${quanW} 0 A ${quanW} ${H / 2} 0 0 0 ${quanW} ${H} Z`} />
+            <Path d={`M${L + quanW} ${Tp} A ${quanW} ${bh / 2} 0 0 0 ${L + quanW} ${Tp + bh} Z`} />
           </ClipPath>
           <ClipPath id="clip-east">
-            <Path d={`M${width - quanW} 0 A ${quanW} ${H / 2} 0 0 1 ${width - quanW} ${H} Z`} />
+            <Path d={`M${L + width - quanW} ${Tp} A ${quanW} ${bh / 2} 0 0 1 ${L + width - quanW} ${Tp + bh} Z`} />
           </ClipPath>
         </Defs>
-        <Rect x={0} y={0} width={width} height={H} fill="url(#quan-ground)" />
 
-        {/* Lòng ô trũng xuống: tối ở mép trên, sáng dần xuống đáy. */}
-        <Path d={`M${quanW} 0 A ${quanW} ${H / 2} 0 0 0 ${quanW} ${H} Z`} fill="url(#quan-pit)" />
-        <Path d={`M${width - quanW} 0 A ${quanW} ${H / 2} 0 0 1 ${width - quanW} ${H} Z`} fill="url(#quan-pit)" />
-        <Rect x={quanW} y={0} width={width - quanW * 2} height={H} fill="url(#quan-pit)" />
+        <Ellipse cx={W / 2} cy={H / 2} rx={W * 0.52} ry={H * 0.54} fill="url(#quan-patch)" />
+        {ground}
 
-        {/* Nét phấn chia ô. */}
-        <G stroke={T.chalk} strokeWidth={width * 0.006} fill="none" strokeLinecap="round">
-          <Path d={`M${quanW} 0 H${width - quanW} M${quanW} ${cellH} H${width - quanW} M${quanW} ${H} H${width - quanW}`} />
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <Path key={i} d={`M${quanW + i * cellW} 0 V${H}`} />
-          ))}
-          <Path d={`M${quanW} 0 A ${quanW} ${H / 2} 0 0 0 ${quanW} ${H}`} />
-          <Path d={`M${width - quanW} 0 A ${quanW} ${H / 2} 0 0 1 ${width - quanW} ${H}`} />
-        </G>
+        {chalk}
 
         {Array.from({ length: RING }, (_, screen) => {
           const i = real(screen);
@@ -132,68 +192,87 @@ export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled
           const [cx, cy] = centre(screen);
           const isQuanCell = screen === 0 || screen === 6;
           const rPeb = width * 0.019;
-          // Ô quan là hình bán nguyệt, càng ra xa tâm theo chiều dọc thì
-          // càng hẹp. Rải sỏi theo cùng độ giãn như ô vuông là sỏi tràn ra
-          // ngoài vòng cung, trông như rơi sang ô bên cạnh.
-          const spread = isQuanCell ? [quanW * 0.24, H * 0.1] : [cellW * 0.3, cellH * 0.28];
+          const spread = isQuanCell ? [quanW * 0.24, bh * 0.1] : [cellW * 0.3, cellH * 0.28];
           const shown = Math.min(cell.dan, isQuanCell ? 8 : 12);
           return (
             <G key={screen} clipPath={screen === 0 ? 'url(#clip-west)' : screen === 6 ? 'url(#clip-east)' : undefined}>
               {eaten.has(i) ? (
-                <Ellipse cx={cx} cy={cy} rx={(isQuanCell ? quanW : cellW) * 0.42} ry={cellH * 0.38} fill={T.eaten} opacity={0.22} />
+                <Ellipse
+                  cx={cx}
+                  cy={cy}
+                  rx={(isQuanCell ? quanW : cellW) * 0.42}
+                  ry={cellH * 0.38}
+                  fill={T.eaten}
+                  opacity={0.22}
+                />
               ) : null}
               {cell.quan > 0 ? (
                 <G>
-                  <Ellipse cx={cx} cy={cy + width * 0.02} rx={width * 0.035} ry={width * 0.013} fill="#4A3A22" opacity={0.3} />
-                  <Circle cx={cx} cy={cy - width * 0.005} r={width * 0.038} fill="url(#quan-big)" />
+                  <Ellipse cx={cx} cy={cy + width * 0.022} rx={width * 0.038} ry={width * 0.014} fill="#3A2A14" opacity={0.35} />
+                  <Circle cx={cx} cy={cy - width * 0.006} r={width * 0.04} fill="url(#quan-big)" />
                 </G>
               ) : null}
               {Array.from({ length: shown }, (_, k) => {
-                const [jx, jy] = pebbles[screen]![k]!;
+                const st = stones[screen]![k]!;
+                const sy = cy + st.y * spread[1]! + (cell.quan > 0 ? bh * 0.13 : 0);
+                const sx = cx + st.x * spread[0]!;
                 return (
-                  <Circle
-                    key={k}
-                    cx={cx + jx * spread[0]!}
-                    cy={cy + jy * spread[1]! + (cell.quan > 0 ? H * 0.13 : 0)}
-                    r={rPeb}
-                    fill="url(#quan-peb)"
-                  />
+                  <G key={k}>
+                    <Ellipse cx={sx + rPeb * 0.15} cy={sy + rPeb * 0.7} rx={rPeb * st.r * 0.9} ry={rPeb * st.r * 0.34} fill="#3A2A14" opacity={0.28} />
+                    <Circle cx={sx} cy={sy} r={rPeb * st.r} fill={`url(#peb-${st.tone})`} />
+                  </G>
                 );
               })}
-              {cell.dan > 0 ? (
-                <SvgText
-                  x={cx}
-                  // Ô quan hẹp dần về hai đầu nên con số phải đứng cao hơn
-                  // ô vuông, nếu không nó chạm vòng cung và bị cắt mất một
-                  // bên.
-                  y={cy + (isQuanCell ? H * 0.27 : cellH * 0.42)}
-                  fontSize={width * 0.036}
-                  fill="#3A2E1C"
-                  textAnchor="middle"
-                  fontWeight="bold"
-                >
-                  {cell.dan}
-                </SvgText>
-              ) : null}
+              {/* Con số viết hai lớp: một lớp viền màu đất rồi mới tới nét
+                  đen. Ô tám dân thì sỏi phủ kín chỗ đặt số, không có viền
+                  thì số chìm vào đống sỏi đúng lúc cần đọc nhất. */}
+              {cell.dan > 0
+                ? (() => {
+                    const ty = cy + (isQuanCell ? bh * 0.27 : cellH * 0.42);
+                    const fs = width * 0.038;
+                    return (
+                      <G>
+                        <SvgText
+                          x={cx}
+                          y={ty}
+                          fontSize={fs}
+                          fill="none"
+                          stroke={T.groundLit}
+                          strokeWidth={fs * 0.42}
+                          strokeLinejoin="round"
+                          textAnchor="middle"
+                          fontWeight="bold"
+                          opacity={0.95}
+                        >
+                          {cell.dan}
+                        </SvgText>
+                        <SvgText x={cx} y={ty} fontSize={fs} fill="#2E2414" textAnchor="middle" fontWeight="bold" opacity={0.9}>
+                          {cell.dan}
+                        </SvgText>
+                      </G>
+                    );
+                  })()
+                : null}
             </G>
           );
         })}
 
-        {/* Ô đang chọn, và nước được gợi ý. */}
-        {[picked !== null ? { cell: picked, tone: T.pick, dash: undefined } : null, hint ? { cell: hint.cell, tone: T.hint, dash: '6 5' } : null]
+        {/* Ô đang chọn và nước được gợi ý: khoanh bằng nét phấn đậm hơn,
+            không dùng khung chữ nhật — trên bàn không có ô vuông nào cả,
+            chỉ có mấy vạch. */}
+        {[picked !== null ? { cell: picked, tone: T.pick, dash: undefined } : null, hint ? { cell: hint.cell, tone: T.hint, dash: '7 6' } : null]
           .filter(Boolean)
           .map((m, k) => {
             const mark = m as { cell: number; tone: string; dash?: string };
             const screen = flip ? (mark.cell + 6) % RING : mark.cell;
             const [cx, cy] = centre(screen);
             return (
-              <Rect
+              <Ellipse
                 key={k}
-                x={cx - cellW * 0.46}
-                y={cy - cellH * 0.44}
-                width={cellW * 0.92}
-                height={cellH * 0.88}
-                rx={8}
+                cx={cx}
+                cy={cy}
+                rx={cellW * 0.44}
+                ry={cellH * 0.42}
                 stroke={mark.tone}
                 strokeWidth={3}
                 strokeDasharray={mark.dash}
@@ -203,7 +282,6 @@ export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled
           })}
       </Svg>
 
-      {/* Lớp chạm: chỉ năm ô của mình bấm được. */}
       <View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}>
         {[1, 2, 3, 4, 5].map((screen) => {
           const i = real(screen);
@@ -221,12 +299,11 @@ export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled
           );
         })}
 
-        {/* Hai mũi tên chọn chiều rải, hiện ngay trên ô vừa chọn. */}
         {picked !== null
           ? ([-1, 1] as const).map((dir) => {
               const screen = flip ? (picked + 6) % RING : picked;
               const [cx, cy] = centre(screen);
-              const dx = dir === 1 ? cellW * 0.52 : -cellW * 0.52;
+              const dx = dir === 1 ? cellW * 0.56 : -cellW * 0.56;
               const size = Math.max(44, cellW * 0.7);
               return (
                 <Pressable

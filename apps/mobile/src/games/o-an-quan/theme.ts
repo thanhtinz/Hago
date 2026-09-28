@@ -15,7 +15,7 @@ export const quanTheme = {
   chalk: '#F7F1E4',
   chalkSoft: '#D9CDB5',
 
-  pebble: '#6E6657',
+  pebble: '#5E5648',
   pebbleLit: '#9E9484',
   /** Quân quan: sỏi trắng to hơn hẳn. */
   quanStone: '#F2ECDD',
