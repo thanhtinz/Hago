@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
@@ -27,6 +27,8 @@ const READY = new Set(registry.catalog().map((s) => s.id));
 
 export default function Lobby() {
   const router = useRouter();
+  /** Chế độ online đang chọn bộ môn, hoặc 'join' đang nhập mã. */
+  const [sheet, setSheet] = useState<'quick' | 'create' | 'join' | null>(null);
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const w = Math.min(width, 460);
@@ -84,13 +86,13 @@ export default function Lobby() {
           />
 
           <View style={{ flexDirection: 'row', gap: S.sm }}>
-            <Mode icon="bolt" label="Ghép cặp" />
-            <Mode icon="door" label="Tạo phòng" />
-            <Mode icon="key" label="Vào mã" />
+            <Mode icon="bolt" label="Ghép cặp" onPress={() => setSheet('quick')} />
+            <Mode icon="door" label="Tạo phòng" onPress={() => setSheet('create')} />
+            <Mode icon="key" label="Vào mã" onPress={() => setSheet('join')} />
           </View>
 
           <Txt size={11} color={A.inkFaint} center style={{ paddingHorizontal: S.sm }}>
-            Máy chủ chưa dựng xong nên ba chế độ trên còn khoá. Đấu với máy chạy ngay trên thiết bị.
+            Ghép cặp tính xếp hạng. Phòng riêng mở bằng mã thì không.
           </Txt>
         </View>
 
@@ -128,24 +130,132 @@ export default function Lobby() {
         onHome={() => scroller.current?.scrollTo({ y: 0, animated: true })}
         onGrid={() => scroller.current?.scrollTo({ y: gridY.current, animated: true })}
       />
+
+      {/* Đặt sau `BottomNav`: tấm trượt phải nằm **trên** thanh điều hướng.
+          Để trước thì thanh dưới cùng đè lên mất nút Đóng của tấm. */}
+      {sheet === 'join' ? (
+        <CodeSheet onClose={() => setSheet(null)} onGo={(code) => router.push(`/online/join?code=${code}`)} />
+      ) : sheet ? (
+        <PickGameSheet
+          mode={sheet}
+          onClose={() => setSheet(null)}
+          onPick={(id) => router.push(`/online/${sheet}?game=${id}`)}
+        />
+      ) : null}
     </View>
   );
 }
 
-/** Chế độ chưa mở: vẫn hiện, nhưng khắc chìm và có ổ khoá. */
-function Mode({ icon, label }: { icon: IconName; label: string }) {
+/** Một trong ba cách vào ván với người thật. */
+function Mode({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
   return (
-    <Panel radius={R.md} tone={0} seed={label.length * 7} style={{ flex: 1 }}>
-      <View style={{ gap: 5, paddingVertical: S.md, alignItems: 'center' }}>
-        <Icon name={icon} size={19} color={A.inkFaint} />
-        <Txt size={11.5} weight="semi" color={A.inkFaint}>
-          {label}
-        </Txt>
-        <View style={{ position: 'absolute', top: 6, right: 7 }}>
-          <Icon name="lock" size={10} color={A.inkFaint} />
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={{ flex: 1, borderRadius: R.md }}>
+      <Panel radius={R.md} tone={0} seed={label.length * 7}>
+        <View style={{ gap: 5, paddingVertical: S.md, alignItems: 'center' }}>
+          <Icon name={icon} size={19} color={A.gold} />
+          <Txt size={11.5} weight="semi" color={A.inkSoft}>
+            {label}
+          </Txt>
         </View>
-      </View>
-    </Panel>
+      </Panel>
+    </Pressable>
+  );
+}
+
+/**
+ * Chọn bộ môn để ghép cặp hoặc mở phòng.
+ *
+ * Chỉ liệt kê bộ môn **máy chủ có engine**. Cho chọn một bộ môn chưa cài rồi
+ * để máy chủ trả `NO_GAME` là bắt người chơi đi một vòng mới biết mình không
+ * chơi được.
+ */
+function PickGameSheet({ mode, onClose, onPick }: { mode: 'quick' | 'create'; onClose: () => void; onPick: (id: string) => void }) {
+  const open = FACES.filter((f) => READY.has(f.id));
+  return (
+    <Sheet
+      title={mode === 'quick' ? 'Ghép cặp bộ môn nào?' : 'Mở phòng bộ môn nào?'}
+      sub={mode === 'quick' ? 'Vào hàng chờ, có người là vào ván ngay' : 'Nhận một mã năm ký tự để mời bạn'}
+      onClose={onClose}
+    >
+      {open.map((f) => (
+        <Pressable key={f.id} onPress={() => onPick(f.id)} accessibilityRole="button" accessibilityLabel={f.nameVi} style={{ borderRadius: R.md }}>
+          <Panel radius={R.md} tone={1} seed={f.id.length * 11}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md }}>
+              <View style={{ width: 54, height: 35, borderRadius: 6, overflow: 'hidden' }}>
+                <f.Motif />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Txt size={15} weight="display">
+                  {f.nameVi}
+                </Txt>
+                <Txt size={10.5} color={A.inkFaint}>
+                  {f.minutes}
+                </Txt>
+              </View>
+              <Icon name="chevron" size={16} color={A.inkFaint} />
+            </View>
+          </Panel>
+        </Pressable>
+      ))}
+    </Sheet>
+  );
+}
+
+/** Nhập mã phòng bạn đọc cho. */
+function CodeSheet({ onClose, onGo }: { onClose: () => void; onGo: (code: string) => void }) {
+  const [code, setCode] = useState('');
+  const ok = code.trim().length === 5;
+  return (
+    <Sheet title="Vào bằng mã" sub="Năm ký tự bạn của bạn đọc cho" onClose={onClose}>
+      <TextInput
+        value={code}
+        onChangeText={(t) => setCode(t.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5))}
+        autoCapitalize="characters"
+        autoCorrect={false}
+        placeholder="ABCDE"
+        placeholderTextColor={A.inkFaint}
+        accessibilityLabel="Mã phòng"
+        style={{
+          borderWidth: 1.4,
+          borderColor: A.goldDeep,
+          backgroundColor: A.panelLo,
+          borderRadius: R.md,
+          color: A.gold,
+          fontSize: 30,
+          letterSpacing: 10,
+          textAlign: 'center',
+          paddingVertical: S.md,
+        }}
+      />
+      <Btn label="Vào phòng" disabled={!ok} onPress={() => onGo(code.trim())} />
+    </Sheet>
+  );
+}
+
+/** Tấm trượt từ dưới lên, dùng chung cho hai tấm ở trên. */
+function Sheet({ title, sub, onClose, children }: { title: string; sub: string; onClose: () => void; children: React.ReactNode }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end' }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Đóng"
+        onPress={onClose}
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: '#000', opacity: 0.55 }}
+      />
+      <Panel radius={R.xl} tone={1} seed={71} style={lift(0.6, 30, -8)}>
+        <View style={{ gap: S.sm, padding: S.lg, paddingBottom: insets.bottom + S.lg }}>
+          <Txt size={18} weight="display">
+            {title}
+          </Txt>
+          <Txt size={11.5} color={A.inkFaint} style={{ paddingBottom: S.xs }}>
+            {sub}
+          </Txt>
+          {children}
+          <Btn label="Đóng" tone="ghost" onPress={onClose} />
+        </View>
+      </Panel>
+    </View>
   );
 }
 

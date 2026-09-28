@@ -1,0 +1,116 @@
+/**
+ * Hai người thật đánh nhau qua máy chủ.
+ *
+ * Mở **hai cửa sổ trình duyệt riêng** (hai context, hai localStorage, nên hai
+ * `playerId` khác nhau — đúng như hai cái điện thoại). Một bên mở phòng, đọc
+ * mã trên màn hình, bên kia gõ mã vào. Rồi đánh thật cho tới khi có kết quả.
+ *
+ * Đây là bài kiểm duy nhất chứng minh được đường dây chạy: engine ở máy chủ,
+ * `view` cắt theo ghế, nước đi đi qua dây, cả hai màn hình cùng đổi.
+ */
+import { chromium } from 'playwright';
+import { existsSync, mkdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const OUT = path.join(ROOT, 'docs/screenshots');
+const BASE = process.env.APP_URL ?? 'http://localhost:8080';
+const LOCAL = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const CHROME = process.env.CHROME_PATH || (existsSync(LOCAL) ? LOCAL : undefined);
+mkdirSync(OUT, { recursive: true });
+
+const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
+const errors = [];
+const open = async (label) => {
+  const ctx = await browser.newContext({ viewport: { width: 430, height: 932 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const page = await ctx.newPage();
+  const note = (t) => {
+    errors.push(`[${label}] ${t}`);
+    console.error(`  ! [${label}] ${t.split('\n')[0]}`);
+  };
+  page.on('console', (m) => m.type() === 'error' && note(m.text()));
+  page.on('pageerror', (e) => note(e.stack || e.message));
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+  return page;
+};
+const shot = async (page, name) => {
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: path.join(OUT, `${name}.png`) });
+  console.log(`  ✓ ${name}`);
+};
+
+const A = await open('A');
+const B = await open('B');
+
+console.log('A mở phòng cờ caro');
+await A.getByLabel('Tạo phòng').click();
+await A.waitForTimeout(500);
+await A.getByLabel('Cờ Caro', { exact: true }).click();
+await A.waitForTimeout(1500);
+await shot(A, '20-online-cho-ma');
+
+const code = (await A.locator('text=/^[A-Z0-9]{5}$/').first().innerText()).trim();
+console.log(`  mã phòng: ${code}`);
+
+console.log('B vào bằng mã');
+await B.getByLabel('Vào mã').click();
+await B.waitForTimeout(400);
+await B.getByLabel('Mã phòng').fill(code);
+await B.getByText('Vào phòng').click();
+await B.waitForTimeout(2000);
+await shot(A, '21-online-ghe-0');
+await shot(B, '22-online-ghe-1');
+
+/** Bấm vào ô (hàng, cột) của bàn caro — dùng đúng nhãn trợ năng người dùng chạm. */
+const play = async (page, r, c) => {
+  await page.getByLabel(`Ô hàng ${r + 1} cột ${c + 1}`).click();
+  await page.waitForTimeout(650);
+};
+
+console.log('Đánh thật: ghế 0 xây chuỗi năm, ghế 1 đi chỗ khác');
+for (let i = 0; i < 5; i++) {
+  await play(A, 7, 3 + i);
+  if (i < 4) await play(B, 12, 3 + i);
+}
+await A.waitForTimeout(900);
+await shot(A, '23-online-ket-qua-ghe-0');
+await shot(B, '24-online-ket-qua-ghe-1');
+
+const won = await A.getByText('Bạn thắng').count();
+const lost = await B.getByText('Bạn thua').count();
+console.log(`  A thấy "Bạn thắng": ${won > 0} · B thấy "Bạn thua": ${lost > 0}`);
+
+// Đường thứ hai: ghép cặp tự động, và một bộ môn khác — chứng minh cả hai
+// lối vào lẫn bàn cờ thứ hai chạy qua cùng một màn chơi online.
+console.log('Ghép cặp cờ gánh');
+for (const p of [A, B]) {
+  await p.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+  await p.waitForTimeout(1200);
+  await p.getByLabel('Ghép cặp').click();
+  await p.waitForTimeout(400);
+  await p.getByLabel('Cờ Gánh', { exact: true }).click();
+  await p.waitForTimeout(1200);
+}
+await B.waitForTimeout(1500);
+await shot(A, '25-online-ganh-ghep-cap');
+
+const ganhOk = (await A.getByText('Cờ Gánh').count()) > 0 && (await A.getByLabel('Xin thua').count()) > 0;
+console.log(`  vào được bàn cờ gánh: ${ganhOk}`);
+
+await browser.close();
+if (errors.length) {
+  console.error('\nLỗi trên trang:');
+  for (const e of errors) console.error('  ' + e);
+  process.exit(1);
+}
+if (!ganhOk) {
+  console.error('\nGhép cặp cờ gánh không vào được bàn.');
+  process.exit(1);
+}
+if (!won || !lost) {
+  console.error('\nVán không kết thúc đúng ở cả hai màn hình.');
+  process.exit(1);
+}
+console.log('\nHai màn hình cùng nhận đúng kết quả.');

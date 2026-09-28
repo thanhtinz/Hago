@@ -41,11 +41,13 @@ packages/
   game-co-caro/         engine + bot cờ caro
   game-co-ganh/         engine + bot cờ gánh
   game-o-an-quan/       engine + bot ô ăn quan
+  protocol/             giao thức client ↔ máy chủ — hai bên cùng dùng một bản
 apps/
   mobile/               app Expo: sảnh + màn chơi, mỗi game một bộ mặt
   server/               máy chủ trọng tài: phòng, ghép cặp, đồng hồ, WebSocket
 tools/
   screenshot.mjs        chụp màn hình app thật để kiểm chứng giao diện
+  two-players.mjs       hai cửa sổ trình duyệt đánh nhau qua máy chủ thật
 docs/
   ARCHITECTURE.md       hợp đồng ràng buộc — đọc cái này trước
   architecture-review.md biên bản thẩm định kiến trúc
@@ -57,7 +59,7 @@ docs/
 ```bash
 npm install
 npm run build      # biên dịch packages/
-npm test           # 59 test: hợp đồng engine + luật ba game + bot + máy chủ
+npm test           # 60 test: hợp đồng engine + luật ba game + bot + máy chủ
 
 npm run web        # đóng gói app cho web để xem thử
 npm run serve      # mở ở http://localhost:8080
@@ -125,7 +127,8 @@ Không sửa file nào trong `packages/core` để thêm game. Phải sửa ngh�
 | Ô ăn quan (engine + bot) | ✅ |
 | App di động + sảnh + ba bàn cờ chơi với máy: gợi ý, lùi lại, tỉ số phiên | ✅ |
 | Máy chủ: phòng, ghép cặp, đồng hồ, chống gửi lặp | ✅ `apps/server` |
-| Nối app vào máy chủ, hàng đợi bot trên máy chủ | ⏳ |
+| App nối máy chủ: ghép cặp, tạo phòng, vào mã — chơi với người thật | ✅ |
+| Hàng đợi bot chạy trên máy chủ | ⏳ |
 | Cờ lật, cờ ba quân, cờ Hex (luật gọn, làm trước) | ⏳ |
 | Cờ hùm (dùng lại bàn Alquerque của cờ gánh) | ⏳ |
 | Cờ đam | ⏳ |

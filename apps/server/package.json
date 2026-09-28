@@ -5,12 +5,15 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "scripts": { "start": "node dist/index.js" },
+  "scripts": {
+    "start": "node dist/index.js"
+  },
   "dependencies": {
     "@co/core": "*",
     "@co/game-co-caro": "*",
     "@co/game-co-ganh": "*",
     "@co/game-o-an-quan": "*",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "@co/protocol": "*"
   }
 }

@@ -18,7 +18,11 @@ export interface SeatInfo {
 }
 
 export type ClientMsg =
-  | { t: 'hello'; name: string }
+  /**
+   * Mở phiên. Gửi kèm `id` của phiên cũ thì máy chủ nối lại ghế cũ và đẩy
+   * ngay thế cờ hiện tại — rớt sóng 4G vài giây không được tính là bỏ trận.
+   */
+  | { t: 'hello'; name: string; id?: string }
   /** Mở phòng riêng, trả về mã để mời bạn. Phòng riêng không tính xếp hạng. */
   | { t: 'create'; gameId: string; config?: unknown }
   | { t: 'join'; code: string }

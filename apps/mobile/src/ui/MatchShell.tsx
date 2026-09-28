@@ -35,11 +35,19 @@ export interface SeatBarProps {
 export interface MatchShellProps {
   title: string;
   subtitle: string;
-  level: BotLevel;
-  onLevel: (lv: BotLevel) => void;
-  levelHints: Record<BotLevel, string>;
+  /**
+   * Ba thứ dưới đây **chỉ có khi đấu với máy**. Ván với người thật không có
+   * mức khó để đổi, không có gợi ý (client không giữ thế cờ nên không chạy
+   * được bot trên nó), và không có lùi lại (một bên tự rút nước đã đi thì
+   * không còn là ván cờ). Bỏ trống thì khung tự giấu đúng những nút đó.
+   */
+  level?: BotLevel;
+  onLevel?: (lv: BotLevel) => void;
+  levelHints?: Record<BotLevel, string>;
+  /** Thay chỗ nhãn mức máy ở góc phải, ví dụ mã phòng của ván online. */
+  headerRight?: React.ReactNode;
   onHome: () => void;
-  onReset: () => void;
+  onReset?: () => void;
   onDraw: () => void;
   onResign: () => void;
   ended: Outcome | null;
@@ -53,13 +61,16 @@ export interface MatchShellProps {
   note?: string | null;
   /** Vàng cho gợi ý, đỏ son cho ràng buộc luật, mờ cho thông tin nền. */
   noteTone?: 'gold' | 'seal' | 'soft';
-  hintsLeft: number;
-  canHint: boolean;
-  onHint: () => void;
-  canUndo: boolean;
-  onUndo: () => void;
-  undosLeft: number;
-  tally: Tally;
+  hintsLeft?: number;
+  canHint?: boolean;
+  onHint?: () => void;
+  canUndo?: boolean;
+  onUndo?: () => void;
+  undosLeft?: number;
+  /** Tỉ số phiên. Ván online chưa có phiên nào để đếm nên bỏ trống. */
+  tally?: Tally;
+  /** Dải thông báo trên cùng: đang chờ đối thủ, mất kết nối, lỗi từ máy chủ. */
+  banner?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -85,30 +96,35 @@ export function MatchShell(p: MatchShellProps) {
             {p.subtitle}
           </Txt>
         </View>
-        <Pressable
-          onPress={() => setPicking(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Đổi mức máy"
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            minHeight: 34,
-            paddingHorizontal: S.md,
-            borderRadius: R.pill,
-            backgroundColor: A.goldSoft,
-            borderWidth: 1.2,
-            borderColor: A.goldDeep,
-          }}
-        >
-          <Icon name="robot" size={15} color={A.gold} />
-          <Txt size={12} weight="bold" color={A.gold}>
-            {LEVEL_NAME[p.level]}
-          </Txt>
-        </Pressable>
+        {p.level !== undefined ? (
+          <Pressable
+            onPress={() => setPicking(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Đổi mức máy"
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              minHeight: 34,
+              paddingHorizontal: S.md,
+              borderRadius: R.pill,
+              backgroundColor: A.goldSoft,
+              borderWidth: 1.2,
+              borderColor: A.goldDeep,
+            }}
+          >
+            <Icon name="robot" size={15} color={A.gold} />
+            <Txt size={12} weight="bold" color={A.gold}>
+              {LEVEL_NAME[p.level]}
+            </Txt>
+          </Pressable>
+        ) : (
+          p.headerRight
+        )}
       </View>
 
-      <Scoreboard tally={p.tally} />
+      {p.banner}
+      {p.tally ? <Scoreboard tally={p.tally} /> : null}
 
       {/* Mặt bàn trải hết khối giữa, không chỉ sau bàn cờ. Nhờ vậy hai thanh
           người chơi thành hai tấm biển đặt trên bàn, và khoảng trống trên
@@ -129,15 +145,13 @@ export function MatchShell(p: MatchShellProps) {
       ) : null}
 
       <View style={{ flexDirection: 'row', gap: S.sm, paddingHorizontal: S.lg, paddingTop: S.md }}>
-        <IconBtn
-          name="bulb"
-          label={`Gợi ý ${p.hintsLeft}`}
-          tone="gold"
-          disabled={!p.canHint}
-          onPress={p.onHint}
-        />
-        <IconBtn name="undo" label={`Lùi lại ${p.undosLeft}`} disabled={!p.canUndo} onPress={p.onUndo} />
-        <IconBtn name="newmatch" label="Ván mới" onPress={p.onReset} />
+        {p.onHint ? (
+          <IconBtn name="bulb" label={`Gợi ý ${p.hintsLeft ?? 0}`} tone="gold" disabled={!p.canHint} onPress={p.onHint} />
+        ) : null}
+        {p.onUndo ? (
+          <IconBtn name="undo" label={`Lùi lại ${p.undosLeft ?? 0}`} disabled={!p.canUndo} onPress={p.onUndo} />
+        ) : null}
+        {p.onReset ? <IconBtn name="newmatch" label="Ván mới" onPress={p.onReset} /> : null}
         <IconBtn name="scales" label="Cầu hoà" disabled={!!p.ended} onPress={p.onDraw} />
         <IconBtn name="flag" label="Xin thua" tone="seal" disabled={!!p.ended} onPress={p.onResign} />
       </View>
@@ -152,12 +166,12 @@ export function MatchShell(p: MatchShellProps) {
         />
       ) : null}
 
-      {picking ? (
+      {picking && p.level !== undefined && p.levelHints ? (
         <LevelSheet
           level={p.level}
           hints={p.levelHints}
           onPick={(lv) => {
-            p.onLevel(lv);
+            p.onLevel?.(lv);
             setPicking(false);
           }}
           onClose={() => setPicking(false)}
@@ -245,7 +259,8 @@ function Result({
   win: boolean;
   draw: boolean;
   reason: string;
-  onAgain: () => void;
+  /** Bỏ trống thì tấm kết quả chỉ có nút về sảnh — ván online không tự mở lại được. */
+  onAgain?: (() => void) | undefined;
   onHome: () => void;
 }) {
   const tint = draw ? A.info : win ? A.gold : A.sealLit;
@@ -271,7 +286,7 @@ function Result({
           </Txt>
           <View style={{ flexDirection: 'row', gap: S.sm, alignSelf: 'stretch' }}>
             <Btn label="Về sảnh" tone="ghost" onPress={onHome} style={{ flex: 1 }} />
-            <Btn label="Ván mới" onPress={onAgain} style={{ flex: 1.4 }} />
+            {onAgain ? <Btn label="Ván mới" onPress={onAgain} style={{ flex: 1.4 }} /> : null}
           </View>
         </View>
       </Panel>

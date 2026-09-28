@@ -1,11 +1,30 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "rootDir": "src", "outDir": "dist", "types": ["node"] },
-  "include": ["src/**/*"],
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "src/**/*"
+  ],
   "references": [
-    { "path": "../../packages/core" },
-    { "path": "../../packages/game-co-caro" },
-    { "path": "../../packages/game-co-ganh" },
-    { "path": "../../packages/game-o-an-quan" }
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/game-co-caro"
+    },
+    {
+      "path": "../../packages/game-co-ganh"
+    },
+    {
+      "path": "../../packages/game-o-an-quan"
+    },
+    {
+      "path": "../../packages/protocol"
+    }
   ]
 }

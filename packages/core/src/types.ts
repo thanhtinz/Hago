@@ -19,7 +19,14 @@ export type Seat = number;
 export interface ClockSpec {
   /** Tổng quỹ thời gian mỗi bên, tính bằng mili giây. */
   initialMs: number;
-  /** Cộng thêm sau mỗi nước (Fischer). 0 là không cộng. */
+  /**
+   * **Mức hoàn tối đa sau mỗi nước.** 0 là không hoàn.
+   *
+   * Không phải Fischer chuẩn: trọng tài hoàn lại nhiều nhất bằng đúng phần
+   * vừa bị trừ, nên quỹ thời gian không bao giờ vượt `initialMs`. Fischer cộng
+   * đủ bất kể nghĩ nhanh hay chậm, mà ở đây đã có `graceMs` rồi — cộng thêm
+   * nữa thì bấm nhanh là in ra thời gian. Xem `Rooms.chargeClock`.
+   */
   incrementMs: number;
   /**
    * Ân hạn mỗi nước, không trừ vào quỹ. Đây là chỗ bù trễ mạng: trên 4G Việt

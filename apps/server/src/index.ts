@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { registry } from '@co/core';
 import './catalog.js';
-import { PORT, type ClientMsg } from './protocol.js';
+import { PORT, type ClientMsg } from '@co/protocol';
 import { Rooms } from './rooms.js';
 
 /**
@@ -44,7 +44,7 @@ wss.on('connection', (ws: WebSocket) => {
     }
     // `hello` mang theo id cũ thì nối lại phiên; không có thì mở phiên mới.
     if (msg.t === 'hello') {
-      const want = (msg as { id?: string }).id;
+      const want = msg.id;
       if (want && rooms.reconnect(want, send)) {
         id = want;
         return;

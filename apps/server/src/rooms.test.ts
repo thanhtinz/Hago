@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { CaroView } from '@co/game-co-caro';
 import './catalog.js';
-import type { ServerMsg } from './protocol.js';
+import type { ServerMsg } from '@co/protocol';
 import { Rooms } from './rooms.js';
 
 /**
@@ -126,6 +126,24 @@ test('nước phạm luật bị từ chối, bàn cờ không đổi', () => {
   rooms.act(b.id, 'n2', { t: 'game', a: { r: 7, c: 7 } });
   assert.equal(b.last('error')!.code, 'ILLEGAL', 'đặt đè lên ô đã có quân');
   assert.equal(b.view().cells[7 * 15 + 7], 0);
+});
+
+test('đi nhanh không bơm được giờ lên quá mức khởi đầu', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  rooms.create(a.id, 'co-caro', {});
+  rooms.join(b.id, a.last('room')!.code);
+  const start = a.last('state')!.seats[0]!.ms;
+
+  // Sáu nước bấm liên tiếp trong vài mili giây. Có ân hạn 1,5s nên không nước
+  // nào bị trừ; phần thưởng 5s mỗi nước mà cộng đủ thì đồng hồ sẽ phình ra.
+  for (let i = 0; i < 3; i++) {
+    rooms.act(a.id, `a${i}`, { t: 'game', a: { r: 2, c: i } });
+    rooms.act(b.id, `b${i}`, { t: 'game', a: { r: 9, c: i } });
+  }
+  const now = a.last('state')!.seats[0]!.ms;
+  assert.ok(now <= start, `đồng hồ không được tăng: ${start} -> ${now}`);
 });
 
 test('hết giờ thì máy chủ phát nước, bên kia thắng', () => {

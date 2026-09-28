@@ -1,10 +1,23 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/core" },
-    { "path": "packages/game-co-caro" },
-    { "path": "packages/game-co-ganh" },
-    { "path": "packages/game-o-an-quan" },
-    { "path": "apps/server" }
+    {
+      "path": "packages/core"
+    },
+    {
+      "path": "packages/protocol"
+    },
+    {
+      "path": "packages/game-co-caro"
+    },
+    {
+      "path": "packages/game-co-ganh"
+    },
+    {
+      "path": "packages/game-o-an-quan"
+    },
+    {
+      "path": "apps/server"
+    }
   ]
 }

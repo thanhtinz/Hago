@@ -9,7 +9,7 @@ import {
   type Outcome,
   type Seat,
 } from '@co/core';
-import type { SeatInfo, ServerMsg } from './protocol.js';
+import type { SeatInfo, ServerMsg } from '@co/protocol';
 
 /**
  * Quản lý phòng — phần lõi của máy chủ, **không biết gì về WebSocket**.
@@ -277,11 +277,25 @@ export class Rooms {
     return room.engine.legal(room.match.s, seat) as unknown[];
   }
 
-  /** Trừ giờ của bên vừa đi và cộng phần thưởng mỗi nước. */
+  /**
+   * Trừ giờ của bên vừa đi và cộng phần thưởng mỗi nước.
+   *
+   * Phần hoàn lại **không bao giờ lớn hơn phần vừa bị trừ**, nên quỹ thời gian
+   * chỉ có thể đứng yên hoặc giảm, không bao giờ vượt mức mở ván.
+   *
+   * Đây **không phải** Fischer chuẩn, và cố ý như vậy. Fischer cộng đủ phần
+   * thưởng sau mỗi nước, mà ở đây đã có ân hạn rồi: cộng thêm nữa thì bấm
+   * nhanh là in ra thời gian — ván caro năm nước bấm liên tiếp kết thúc với
+   * đồng hồ 5:25 trong khi mở ván là 5:00. Người chơi nào nhìn cũng thấy sai.
+   * Cách hiểu đúng của `incrementMs` ở đây là **mức hoàn tối đa mỗi nước**:
+   * nghĩ dưới mức đó thì gần như không mất giờ, nghĩ lâu hơn thì trả phần dôi.
+   */
   private chargeClock(room: Room, before: ReturnType<AnyEngine['turn']>, now = Date.now()): void {
     if (before.kind === 'seat' && room.turnSince !== null) {
-      const spent = Math.max(0, now - room.turnSince - room.clockSpec.graceMs);
-      room.clocks[before.seat] = Math.max(0, (room.clocks[before.seat] ?? 0) - spent + room.clockSpec.incrementMs);
+      const elapsed = Math.max(0, now - room.turnSince);
+      const spent = Math.max(0, elapsed - room.clockSpec.graceMs);
+      const gain = Math.min(room.clockSpec.incrementMs, spent);
+      room.clocks[before.seat] = Math.max(0, (room.clocks[before.seat] ?? 0) - spent + gain);
     }
     room.turnSince = room.match?.outcome() ? null : now;
   }
