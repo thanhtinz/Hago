@@ -227,7 +227,14 @@ export function IconBtn({
       accessibilityLabel={label}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.8 : 1, transform: [{ translateY: pressed ? 1 : 0 }] })}
+      // Nút tắt phải mờ hẳn cả tấm, không chỉ nhạt chữ. Chỉ đổi màu chữ
+      // thì trên nền gỗ sẫm gần như không thấy khác gì, người chơi cứ bấm
+      // mãi vào một nút không phản ứng.
+      style={({ pressed }) => ({
+        flex: 1,
+        opacity: disabled ? 0.42 : pressed ? 0.8 : 1,
+        transform: [{ translateY: pressed && !disabled ? 1 : 0 }],
+      })}
     >
       <Panel
         radius={R.md}

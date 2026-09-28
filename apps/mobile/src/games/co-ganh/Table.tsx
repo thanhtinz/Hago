@@ -78,6 +78,8 @@ export function GanhTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
       hintsLeft={m.hintsLeft}
       canHint={m.canHint}
       onHint={m.askHint}
+      canUndo={m.canUndo}
+      onUndo={m.undo}
       ended={m.outcome}
       youWon={m.outcome?.winner === ME}
       surface={(w, h) => <CourtBackdrop width={w} height={h} />}

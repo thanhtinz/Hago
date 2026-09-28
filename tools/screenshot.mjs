@@ -77,6 +77,11 @@ for (const [r, c] of [
 }
 await shot('04-caro-dang-danh');
 
+console.log('Lùi lại ở bàn caro: bỏ cả nước mình lẫn nước máy đáp lại');
+await page.getByText('Lùi lại', { exact: false }).first().click();
+await page.waitForTimeout(800);
+await shot('04a-caro-lui-lai');
+
 console.log('Gợi ý ở bàn caro');
 await page.getByText('Gợi ý 3', { exact: false }).first().click();
 await page.waitForTimeout(900);
@@ -166,6 +171,11 @@ await shot('12-quan-chon-o');
 await page.getByLabel('Rải sang phải').click();
 await page.waitForTimeout(1800);
 await shot('13-quan-da-rai');
+
+console.log('Lùi lại nước vừa đi');
+await page.getByText('Lùi lại', { exact: false }).first().click();
+await page.waitForTimeout(900);
+await shot('14-quan-lui-lai');
 
 if (problems.length) {
   console.log('\nLỖI TRÊN TRANG:');

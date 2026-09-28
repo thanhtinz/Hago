@@ -79,6 +79,8 @@ export function QuanTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
       hintsLeft={m.hintsLeft}
       canHint={m.canHint}
       onHint={m.askHint}
+      canUndo={m.canUndo}
+      onUndo={m.undo}
       // Thu quân có thể lật ngược kết quả, nên phải cho thấy điểm dự kiến
       // ngay lúc đang chơi. Không hiện thì người chơi ăn nốt con quan cuối
       // rồi mới biết mình vừa tự kết thúc ván ở thế thua.

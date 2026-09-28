@@ -28,7 +28,8 @@ export type IconName =
   | 'lock'
   | 'chevron'
   | 'check'
-  | 'bulb';
+  | 'bulb'
+  | 'undo';
 
 export function Icon({
   name,
@@ -59,6 +60,13 @@ function render(name: IconName, p: Record<string, unknown>, color: string) {
   switch (name) {
     case 'back':
       return <Path d="M15 5 L8 12 L15 19" {...p} />;
+    case 'undo':
+      return (
+        <>
+          <Path d="M4 12a8 8 0 1 0 2.6-5.9" {...p} />
+          <Path d="M4 4v5h5" {...p} />
+        </>
+      );
     case 'bulb':
       return (
         <>

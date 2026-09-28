@@ -10,6 +10,11 @@ import { makeRng, type BaseState, type BotLevel, type Engine, type Outcome, type
  *
  * Hook giữ cả đồng hồ, vì đồng hồ phải chung một nhịp với lượt đi. Để mỗi
  * màn tự đếm giờ là để chín cái đồng hồ chạy lệch nhau.
+ *
+ * Gợi ý và lùi lại chỉ tồn tại ở đây, tức là **chỉ khi đấu với máy**. Khi
+ * có máy chủ, ván với người thật đi đường khác: lùi lại phải thành lời xin
+ * và đối thủ đồng ý mới được, chứ một bên tự rút nước đã đi thì không còn
+ * là ván cờ.
  */
 
 export const ME = 0;
@@ -31,6 +36,9 @@ export interface VsBot<S, A> {
   hint: A | null;
   askHint: () => void;
   canHint: boolean;
+  /** Lùi về thế cờ trước nước gần nhất của người chơi. */
+  undo: () => void;
+  canUndo: boolean;
 }
 
 /**
@@ -58,7 +66,28 @@ export function useVsBot<S extends BaseState, A>(
   );
 
   const [seed, setSeed] = useState('van-1');
-  const [state, setState] = useState<S>(() => fresh('van-1'));
+  /**
+   * Giữ cả chồng thế cờ đã qua, không chỉ thế hiện tại.
+   *
+   * Lùi lại phải quay về đúng thế **trước nước của người chơi**, tức là bỏ
+   * cả nước mình lẫn nước máy đáp lại — lùi một nửa thì tới lượt máy và nó
+   * đi tiếp ngay, người chơi không lùi được gì cả.
+   */
+  const [frames, setFrames] = useState<{ cur: S; past: S[] }>(() => ({ cur: fresh('van-1'), past: [] }));
+  const state = frames.cur;
+  const setState = useCallback(
+    (fn: (cur: S) => S) =>
+      setFrames((f) => {
+        const next = fn(f.cur);
+        if (next === f.cur) return f;
+        // Chặn trần chồng lịch sử: một ván ô ăn quan có thể dài bốn trăm
+        // nước, giữ hết thì mỗi ván ngốn vài megabyte cho một tính năng
+        // không ai lùi quá vài nước.
+        const past = [...f.past, f.cur];
+        return { cur: next, past: past.length > 120 ? past.slice(-120) : past };
+      }),
+    [],
+  );
   const [thinking, setThinking] = useState(false);
   const [clock, setClock] = useState<[number, number]>([startMs, startMs]);
   const [hintsLeft, setHintsLeft] = useState(HINTS_PER_MATCH);
@@ -84,8 +113,31 @@ export function useVsBot<S extends BaseState, A>(
     setClock([startMs, startMs]);
     setHintsLeft(HINTS_PER_MATCH);
     setHint(null);
-    setState(fresh(next));
+    setFrames({ cur: fresh(next), past: [] });
   }, [fresh, startMs]);
+
+  /**
+   * Lùi về thế cờ ngay trước nước gần nhất của người chơi.
+   *
+   * Đồng hồ **không** lùi theo. Thời gian đã tiêu là đã tiêu — lùi cả giờ
+   * thì người chơi cứ lùi mãi mà không mất gì, đồng hồ thành đồ trang trí.
+   */
+  const undo = useCallback(() => {
+    setFrames((f) => {
+      for (let i = f.past.length - 1; i >= 0; i--) {
+        const t = engine.turn(f.past[i]!);
+        if (t.kind === 'seat' && t.seat === ME) {
+          return { cur: f.past[i]!, past: f.past.slice(0, i) };
+        }
+      }
+      return f;
+    });
+  }, [engine]);
+
+  const canUndo = frames.past.some((p) => {
+    const t = engine.turn(p);
+    return t.kind === 'seat' && t.seat === ME;
+  });
 
   /**
    * Gợi ý = hỏi chính con bot mức Khó xem nó sẽ đi nước nào ở chỗ của bạn.
@@ -151,6 +203,10 @@ export function useVsBot<S extends BaseState, A>(
     hint,
     askHint,
     canHint: hintsLeft > 0 && !outcome && toMove === ME,
+    undo,
+    // Lùi được cả khi ván đã xong: nước thua cuối cùng chính là nước người
+    // ta muốn rút lại nhất.
+    canUndo,
   };
 }
 

@@ -55,6 +55,8 @@ export interface MatchShellProps {
   hintsLeft: number;
   canHint: boolean;
   onHint: () => void;
+  canUndo: boolean;
+  onUndo: () => void;
   children: React.ReactNode;
 }
 
@@ -129,6 +131,7 @@ export function MatchShell(p: MatchShellProps) {
           disabled={!p.canHint}
           onPress={p.onHint}
         />
+        <IconBtn name="undo" label="Lùi lại" disabled={!p.canUndo} onPress={p.onUndo} />
         <IconBtn name="refresh" label="Ván mới" onPress={p.onReset} />
         <IconBtn name="draw" label="Cầu hoà" disabled={!!p.ended} onPress={p.onDraw} />
         <IconBtn name="flag" label="Xin thua" tone="seal" disabled={!!p.ended} onPress={p.onResign} />
