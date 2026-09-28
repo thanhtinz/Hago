@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
-import Svg, { G, Line, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import type { CaroView } from '@co/game-co-caro';
 import { caroTheme as T, inkFor } from './theme';
 
@@ -56,6 +56,30 @@ export function CaroBoard({ view, size, mySeat, onPlay, disabled }: CaroBoardPro
     return out;
   }, [n, cell, size]);
 
+  /**
+   * Sợi giấy lấm tấm. Cố định theo hạt giống chứ không `Math.random`: mỗi lần
+   * vẽ lại mà hạt giấy nhảy chỗ thì cả trang giấy trông như đang nhiễu.
+   */
+  const fibres = useMemo(() => {
+    let x = 20260928;
+    const rnd = () => {
+      x ^= x << 13;
+      x ^= x >>> 17;
+      x ^= x << 5;
+      return ((x >>> 0) % 10000) / 10000;
+    };
+    return Array.from({ length: 90 }, (_, i) => (
+      <Circle
+        key={i}
+        cx={rnd() * size}
+        cy={rnd() * size}
+        r={0.3 + rnd() * 0.8}
+        fill={T.fibre}
+        opacity={0.1 + rnd() * 0.22}
+      />
+    ));
+  }, [size]);
+
   const winSet = useMemo(() => new Set(view.winLine ?? []), [view.winLine]);
 
   return (
@@ -77,7 +101,17 @@ export function CaroBoard({ view, size, mySeat, onPlay, disabled }: CaroBoardPro
       }}
     >
       <Svg width={size} height={size}>
-        <Rect x={0} y={0} width={size} height={size} fill={T.paper} />
+        <Defs>
+          {/* Giấy thật không phải một mảng màu phẳng: sáng ở giữa, ngả vàng
+              về mép, tối nhẹ ở góc dưới nơi trang giấy cong lên. */}
+          <LinearGradient id="caro-paper" x1="0" y1="0" x2="0.35" y2="1">
+            <Stop offset="0" stopColor={T.paperLit} />
+            <Stop offset="0.55" stopColor={T.paper} />
+            <Stop offset="1" stopColor={T.paperShade} />
+          </LinearGradient>
+        </Defs>
+        <Rect x={0} y={0} width={size} height={size} fill="url(#caro-paper)" />
+        {fibres}
         {lines}
         {/* Không kẻ lề đỏ ở đây. Trên trang vở thật nó là đường lề, nhưng đặt
             lên bàn cờ thì nó cắt ngang vùng chơi và người ta tưởng là một
@@ -93,17 +127,37 @@ export function CaroBoard({ view, size, mySeat, onPlay, disabled }: CaroBoardPro
               const y1 = (Math.floor(first / n) + 0.5) * cell;
               const x2 = (Math.floor(last % n) + 0.5) * cell;
               const y2 = (Math.floor(last / n) + 0.5) * cell;
+              // Hai nhát bút dạ chồng lên nhau: nhát rộng phủ hết chuỗi,
+              // nhát hẹp đậm hơn ở giữa. Một nhát đều tăm tắp trông như
+              // thanh nền tô sẵn, không ra vệt bút.
+              const dx = x2 - x1;
+              const dy = y2 - y1;
+              const len = Math.hypot(dx, dy) || 1;
+              const ix = (dx / len) * cell * 0.18;
+              const iy = (dy / len) * cell * 0.18;
               return (
-                <Line
-                  x1={x1}
-                  y1={y1}
-                  x2={x2}
-                  y2={y2}
-                  stroke={T.highlight}
-                  strokeWidth={cell * 0.85}
-                  strokeLinecap="round"
-                  opacity={0.9}
-                />
+                <G>
+                  <Line
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke={T.highlight}
+                    strokeWidth={cell * 0.86}
+                    strokeLinecap="round"
+                    opacity={0.92}
+                  />
+                  <Line
+                    x1={x1 + ix}
+                    y1={y1 + iy + cell * 0.06}
+                    x2={x2 - ix}
+                    y2={y2 - iy + cell * 0.06}
+                    stroke={T.highlightDeep}
+                    strokeWidth={cell * 0.5}
+                    strokeLinecap="round"
+                    opacity={0.5}
+                  />
+                </G>
               );
             })()
           : null}
@@ -120,28 +174,23 @@ export function CaroBoard({ view, size, mySeat, onPlay, disabled }: CaroBoardPro
           const oy = r * cell + cell * 0.1;
           return (
             <G key={i} transform={`translate(${ox}, ${oy}) scale(${scale})`}>
-              {seat === 0 ? (
-                X_VARIANTS[variant]!.map((d, k) => (
+              {/* Mỗi nét vẽ hai lần: một nét rộng rất nhạt cho mực loang vào
+                  thớ giấy, rồi nét chính đè lên. Một nét đơn trông như đường
+                  vector, hai nét thì ra bút bi. */}
+              {(seat === 0 ? X_VARIANTS[variant]! : [O_VARIANTS[variant]!]).map((d, k) => (
+                <G key={k}>
+                  <Path d={d} stroke={ink} strokeWidth={16} strokeLinecap="round" fill="none" opacity={0.16} />
                   <Path
-                    key={k}
                     d={d}
                     stroke={ink}
                     strokeWidth={11}
                     strokeLinecap="round"
                     fill="none"
-                    opacity={winSet.has(i) ? 1 : 0.92}
+                    opacity={winSet.has(i) ? 1 : 0.93}
                   />
-                ))
-              ) : (
-                <Path
-                  d={O_VARIANTS[variant]!}
-                  stroke={ink}
-                  strokeWidth={11}
-                  strokeLinecap="round"
-                  fill="none"
-                  opacity={winSet.has(i) ? 1 : 0.92}
-                />
-              )}
+                  <Path d={d} stroke="#FFFFFF" strokeWidth={2.4} strokeLinecap="round" fill="none" opacity={0.1} />
+                </G>
+              ))}
               {/* Chấm chì nhỏ đánh dấu nước vừa đi — như khi đánh dấu trên vở. */}
               {isLast ? <Path d="M50 96 l0 0" stroke={T.pencil} strokeWidth={14} strokeLinecap="round" /> : null}
             </G>

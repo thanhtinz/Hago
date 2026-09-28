@@ -7,6 +7,7 @@ import { makeRng, type BotLevel, type MetaState, type Wrapped } from '@co/core';
 import { caroBot, type CaroAction, type CaroState, type CaroView } from '@co/game-co-caro';
 import { caroMeta } from '../../src/catalog';
 import { CaroBoard } from '../../src/games/co-caro/Board';
+import { DeskBackdrop, PaperStack } from '../../src/games/co-caro/Desk';
 import { caroTheme as CT, inkFor } from '../../src/games/co-caro/theme';
 import { faceOf } from '../../src/games/faces';
 import { Icon } from '../../src/ui/Icon';
@@ -137,7 +138,9 @@ export default function PlayScreen() {
   }
 
   const view: CaroView = caroMeta.view(state, ME).v as CaroView;
-  const board = Math.min(width - S.md * 2, height - insets.top - insets.bottom - 300, 470);
+  // Chừa mỗi bên một khoảng mặt bàn. Bàn cờ ăn sát mép màn hình thì tờ giấy
+  // không còn nằm trên cái gì, mà thành cái nền của cả màn hình.
+  const board = Math.min(width - S.xxl * 2, height - insets.top - insets.bottom - 320, 430);
 
   return (
     <View style={{ flex: 1, backgroundColor: A.bg, paddingTop: insets.top + S.sm, paddingBottom: insets.bottom + S.sm }}>
@@ -189,9 +192,13 @@ export default function PlayScreen() {
           ms={clock[BOT]}
         />
 
-        <View style={{ alignItems: 'center' }}>
-          <View style={lift(0.5, 22, 10)}>
-            <CaroBoard view={view} size={board} mySeat={ME} onPlay={play} disabled={toMove !== ME || !!outcome} />
+        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <DeskBackdrop width={width} height={board + S.xxl * 4} />
+          <View style={{ width: board, height: board }}>
+            <PaperStack size={board} />
+            <View style={lift(0.55, 24, 12)}>
+              <CaroBoard view={view} size={board} mySeat={ME} onPlay={play} disabled={toMove !== ME || !!outcome} />
+            </View>
           </View>
         </View>
 

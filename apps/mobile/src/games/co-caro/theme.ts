@@ -13,7 +13,11 @@
  */
 export const caroTheme = {
   paper: '#FBF8EF',
-  paperShade: '#F1ECDE',
+  /** Chỗ sáng nhất của trang giấy, gần giữa. */
+  paperLit: '#FFFDF7',
+  paperShade: '#EFE8D6',
+  /** Sợi giấy lấm tấm — thứ làm nền giấy khác nền tô màu. */
+  fibre: '#C7BCA0',
   /** Nét kẻ ô ly, xanh tím nhạt. */
   grid: '#A9BEDD',
   /** Nét đậm mỗi 5 ô — để đếm chuỗi bằng mắt, đúng thứ người chơi caro cần. */
@@ -24,8 +28,15 @@ export const caroTheme = {
   inkRed: '#C0392B',
   /** Vệt bút dạ quang đánh dấu chuỗi thắng. */
   highlight: '#FCE99A',
+  /** Lõi đậm hơn của vệt dạ quang, nơi bút đi chậm lại. */
+  highlightDeep: '#F6D964',
   pencil: '#8A8578',
-  deskWood: '#C8A97E',
+  deskWood: '#5C4020',
+  /** Màu app nền, để hai đầu mặt bàn tan dần vào khung chứ không cắt ngang. */
+  deskFade: '#12100D',
+  /** Hai tờ giấy lót dưới, tối dần xuống. */
+  paperUnder1: '#E6DFCB',
+  paperUnder2: '#CFC7B0',
   ink: '#2B2A26',
   inkSoft: '#6B675C',
 } as const;

@@ -182,7 +182,7 @@ function GameCard({ face, ready, onPress }: { face: GameFace; ready: boolean; on
         borderColor: ready ? face.accent : A.line,
       }}
     >
-      <View style={{ height: 92, backgroundColor: face.surface, opacity: ready ? 1 : 0.62 }}>
+      <View style={{ height: 92, backgroundColor: face.surface, opacity: ready ? 1 : 0.74 }}>
         <Motif />
       </View>
       <View style={{ padding: S.md, gap: 3 }}>
