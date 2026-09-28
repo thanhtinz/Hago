@@ -29,6 +29,7 @@ packages/
   game-o-an-quan/       engine + bot ô ăn quan
 apps/
   mobile/               app Expo: sảnh + màn chơi, mỗi game một bộ mặt
+  server/               máy chủ trọng tài: phòng, ghép cặp, đồng hồ, WebSocket
 tools/
   screenshot.mjs        chụp màn hình app thật để kiểm chứng giao diện
 docs/
@@ -42,7 +43,7 @@ docs/
 ```bash
 npm install
 npm run build      # biên dịch packages/
-npm test           # 46 test: hợp đồng engine + luật ba game + bot
+npm test           # 59 test: hợp đồng engine + luật ba game + bot + máy chủ
 
 npm run web        # đóng gói app cho web để xem thử
 npm run serve      # mở ở http://localhost:8080
@@ -109,7 +110,7 @@ Không sửa file nào trong `packages/core` để thêm game. Phải sửa ngh�
 | Cờ gánh (engine + bot, perft khớp bảng chuẩn) | ✅ |
 | Ô ăn quan (engine + bot) | ✅ |
 | App di động + sảnh + ba bàn cờ chơi với máy: gợi ý, lùi lại, tỉ số phiên | ✅ |
-| Máy chủ: phòng, ghép cặp, hàng đợi bot | ⏳ |
-| App di động | ⏳ |
+| Máy chủ: phòng, ghép cặp, đồng hồ, chống gửi lặp | ✅ `apps/server` |
+| Nối app vào máy chủ, hàng đợi bot trên máy chủ | ⏳ |
 | Cờ vua, cờ tướng, cờ úp, cá ngựa | ⏳ |
 | Cờ vây, cờ tỷ phú | ⏳ tốn công gấp nhiều lần phần còn lại |

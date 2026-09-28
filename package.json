@@ -12,7 +12,7 @@
   "scripts": {
     "build": "tsc --build",
     "clean": "tsc --build --clean",
-    "test": "tsc --build --force && node --test packages/*/dist/**/*.test.js",
+    "test": "tsc --build --force && node --test packages/*/dist/**/*.test.js apps/server/dist/**/*.test.js",
     "typecheck": "tsc --build --dry",
     "web": "npm run build && npm --workspace @co/mobile exec -- expo export --platform web",
     "serve": "npx serve -l 8080 -s apps/mobile/dist",
@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.7.5",
+    "@types/ws": "^8.18.1",
     "playwright": "^1.63.0",
     "typescript": "^5.6.3"
   }

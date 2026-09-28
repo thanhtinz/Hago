@@ -1,5 +1,5 @@
 import { makeRng } from './rng.js';
-import type { AnyEngine, BaseState, Engine, Seat, Turn } from './types.js';
+import type { AnyEngine, BaseState, Engine, Outcome, Seat, Turn } from './types.js';
 
 /**
  * Bộ điều khiển trận: cầm log input và dựng state từ đó.
@@ -136,6 +136,20 @@ export class LiveMatch<S extends BaseState> {
 
   turn(): Turn {
     return this.engine.turn(this.state);
+  }
+
+  /**
+   * Đã nhận `(ghế, nonce)` này chưa. Tầng máy chủ hỏi **trước** khi kiểm luật:
+   * gửi lại một nước đã đánh là retry của client mất mạng, không phải nước
+   * phạm luật, và trả về `ILLEGAL` cho nó thì client tưởng mình sai.
+   */
+  hasNonce(seat: Seat, nonce: string): boolean {
+    return this.seen.has(`${seat}:${nonce}`);
+  }
+
+  /** Kết quả nếu ván đã xong, null nếu còn chạy. */
+  outcome(): Outcome | null {
+    return this.engine.outcome(this.state);
   }
 
   /**
