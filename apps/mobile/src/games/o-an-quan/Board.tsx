@@ -110,7 +110,13 @@ export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled
       arc('west', x0, 0),
       arc('east', x1, 1),
     ];
-    for (let i = 1; i < 5; i++) {
+    // Kẻ cả hai vạch ở hai đầu, không chỉ bốn vạch bên trong.
+    //
+    // Bàn thật là một **hình chữ nhật kẻ đủ bốn cạnh** rồi mới gắn hai bán
+    // nguyệt ra ngoài hai cạnh ngắn. Thiếu hai cạnh ngắn thì ô quan dính
+    // liền vào ô dân đầu tiên — nhìn ra một cái máng dài chứ không ra bàn ô
+    // ăn quan, và người chơi không biết ranh giới ô quan ở đâu.
+    for (let i = 0; i <= 5; i++) {
       const x = x0 + i * cellW;
       out.push(line(`v${i}`, x, Tp, x, Tp + bh));
     }
@@ -151,10 +157,14 @@ export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled
           {/* Vạt đất là nền **vừa đủ sáng** để sỏi sẫm nổi lên, không phải
               một quầng đèn. Bản đầu tôi lấy màu sáng nhất làm tâm, thành ra
               cả bàn bạc phếch và sỏi chìm nghỉm. */}
+          {/* Chỗ đặt bàn cờ là vạt cát đã **gạt phẳng**, không phải một
+              tấm lót. Nền đã là cát rồi nên vạt này chỉ cần sáng hơn một
+              chút và mờ dần hẳn ra ngoài; tô đậm thành ra một cái đĩa dán
+              lên bãi cát. */}
           <RadialGradient id="quan-patch" cx="0.5" cy="0.48" r="0.6">
-            <Stop offset="0" stopColor={T.ground} stopOpacity="1" />
-            <Stop offset="0.6" stopColor={T.groundDark} stopOpacity="0.9" />
-            <Stop offset="1" stopColor={T.groundDark} stopOpacity="0" />
+            <Stop offset="0" stopColor={T.groundLit} stopOpacity="0.55" />
+            <Stop offset="0.6" stopColor={T.ground} stopOpacity="0.3" />
+            <Stop offset="1" stopColor={T.ground} stopOpacity="0" />
           </RadialGradient>
           <RadialGradient id="peb-0" cx="0.34" cy="0.3" r="0.8">
             <Stop offset="0" stopColor={T.pebbleLit} />
