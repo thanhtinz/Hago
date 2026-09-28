@@ -26,6 +26,7 @@ packages/
                         lớp bọc meta-action, bộ kiểm hợp đồng
   game-co-caro/         engine + bot cờ caro
   game-co-ganh/         engine + bot cờ gánh
+  game-o-an-quan/       engine + bot ô ăn quan
 apps/
   mobile/               app Expo: sảnh + màn chơi, mỗi game một bộ mặt
 tools/
@@ -41,7 +42,7 @@ docs/
 ```bash
 npm install
 npm run build      # biên dịch packages/
-npm test           # 31 test: hợp đồng engine + luật caro + luật gánh + bot
+npm test           # 46 test: hợp đồng engine + luật ba game + bot
 
 npm run web        # đóng gói app cho web để xem thử
 npm run serve      # mở ở http://localhost:8080
@@ -106,8 +107,8 @@ Không sửa file nào trong `packages/core` để thêm game. Phải sửa ngh�
 | Hợp đồng engine + bộ kiểm | ✅ `packages/core` |
 | Cờ caro (engine + bot) | ✅ |
 | Cờ gánh (engine + bot, perft khớp bảng chuẩn) | ✅ |
-| App di động + sảnh + hai bàn cờ chơi với máy | ✅ |
-| Ô ăn quan | ⏳ |
+| Ô ăn quan (engine + bot) | ✅ |
+| App di động + sảnh + ba bàn cờ chơi với máy, có gợi ý | ✅ |
 | Máy chủ: phòng, ghép cặp, hàng đợi bot | ⏳ |
 | App di động | ⏳ |
 | Cờ vua, cờ tướng, cờ úp, cá ngựa | ⏳ |

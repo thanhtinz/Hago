@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { BotLevel } from '@co/core';
 import { CaroTable } from '../../src/games/co-caro/Table';
 import { GanhTable } from '../../src/games/co-ganh/Table';
+import { QuanTable } from '../../src/games/o-an-quan/Table';
 import { faceOf } from '../../src/games/faces';
 import { Btn, Txt } from '../../src/ui/parts';
 import { AppBackdrop } from '../../src/ui/surface';
@@ -24,6 +25,7 @@ export default function PlayScreen() {
 
   if (game === 'co-caro') return <CaroTable level={level} onLevel={setLevel} onHome={home} />;
   if (game === 'co-ganh') return <GanhTable level={level} onLevel={setLevel} onHome={home} />;
+  if (game === 'o-an-quan') return <QuanTable level={level} onLevel={setLevel} onHome={home} />;
 
   const face = faceOf(String(game));
   return (

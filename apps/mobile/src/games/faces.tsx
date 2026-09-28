@@ -370,7 +370,7 @@ export const FACES: GameFace[] = [
     material: 'Sỏi đất',
     mode: '1v1',
     minutes: '~15 phút',
-    ready: false,
+    ready: true,
     Motif: () => {
       const rnd = seeded(99);
       let pk = 0;

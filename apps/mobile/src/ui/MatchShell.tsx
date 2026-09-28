@@ -50,8 +50,8 @@ export interface MatchShellProps {
   surface?: (w: number, h: number) => React.ReactNode;
   /** Một dòng nhắc trạng thái, ví dụ "bạn đang bị ép đi vào ô đỏ". */
   note?: string | null;
-  /** Nhắc bình thường thì vàng, nhắc ràng buộc luật thì đỏ son. */
-  noteTone?: 'gold' | 'seal';
+  /** Vàng cho gợi ý, đỏ son cho ràng buộc luật, mờ cho thông tin nền. */
+  noteTone?: 'gold' | 'seal' | 'soft';
   hintsLeft: number;
   canHint: boolean;
   onHint: () => void;
@@ -115,7 +115,7 @@ export function MatchShell(p: MatchShellProps) {
 
       {p.note ? (
         <View style={{ paddingHorizontal: S.lg, paddingTop: S.xs }}>
-          <Txt size={12} color={p.noteTone === 'seal' ? A.sealLit : A.gold} center>
+          <Txt size={12} color={p.noteTone === 'seal' ? A.sealLit : p.noteTone === 'soft' ? A.inkFaint : A.gold} center>
             {p.note}
           </Txt>
         </View>

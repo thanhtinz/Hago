@@ -1,6 +1,7 @@
 import { registry, withStandardMeta } from '@co/core';
 import { caroEngine } from '@co/game-co-caro';
 import { ganhEngine } from '@co/game-co-ganh';
+import { quanEngine } from '@co/game-o-an-quan';
 
 /**
  * Nơi duy nhất các game được cắm vào. Lõi không biết tên game nào — mỗi game
@@ -15,5 +16,8 @@ export const caroMeta = withStandardMeta(caroEngine);
 
 export const ganhMeta = withStandardMeta(ganhEngine);
 
+export const quanMeta = withStandardMeta(quanEngine);
+
 registry.register(caroMeta);
 registry.register(ganhMeta);
+registry.register(quanMeta);

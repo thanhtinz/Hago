@@ -153,6 +153,20 @@ await page.getByText('Gợi ý 3', { exact: false }).first().click();
 await page.waitForTimeout(900);
 await shot('10-ganh-goi-y');
 
+console.log('Ô ăn quan: vào bàn, chọn ô, rải một nước');
+await page.goto(`${URL_BASE}/`, { waitUntil: 'networkidle' });
+await page.waitForTimeout(1500);
+await page.getByLabel('Chơi Ô Ăn Quan').click();
+await page.waitForTimeout(1400);
+await shot('11-quan-ban-dau');
+
+await page.getByLabel(/^Ô của bạn số 3/).click();
+await page.waitForTimeout(500);
+await shot('12-quan-chon-o');
+await page.getByLabel('Rải sang phải').click();
+await page.waitForTimeout(1800);
+await shot('13-quan-da-rai');
+
 if (problems.length) {
   console.log('\nLỖI TRÊN TRANG:');
   for (const p of problems.slice(0, 10)) console.log(' -', p);
