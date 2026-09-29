@@ -63,7 +63,6 @@ export function QuanTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
   return (
     <MatchShell
       title="Ô Ăn Quan"
-      subtitle="Quan bằng mười dân · thắng khi hơn 35 · 10 phút"
       level={level}
       onLevel={onLevel}
       levelHints={HINTS}

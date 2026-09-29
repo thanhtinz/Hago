@@ -45,7 +45,6 @@ export function CaroTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
   return (
     <MatchShell
       title="Cờ Caro"
-      subtitle="Luật Việt Nam · chặn hai đầu không tính · 5 phút"
       level={level}
       onLevel={onLevel}
       levelHints={HINTS}

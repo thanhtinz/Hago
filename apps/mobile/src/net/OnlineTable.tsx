@@ -35,12 +35,6 @@ import type { Intent } from './useOnline';
  * Bấm vào ô phạm luật thì máy chủ trả `ILLEGAL` và bàn cờ không đổi.
  */
 
-const SUBTITLE: Record<string, string> = {
-  'co-caro': 'Năm quân liền nhau · chặn hai đầu không tính',
-  'co-ganh': 'Kẹp hai đầu là gánh được quân',
-  'o-an-quan': 'Rải quân, ăn ô cách một ô trống',
-};
-
 export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => void }) {
   const o = useMatch();
   // Gửi ý định **một lần**, ngay khi dây đã nối. Gửi trong lúc chưa nối thì
@@ -72,7 +66,6 @@ export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => 
   return (
     <MatchShell
       title={face?.nameVi ?? 'Ván cờ'}
-      subtitle={SUBTITLE[gameId] ?? ''}
       headerRight={<CodePill code={o.room?.code ?? ''} rated={!!o.room?.rated} />}
       banner={<Banner o={o} />}
       onHome={leaveHome}

@@ -62,7 +62,6 @@ export function GanhTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
   return (
     <MatchShell
       title="Cờ Gánh"
-      subtitle="Quảng Nam · kẹp hai đầu là gánh · 8 phút"
       level={level}
       onLevel={onLevel}
       levelHints={HINTS}

@@ -34,7 +34,6 @@ export interface SeatBarProps {
 
 export interface MatchShellProps {
   title: string;
-  subtitle: string;
   /**
    * Ba thứ dưới đây **chỉ có khi đấu với máy**. Ván với người thật không có
    * mức khó để đổi, không có gợi ý (client không giữ thế cờ nên không chạy
@@ -88,14 +87,9 @@ export function MatchShell(p: MatchShellProps) {
         <Pressable onPress={p.onHome} hitSlop={14} accessibilityRole="button" accessibilityLabel="Về sảnh">
           <Icon name="back" size={22} color={A.inkSoft} />
         </Pressable>
-        <View style={{ flex: 1 }}>
-          <Txt size={18} weight="display">
-            {p.title}
-          </Txt>
-          <Txt size={10.5} color={A.inkFaint}>
-            {p.subtitle}
-          </Txt>
-        </View>
+        <Txt size={18} weight="display" style={{ flex: 1 }}>
+          {p.title}
+        </Txt>
         {p.level !== undefined ? (
           <Pressable
             onPress={() => setPicking(true)}
