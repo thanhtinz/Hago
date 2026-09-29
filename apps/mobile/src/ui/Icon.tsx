@@ -31,6 +31,7 @@ export type IconName =
   | 'bulb'
   | 'undo'
   | 'chat'
+  | 'copy'
   | 'close';
 
 export function Icon({
@@ -78,6 +79,15 @@ function render(name: IconName, p: Record<string, unknown>, color: string) {
       );
     case 'check':
       return <Path d="M5 12.5 L10 17.5 L19 7" {...p} />;
+    // Hai tờ giấy chồng lệch — hình quen của "sao chép" ở mọi nơi. Vẽ tờ
+    // sau trước để tờ trước đè lên đúng thứ tự chiều sâu.
+    case 'copy':
+      return (
+        <>
+          <Path d="M8 3.5 H18.5 A1.5 1.5 0 0 1 20 5 V15.5" {...p} />
+          <Rect x={4} y={7} width={12} height={13.5} rx={2} {...p} />
+        </>
+      );
     case 'chevron':
       return <Path d="M9 5 L16 12 L9 19" {...p} />;
     case 'bolt':

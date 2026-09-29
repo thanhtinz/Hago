@@ -92,6 +92,11 @@ npm test        # tsc --build --force + toàn bộ test
   ở đây là state chứ không phải màn của router, nên hệ điều hành không biết
   chúng tồn tại — và Chromium thì không có nút đó, nên **ảnh chụp không bao
   giờ bắt được lỗi này**.
+- **Nút chat nổi trên mọi màn.** Màn nào có nút dán sát mép phải thì chừa
+  `CHAT_SPACE` — nằm dưới nút nổi thì bấm không được mà nhìn thì vẫn thấy.
+- **Việc có hạn giờ phải nổi lên ở mọi màn.** Lời rủ đấu hết hạn sau hai
+  phút; để nó thành một chấm đỏ mà người dùng phải đoán ra rồi đi tìm đúng
+  màn thì phần lớn lời rủ chết già.
 - **Nền mờ phải nằm cạnh tấm, không bọc quanh tấm.** Bọc quanh thì chạm vào
   tiêu đề hay khoảng trống bên trong cũng rơi xuống phần tử cha và tấm tự đóng.
 - Hộp thoại dùng `Sheet` và `Confirm` ở `src/ui/Sheet.tsx`, không dựng tay.

@@ -81,6 +81,7 @@ export function buildServer(opts: ServeOptions = {}): Serving {
     mayChallenge: (from, to) => accounts.areFriends(from, to) && !accounts.isBlockedEither(from, to),
     chat,
     isBlocked: (a, b) => accounts.isBlockedEither(a, b),
+    pendingRequests: (id) => accounts.friends(id).filter((f) => f.incoming).length,
     onFinish: ({ gameId, code, rated, seats, names, outcome }) => {
       accounts.recordMatch({
         gameId,
@@ -104,6 +105,7 @@ export function buildServer(opts: ServeOptions = {}): Serving {
       chat,
       notify: (body, to) => rooms.systemMessage(body, to),
       onRename: (u) => rooms.rename(u.id, u.name),
+      onFriendChange: (...ids) => rooms.pushAlerts(...ids),
       ...(gateOff ? {} : { limiter }),
     }).then((done) => {
       if (done) return;
@@ -222,6 +224,8 @@ export function buildServer(opts: ServeOptions = {}): Serving {
             return rooms.act(id, msg.nonce, msg.action);
           case 'challenge':
             return rooms.challenge(id, msg.to, msg.gameId);
+          case 'invite':
+            return rooms.invite(id, msg.to);
           case 'challenge-answer':
             return rooms.answerChallenge(id, msg.id, msg.accept);
           case 'challenge-cancel':

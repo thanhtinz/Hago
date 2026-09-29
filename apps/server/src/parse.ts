@@ -61,6 +61,8 @@ export function parseClientMsg(raw: unknown): ClientMsg | null {
       return { t: 'act', nonce: m.nonce, action: m.action };
     case 'challenge':
       return str(m.to, 64) && str(m.gameId, 64) ? { t: 'challenge', to: m.to, gameId: m.gameId } : null;
+    case 'invite':
+      return str(m.to, 64) ? { t: 'invite', to: m.to } : null;
     case 'challenge-answer':
       return str(m.id, 64) && bool(m.accept) ? { t: 'challenge-answer', id: m.id, accept: m.accept } : null;
     case 'challenge-cancel':

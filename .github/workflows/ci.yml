@@ -95,6 +95,9 @@ jobs:
       - name: Cầu hoà hai chiều và đấu lại ngay trong phòng
         run: node tools/rematch.mjs
 
+      - name: Sảnh có nhịp thở, và mời bạn vào thẳng phòng đang chờ
+        run: node tools/sanh.mjs
+
       # Ảnh chụp được giữ lại để soi tay. Nhiều lỗi giao diện của dự án này
       # chỉ lộ ra khi phóng to ảnh chụp, không lộ ra ở bất kỳ bài test nào.
       - uses: actions/upload-artifact@v4

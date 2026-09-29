@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 import type { CaroView } from '@co/game-co-caro';
@@ -14,12 +14,15 @@ import { ganhTheme as GT } from '../games/co-ganh/theme';
 import { QuanBoard } from '../games/o-an-quan/Board';
 import { GroundBackdrop } from '../games/o-an-quan/Ground';
 import { faceOf } from '../games/faces';
+import { Face } from '../ui/Crest';
+import { CHAT_SPACE } from '../ui/FloatingChat';
 import { Icon } from '../ui/Icon';
 import { MatchShell } from '../ui/MatchShell';
-import { Btn, Panel, Txt } from '../ui/parts';
+import { Btn, Panel, Txt, press } from '../ui/parts';
 import { AppBackdrop } from '../ui/surface';
 import { A, R, S, lift } from '../ui/theme';
-import { live, useIntentOnce, useMatch, type Online } from './live';
+import { api, type Friend } from './api';
+import { live, useIntentOnce, useLive, useMatch, useWatch, type Online } from './live';
 import type { Intent } from './useOnline';
 
 /**
@@ -237,10 +240,30 @@ function Banner({ o }: { o: Online }) {
   );
 }
 
+/**
+ * Đồng hồ đếm từ lúc bắt đầu chờ.
+ *
+ * Chờ mà không thấy gì nhúc nhích thì sau mười lăm giây ai cũng nghĩ app
+ * treo. Một con số đang tăng nói "vẫn đang chạy" rõ hơn mọi vòng xoay.
+ */
+function useElapsed(on: boolean): number {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!on) return setN(0);
+    const t0 = Date.now();
+    const id = setInterval(() => setN(Math.floor((Date.now() - t0) / 1000)), 500);
+    return () => clearInterval(id);
+  }, [on]);
+  return n;
+}
+
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
 /** Màn chờ: chưa đủ hai người nên chưa có ván. */
 function Waiting({ o, intent, onHome }: { o: Online; intent: Intent; onHome: () => void }) {
   const { width, height } = useWindowDimensions();
   const code = o.room?.code;
+  const waited = useElapsed(o.phase !== 'connecting' && !o.outcome);
   const title =
     o.phase === 'lost'
       ? 'Mất kết nối'
@@ -256,21 +279,18 @@ function Waiting({ o, intent, onHome }: { o: Online; intent: Intent; onHome: () 
       <Txt size={20} weight="display">
         {title}
       </Txt>
-      {code ? (
-        <View style={{ alignItems: 'center', gap: S.xs }}>
-          <Txt size={11} color={A.inkFaint}>
-            Đọc mã này cho bạn của bạn
-          </Txt>
-          <Panel radius={R.md} tone={1} seed={31}>
-            <Txt size={34} weight="display" color={A.gold} style={{ letterSpacing: 8, paddingHorizontal: S.lg, paddingVertical: S.sm }}>
-              {code}
-            </Txt>
-          </Panel>
-        </View>
-      ) : null}
+      {code ? <CodeCard code={code} /> : null}
+      {/* Con số thật, nói thẳng. Hàng chờ ghép ngay khi có người thứ hai
+          nên nó gần như luôn bằng 1 — in "1 người đang chờ" trong khi người
+          đó chính là mình thì vô nghĩa. */}
       {o.waiting !== null ? (
-        <Txt size={12} color={A.inkFaint}>
-          {o.waiting} người đang chờ trong hàng
+        <Txt size={12} color={A.inkFaint} center>
+          {o.waiting > 1 ? `${o.waiting} người đang chờ trong hàng` : 'Chưa có ai khác đang chờ bộ môn này'}
+        </Txt>
+      ) : null}
+      {waited > 2 ? (
+        <Txt size={13} weight="semi" color={A.inkSoft} style={{ fontVariant: ['tabular-nums'] }}>
+          Đã chờ {mmss(waited)}
         </Txt>
       ) : null}
       {o.error ? (
@@ -278,7 +298,105 @@ function Waiting({ o, intent, onHome }: { o: Online; intent: Intent; onHome: () 
           {o.error}
         </Txt>
       ) : null}
+      {code ? <InviteFriends /> : null}
       <Btn label="Về sảnh" tone="ghost" onPress={onHome} />
+    </View>
+  );
+}
+
+/**
+ * Mã phòng, bấm vào là chép.
+ *
+ * Trước đây nó chỉ là chữ: muốn mời bạn thì phải đọc năm ký tự qua điện
+ * thoại hoặc tự gõ lại vào một app nhắn tin khác.
+ */
+function CodeCard({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    // `navigator.clipboard` có trên web và trên WebView; không có thì im
+    // lặng bỏ qua — mã vẫn đọc được bằng mắt, đó mới là việc chính.
+    const nav = (globalThis as { navigator?: { clipboard?: { writeText(t: string): Promise<void> } } }).navigator;
+    void nav?.clipboard?.writeText(code).catch(() => undefined);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  };
+  return (
+    <View style={{ alignItems: 'center', gap: S.xs }}>
+      <Txt size={11} color={A.inkFaint}>
+        Đọc mã này cho bạn của bạn
+      </Txt>
+      <Pressable accessibilityRole="button" accessibilityLabel="Sao chép mã phòng" onPress={copy} style={press}>
+        <Panel radius={R.md} tone={1} seed={31}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingHorizontal: S.lg, paddingVertical: S.sm }}>
+            <Txt size={34} weight="display" color={A.gold} style={{ letterSpacing: 8 }}>
+              {code}
+            </Txt>
+            <Icon name={copied ? 'check' : 'copy'} size={18} color={copied ? A.jade : A.inkSoft} />
+          </View>
+        </Panel>
+      </Pressable>
+      <Txt size={11} color={copied ? A.jade : A.inkFaint}>
+        {copied ? 'Đã chép mã' : 'Chạm để chép'}
+      </Txt>
+    </View>
+  );
+}
+
+/**
+ * Mời thẳng một người bạn đang trực tuyến vào đúng phòng này.
+ *
+ * Đây là đường ngắn nhất từ "mở phòng" tới "có đối thủ". Đọc mã qua điện
+ * thoại vẫn còn đó cho người không phải bạn bè.
+ */
+function InviteFriends() {
+  const s = useLive();
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [sent, setSent] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    void api
+      .friends()
+      .then((r) => setFriends(r.friends.filter((f) => f.status === 'accepted')))
+      .catch(() => setFriends([]));
+  }, []);
+  useWatch(useMemo(() => friends.map((f) => f.user.id), [friends]));
+  const online = friends.filter((f) => s.online.has(f.user.id));
+  if (!friends.length) return null;
+
+  return (
+    <View style={{ alignSelf: 'stretch', gap: S.sm }}>
+      <Txt size={12} color={A.inkFaint} center>
+        {online.length ? 'Hoặc mời thẳng một người bạn đang trực tuyến' : 'Không có người bạn nào đang trực tuyến'}
+      </Txt>
+      {online.slice(0, 4).map((f) => {
+        const asked = sent.has(f.user.id) || s.challenges.some((c) => c.dir === 'out' && c.withId === f.user.id);
+        return (
+          <Pressable
+            key={f.user.id}
+            accessibilityRole="button"
+            accessibilityLabel={`Mời ${f.user.name} vào phòng`}
+            disabled={asked}
+            onPress={() => {
+              live.invite(f.user.id);
+              setSent(new Set([...sent, f.user.id]));
+            }}
+            style={press}
+          >
+            <Panel radius={R.md} tone={1} seed={f.user.name.length * 7}>
+              {/* Chừa mép phải cho nút chat nổi: nó nổi trên mọi màn và
+                  đúng chỗ này là nơi nó hay đậu. */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.sm, paddingLeft: S.md, paddingRight: CHAT_SPACE }}>
+                <Face avatar={f.user.avatar} id={f.user.id} size={34} />
+                <Txt size={14} weight="semi" style={{ flex: 1 }} numberOfLines={1}>
+                  {f.user.name}
+                </Txt>
+                <Txt size={12} weight="bold" color={asked ? A.inkFaint : A.gold}>
+                  {asked ? 'Đã mời' : 'Mời'}
+                </Txt>
+              </View>
+            </Panel>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

@@ -46,6 +46,11 @@ interface Challenge {
   to: string;
   gameId: string;
   at: number;
+  /**
+   * Mã phòng đã mở sẵn, nếu đây là lời **mời vào phòng** chứ không phải
+   * lời rủ dựng ván mới. Nhận lời thì người được mời vào đúng phòng đó.
+   */
+  code?: string;
 }
 
 /**
@@ -110,6 +115,13 @@ export interface RoomsOptions {
   /** Hai người này có bị chặn nhau không. Dùng để chặn đường nhắn tin. */
   isBlocked?: (a: string, b: string) => boolean;
   /**
+   * Số lời mời kết bạn đang chờ người này trả lời.
+   *
+   * `Rooms` không đọc cơ sở dữ liệu, nên nó hỏi ra ngoài — cùng một lối
+   * với `mayChallenge` và `isBlocked`.
+   */
+  pendingRequests?: (id: string) => number;
+  /**
    * Hai người này có được rủ nhau không. Bỏ trống là ai cũng rủ được ai.
    *
    * `Rooms` không đọc cơ sở dữ liệu nên nó không tự biết ai là bạn ai; câu
@@ -141,6 +153,7 @@ export class Rooms {
   private readonly mayChallenge: RoomsOptions['mayChallenge'];
   private readonly chat: Chat | undefined;
   private readonly isBlocked: RoomsOptions['isBlocked'];
+  private readonly pendingRequests: RoomsOptions['pendingRequests'];
   private readonly challenges = new Map<string, Challenge>();
   private nextChallenge = 1;
   /** Ván đã báo kết thúc rồi, để không cộng thành tích hai lần. */
@@ -153,6 +166,7 @@ export class Rooms {
     this.mayChallenge = o.mayChallenge;
     this.chat = o.chat;
     this.isBlocked = o.isBlocked;
+    this.pendingRequests = o.pendingRequests;
   }
 
   // ---- nhắn tin --------------------------------------------------------
@@ -270,6 +284,7 @@ export class Rooms {
     this.players.set(id, p);
     send({ t: 'welcome', youId: id });
     this.announce(id);
+    this.pushAlerts(id);
     return p;
   }
 
@@ -297,6 +312,34 @@ export class Rooms {
   private announce(id: string): void {
     for (const p of this.players.values()) {
       if (p.connected && p.watching.has(id)) this.pushPresence(p);
+    }
+    this.pushLobby();
+  }
+
+  /**
+   * Nhịp thở của sảnh, gửi cho **mọi người đang nối**.
+   *
+   * Rẻ: ba con số, và chỉ phát khi có người vào ra hoặc phòng đổi — không
+   * phải theo nhịp thời gian.
+   */
+  private pushLobby(): void {
+    const s = this.stats();
+    for (const p of this.players.values()) {
+      if (p.connected) p.send({ t: 'lobby', online: s.online, rooms: s.rooms, queued: s.queued });
+    }
+  }
+
+  /**
+   * Số việc đang chờ một người. Gọi khi quan hệ bạn bè vừa đổi.
+   *
+   * Tầng HTTP gọi vào đây sau mỗi lần gửi / nhận / từ chối lời mời, nên
+   * chấm đỏ ở sảnh đổi ngay mà không cần ai hỏi lại.
+   */
+  pushAlerts(...ids: string[]): void {
+    if (!this.pendingRequests) return;
+    for (const id of ids) {
+      const p = this.players.get(id);
+      if (p?.connected) p.send({ t: 'alerts', friendRequests: this.pendingRequests(id) });
     }
   }
 
@@ -344,6 +387,7 @@ export class Rooms {
     p.send = send;
     send({ t: 'welcome', youId: id });
     this.announce(id);
+    this.pushAlerts(id);
     if (p.code) {
       const room = this.rooms.get(p.code);
       if (room) {
@@ -384,6 +428,7 @@ export class Rooms {
     this.rooms.set(code, room);
     p.code = code;
     this.broadcastRoom(room);
+    this.pushLobby();
   }
 
   join(id: string, code: string): void {
@@ -449,11 +494,16 @@ export class Rooms {
       p.code = code;
       this.broadcastRoom(room);
       this.startIfReady(room);
+      this.pushLobby();
       return;
     }
     q.push(id);
     this.queues.set(gameId, q);
-    p.send({ t: 'queued', gameId, waiting: q.length });
+    // Báo lại cho **cả hàng**: người vào trước cũng cần thấy hàng vừa dài ra.
+    for (const other of q) {
+      this.players.get(other)?.send({ t: 'queued', gameId, waiting: q.length });
+    }
+    this.pushLobby();
   }
 
   /**
@@ -508,7 +558,8 @@ export class Rooms {
     this.dequeue(id);
     const code = p.code;
     p.code = null;
-    if (!code) return;
+    // Rời hàng chờ cũng làm con số ở sảnh đổi, nên báo trước khi thoát sớm.
+    if (!code) return this.pushLobby();
     const room = this.rooms.get(code);
     if (!room) return;
     const seat = room.players.indexOf(p);
@@ -527,6 +578,7 @@ export class Rooms {
       this.finished.delete(code);
     }
     else this.broadcastRoom(room);
+    this.pushLobby();
   }
 
   // ---- rủ đấu ----------------------------------------------------------
@@ -561,6 +613,39 @@ export class Rooms {
     other.send({ t: 'challenge', id: c.id, dir: 'in', withId: id, withName: p.name, gameId });
   }
 
+  /**
+   * Mời một người bạn vào đúng cái phòng mình đang chờ.
+   *
+   * Dùng lại nguyên bộ máy lời rủ — cùng hạn hai phút, cùng đường trả lời,
+   * cùng thông điệp — chỉ khác ở chỗ lời rủ này **mang theo mã phòng**.
+   */
+  invite(id: string, to: string): void {
+    const p = this.players.get(id);
+    if (!p) return;
+    const room = p.code ? this.rooms.get(p.code) : undefined;
+    if (!room) return p.send({ t: 'error', code: 'NO_ROOM', msg: 'Bạn chưa mở phòng nào' });
+    if (room.match) return p.send({ t: 'error', code: 'STARTED', msg: 'Ván đã bắt đầu rồi' });
+    if (room.players.every((x) => x !== null)) {
+      return p.send({ t: 'error', code: 'ROOM_FULL', msg: 'Phòng đã đủ người' });
+    }
+    const other = this.players.get(to);
+    if (id === to) return p.send({ t: 'error', code: 'SELF', msg: 'Không tự mời mình được' });
+    if (!other?.connected) return p.send({ t: 'error', code: 'OFFLINE', msg: 'Người này đang không trực tuyến' });
+    if (this.mayChallenge && !this.mayChallenge(id, to)) {
+      return p.send({ t: 'error', code: 'NOT_FRIEND', msg: 'Chỉ mời được bạn bè' });
+    }
+    if (other.code && this.rooms.get(other.code)?.match) {
+      return p.send({ t: 'error', code: 'BUSY', msg: 'Người này đang trong một ván' });
+    }
+    for (const c of this.challenges.values()) {
+      if (c.from === id && c.to === to && c.code === room.code) return;
+    }
+    const c: Challenge = { id: `c${this.nextChallenge++}`, from: id, to, gameId: room.gameId, at: Date.now(), code: room.code };
+    this.challenges.set(c.id, c);
+    p.send({ t: 'challenge', id: c.id, dir: 'out', withId: to, withName: other.name, gameId: room.gameId });
+    other.send({ t: 'challenge', id: c.id, dir: 'in', withId: id, withName: p.name, gameId: room.gameId });
+  }
+
   answerChallenge(id: string, cid: string, accept: boolean): void {
     const c = this.challenges.get(cid);
     // Chỉ **người được rủ** mới trả lời được. Không có chốt này thì người gửi
@@ -579,6 +664,23 @@ export class Rooms {
       to?.send({ t: 'challenge-gone', id: cid, why: 'expired' });
       return;
     }
+    // Lời **mời vào phòng**: người mời đang ngồi sẵn trong đó, nên chỉ có
+    // người được mời đi vào. Tuyệt đối không gọi `leave(c.from)` ở nhánh
+    // này — chính dòng đó sẽ đá chủ phòng ra khỏi cái phòng vừa mở, và
+    // `leave` xoá luôn phòng khi không còn ai.
+    if (c.code) {
+      const room = this.rooms.get(c.code);
+      if (!room || room.match || room.players.every((x) => x !== null)) {
+        from.send({ t: 'challenge-gone', id: cid, why: 'expired' });
+        to.send({ t: 'challenge-gone', id: cid, why: 'expired' });
+        return;
+      }
+      from.send({ t: 'challenge-gone', id: cid, why: 'accepted' });
+      to.send({ t: 'challenge-gone', id: cid, why: 'accepted' });
+      this.join(c.to, c.code);
+      return;
+    }
+
     from.send({ t: 'challenge-gone', id: cid, why: 'accepted' });
     to.send({ t: 'challenge-gone', id: cid, why: 'accepted' });
 

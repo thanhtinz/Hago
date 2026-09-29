@@ -26,6 +26,15 @@ import { useBackClose } from './useBackClose';
  */
 
 const SIZE = 54;
+
+/**
+ * Khoảng phải chừa ở mép phải cho nút chat nổi.
+ *
+ * Nút nổi trên **mọi** màn, nên bất kỳ nút nào dán sát mép phải đều có
+ * nguy cơ nằm dưới nó — và nằm dưới nó thì bấm không được, mà nhìn thì
+ * vẫn thấy. Màn nào có nút sát mép phải thì chừa đúng chừng này.
+ */
+export const CHAT_SPACE = SIZE + 10;
 const MARGIN = 12;
 
 type Tab = 'chung' | 'rieng' | 'he-thong';

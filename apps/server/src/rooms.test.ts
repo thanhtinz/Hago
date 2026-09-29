@@ -726,3 +726,86 @@ test('nhịp đồng hồ chỉ phát khi con số giây thật sự đổi', ()
   rooms.tick(t0 + 8600);
   assert.equal(a.inbox.filter((m) => m.t === 'clock').length, n1 + 1, 'sang giây mới thì phát');
 });
+
+test('mời bạn vào đúng phòng đang chờ, không dựng phòng mới', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes(), mayChallenge: () => true });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+
+  rooms.create(a.id, 'co-caro', {});
+  const code = a.last('room')!.code;
+  rooms.invite(a.id, b.id);
+  const inv = b.last('challenge')!;
+  assert.equal(inv.dir, 'in');
+  assert.equal(inv.withId, 'a');
+
+  rooms.answerChallenge(b.id, inv.id, true);
+  // Đúng cái phòng cũ, không phải một mã mới. Chủ phòng vẫn ngồi ghế 0 —
+  // trước đây nhánh nhận lời gọi leave(from) và đá chính chủ phòng ra.
+  assert.equal(a.last('room')!.code, code);
+  assert.equal(b.last('room')!.code, code);
+  assert.equal(a.last('room')!.yourSeat, 0);
+  assert.equal(b.last('room')!.yourSeat, 1);
+  assert.equal(a.last('room')!.started, true);
+  assert.equal(rooms.stats().rooms, 1, 'chỉ một phòng, không sinh thêm');
+});
+
+test('không mời được khi chưa mở phòng, phòng đã đủ người, hay ván đã chạy', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes(), mayChallenge: () => true });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  const c = client(rooms, 'c', 'Cường');
+
+  rooms.invite(a.id, b.id);
+  assert.equal(a.last('error')!.code, 'NO_ROOM');
+
+  rooms.create(a.id, 'co-caro', {});
+  rooms.join(b.id, a.last('room')!.code);
+  rooms.invite(a.id, c.id);
+  assert.equal(a.last('error')!.code, 'STARTED');
+});
+
+test('lời mời vào phòng hết hiệu lực nếu phòng đã đầy trước khi trả lời', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes(), mayChallenge: () => true });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  const c = client(rooms, 'c', 'Cường');
+
+  rooms.create(a.id, 'co-caro', {});
+  const code = a.last('room')!.code;
+  rooms.invite(a.id, c.id);
+  const inv = c.last('challenge')!;
+  // Người khác vào trước bằng mã.
+  rooms.join(b.id, code);
+  rooms.answerChallenge(c.id, inv.id, true);
+  assert.equal(c.last('challenge-gone')!.why, 'expired');
+  assert.equal(c.last('room'), undefined, 'không được chen vào ván của hai người khác');
+});
+
+test('số việc đang chờ được đẩy xuống, không phải hỏi lại mới biết', () => {
+  let pending = 0;
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes(), pendingRequests: () => pending });
+  const a = client(rooms, 'a', 'An');
+  assert.equal(a.last('alerts')!.friendRequests, 0);
+  pending = 2;
+  rooms.pushAlerts('a');
+  assert.equal(a.last('alerts')!.friendRequests, 2);
+});
+
+test('nhịp thở của sảnh đổi khi có người vào ra và khi phòng mở ra đóng lại', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  assert.equal(a.last('lobby')!.online, 1);
+
+  const b = client(rooms, 'b', 'Bình');
+  assert.equal(a.last('lobby')!.online, 2, 'người mới vào thì người đang ở sảnh phải thấy');
+
+  rooms.quick(a.id, 'co-caro');
+  assert.equal(a.last('lobby')!.queued, 1);
+  rooms.quick(b.id, 'co-caro');
+  assert.equal(a.last('lobby')!.rooms, 1);
+  assert.equal(a.last('lobby')!.queued, 0);
+
+  rooms.disconnect(b.id);
+  assert.equal(a.last('lobby')!.online, 1);
+});

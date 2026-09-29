@@ -24,6 +24,14 @@ export interface Ctx {
   notify: (body: string, to?: string) => void;
   /** Đổi tên thì mọi phòng người đó đang ngồi phải thấy tên mới ngay. */
   onRename?: (u: User) => void;
+  /**
+   * Quan hệ bạn bè của những người này vừa đổi.
+   *
+   * Không có đường này thì chấm đỏ "có lời mời kết bạn" ở sảnh đứng chết
+   * cho tới khi người dùng mở lại màn — ai gửi lời mời lúc họ đang ngồi ở
+   * sảnh thì không có gì nhúc nhích.
+   */
+  onFriendChange?: (...ids: string[]) => void;
   /** Bộ đếm tần suất. Bỏ trống thì không giới hạn — chỉ dùng trong test. */
   limiter?: Limiter;
 }
@@ -328,23 +336,36 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
       const list = ctx.accounts.friends(u.id).map((f) => ({ user: publicUser(f.user), status: f.status, incoming: f.incoming }));
       return json(res, 200, { friends: list, blocked: ctx.accounts.blocked(u.id).map(publicUser) }), true;
     }
+    // Mỗi thay đổi quan hệ đều đụng tới **hai** người, nên báo cho cả hai:
+    // người gửi thấy nút đổi trạng thái, người nhận thấy chấm đỏ.
     if (p === '/api/friends/request' && req.method === 'POST') {
-      return json(res, 200, { status: ctx.accounts.requestFriend(need().id, str(body.id)) }), true;
+      const u = need();
+      const status = ctx.accounts.requestFriend(u.id, str(body.id));
+      ctx.onFriendChange?.(u.id, str(body.id));
+      return json(res, 200, { status }), true;
     }
     if (p === '/api/friends/accept' && req.method === 'POST') {
-      ctx.accounts.acceptFriend(need().id, str(body.id));
+      const u = need();
+      ctx.accounts.acceptFriend(u.id, str(body.id));
+      ctx.onFriendChange?.(u.id, str(body.id));
       return json(res, 200, { ok: true }), true;
     }
     if (p === '/api/friends/remove' && req.method === 'POST') {
-      ctx.accounts.removeFriend(need().id, str(body.id));
+      const u = need();
+      ctx.accounts.removeFriend(u.id, str(body.id));
+      ctx.onFriendChange?.(u.id, str(body.id));
       return json(res, 200, { ok: true }), true;
     }
     if (p === '/api/friends/block' && req.method === 'POST') {
-      ctx.accounts.block(need().id, str(body.id));
+      const u = need();
+      ctx.accounts.block(u.id, str(body.id));
+      ctx.onFriendChange?.(u.id, str(body.id));
       return json(res, 200, { ok: true }), true;
     }
     if (p === '/api/friends/unblock' && req.method === 'POST') {
-      ctx.accounts.unblock(need().id, str(body.id));
+      const u = need();
+      ctx.accounts.unblock(u.id, str(body.id));
+      ctx.onFriendChange?.(u.id, str(body.id));
       return json(res, 200, { ok: true }), true;
     }
 

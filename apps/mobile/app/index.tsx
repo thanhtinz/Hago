@@ -1,12 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { registry } from '@co/core';
 import '../src/catalog';
-import { FACES, type GameFace } from '../src/games/faces';
-import { api, useAuth } from '../src/net/api';
+import { FACES, faceOf, type GameFace } from '../src/games/faces';
+import { api, useAuth, type Profile } from '../src/net/api';
 import { live, useLive } from '../src/net/live';
 import { Icon, type IconName } from '../src/ui/Icon';
 import { Btn, SLOP, Txt, press } from '../src/ui/parts';
@@ -35,12 +35,32 @@ export default function Lobby() {
   const [sheet, setSheet] = useState<'quick' | 'create' | 'join' | null>(null);
   const { me } = useAuth();
   const s = useLive();
-  // Số việc đang chờ mình: lời mời kết bạn đến, cộng lời rủ đấu đến.
-  const [requests, setRequests] = useState(0);
+  /**
+   * Hồ sơ giữ **nguyên cả khối**, không chỉ moi mỗi số lời mời.
+   *
+   * `api.me()` trả về đủ thành tích, chuỗi thắng và lịch sử; sảnh từng gọi
+   * nó rồi vứt hết trừ một con số, và in một dòng chữ cứng "Chưa xếp hạng"
+   * cho cả người đã đánh trăm ván.
+   */
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(false);
+  const load = useCallback(async () => {
+    if (!me) return setProfile(null);
+    setLoading(true);
+    try {
+      setProfile(await api.me());
+    } catch {
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [me?.id]);
   useEffect(() => {
-    if (!me) return setRequests(0);
-    void api.me().then((r) => setRequests(r.requests)).catch(() => setRequests(0));
-  }, [me]);
+    void load();
+  }, [load]);
+  // Chấm đỏ lấy từ **dây nối**, không phải từ lần gọi API lúc mở màn: ai gửi
+  // lời mời trong lúc mình đang ngồi ở sảnh thì nó phải nhúc nhích ngay.
+  const requests = s.friendRequests || (profile?.requests ?? 0);
   const pending = requests + s.challenges.filter((c) => c.dir === 'in').length;
 
   // Lời rủ được nhận lời trong lúc đang ở sảnh: vào bàn ngay.
@@ -65,6 +85,7 @@ export default function Lobby() {
         ref={scroller}
         contentContainerStyle={{ paddingBottom: 28, paddingTop: insets.top + S.md }}
         showsVerticalScrollIndicator={false}
+        refreshControl={me ? <RefreshControl refreshing={loading} onRefresh={() => void load()} tintColor={A.gold} colors={[A.gold]} /> : undefined}
       >
         {/* Tên nền tảng khắc chữ serif, có đường chỉ vàng bên dưới như khung
             viền một bàn cờ gỗ. */}
@@ -73,6 +94,7 @@ export default function Lobby() {
             CỜ VIỆT
           </Txt>
           <Rule width={w * 0.5} />
+          <Pulse lobby={s.lobby} />
         </View>
         <Pressable
           accessibilityRole="button"
@@ -103,9 +125,10 @@ export default function Lobby() {
                 <Txt size={17} weight="display">
                   {me?.name ?? 'Chưa đăng nhập'}
                 </Txt>
-                {/* Không bịa elo hay số trận. Chưa có xếp hạng thì nói là chưa có. */}
+                {/* Không bịa elo hay số trận. Chưa đánh ván nào thì vẫn nói
+                    là chưa xếp hạng — đừng in số 0 như một thành tích. */}
                 <Txt size={11.5} color={A.inkFaint}>
-                  {me ? 'Chưa xếp hạng · đã đăng nhập' : 'Đăng nhập để chơi với người thật'}
+                  {me ? summary(profile) : 'Đăng nhập để chơi với người thật'}
                 </Txt>
               </View>
               <Icon name="chevron" size={17} color={A.inkFaint} />
@@ -193,6 +216,45 @@ export default function Lobby() {
       ) : null}
     </View>
   );
+}
+
+/**
+ * Một dòng nói sảnh có đang sống hay không.
+ *
+ * Con số đến từ dây nối và tự đổi khi có người vào ra. Chưa nhận được nhịp
+ * nào thì **không hiện gì** — in "0 người" trong lúc đang nối dây là nói
+ * sai, và nói sai về chuyện có ai ở đây không là kiểu nói sai tệ nhất với
+ * một sảnh game.
+ */
+function Pulse({ lobby }: { lobby: { online: number; rooms: number; queued: number } | null }) {
+  if (!lobby) return null;
+  const parts = [`${lobby.online} người đang chơi`];
+  if (lobby.rooms > 0) parts.push(`${lobby.rooms} ván đang chạy`);
+  if (lobby.queued > 0) parts.push(`${lobby.queued} đang tìm đối`);
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 6 }}>
+      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: lobby.online > 0 ? A.jade : A.inkFaint }} />
+      <Txt size={11} color={A.inkFaint}>
+        {parts.join(' · ')}
+      </Txt>
+    </View>
+  );
+}
+
+/**
+ * Dòng dưới tên ở thẻ người chơi.
+ *
+ * Điểm đại diện là điểm ở **bộ môn đánh nhiều nhất**, không phải điểm cao
+ * nhất: khoe một con số lấy từ ba ván may mắn thì nó không mô tả người chơi.
+ * Cùng một quy tắc với trang cá nhân.
+ */
+function summary(p: Profile | null): string {
+  const played = (p?.stats ?? []).reduce((n, x) => n + x.win + x.draw + x.loss, 0);
+  if (!played) return 'Chưa xếp hạng · chưa đánh ván nào';
+  const main = [...(p?.stats ?? [])].sort((x, y) => y.win + y.draw + y.loss - (x.win + x.draw + x.loss))[0]!;
+  const name = faceOf(main.gameId)?.nameVi ?? main.gameId;
+  const streak = p?.streak && p.streak.n > 1 && p.streak.kind === 'win' ? ` · ${p.streak.n} thắng liên tiếp` : '';
+  return `${main.rating} điểm ${name} · ${played} ván${streak}`;
 }
 
 /** Một ô trong hàng chế độ. `badge` là số việc đang chờ mình xử lý. */

@@ -42,6 +42,10 @@ export interface LiveState {
   unread: Record<string, number>;
   /** Số thông báo hệ thống chưa đọc. */
   unreadSystem: number;
+  /** Nhịp thở của sảnh. `null` là chưa nhận được nhịp nào. */
+  lobby: { online: number; rooms: number; queued: number } | null;
+  /** Số lời mời kết bạn đang chờ mình trả lời. */
+  friendRequests: number;
 }
 
 const EMPTY: LiveState = {
@@ -56,6 +60,8 @@ const EMPTY: LiveState = {
   chat: { channel: null, rows: [], more: false },
   unread: {},
   unreadSystem: 0,
+  lobby: null,
+  friendRequests: 0,
 };
 
 let state: LiveState = EMPTY;
@@ -110,6 +116,8 @@ function open(t: string): void {
     chatUnread: (dms, system) => set({ unread: dms, unreadSystem: system }),
     // Nhịp đồng hồ chỉ đụng vào `ms` của từng ghế, không đụng thế cờ. Gộp
     // vào `st` để màn chơi đọc đồng hồ ở đúng một chỗ như mọi thứ khác.
+    lobby: (online, rooms, queued) => set({ lobby: { online, rooms, queued } }),
+    alerts: (friendRequests) => set({ friendRequests }),
     clock: (ms) => {
       const st = state.st;
       if (!st) return;
@@ -174,6 +182,7 @@ export const live = {
   rematch: (want: boolean) => client?.rematch(want),
   act: (action: unknown) => client?.act(action),
   challenge: (to: string, gameId: string) => client?.challenge(to, gameId),
+  invite: (to: string) => client?.invite(to),
   answer: (id: string, accept: boolean) => client?.answerChallenge(id, accept),
   cancel: (id: string) => client?.cancelChallenge(id),
   openChat: (channel: string) => {

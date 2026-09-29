@@ -56,6 +56,10 @@ export interface ClientEvents {
   chatUnread: (dms: Record<string, number>, system: number) => void;
   /** Nhịp đồng hồ từ máy chủ, một giây một lần trong lúc ván chạy. */
   clock: (ms: number[]) => void;
+  /** Nhịp thở của sảnh: số người đang nối, số ván đang chạy, số người xếp hàng. */
+  lobby: (online: number, rooms: number, queued: number) => void;
+  /** Số việc đang chờ chính mình. */
+  alerts: (friendRequests: number) => void;
 }
 
 /**
@@ -144,6 +148,10 @@ export class GameClient {
           return this.on.room?.(null);
         case 'clock':
           return this.on.clock?.(m.ms);
+        case 'lobby':
+          return this.on.lobby?.(m.online, m.rooms, m.queued);
+        case 'alerts':
+          return this.on.alerts?.(m.friendRequests);
         case 'challenge':
           return this.on.challenge?.(m);
         case 'challenge-gone':
@@ -194,6 +202,9 @@ export class GameClient {
   }
   challenge(to: string, gameId: string): void {
     this.raw({ t: 'challenge', to, gameId });
+  }
+  invite(to: string): void {
+    this.raw({ t: 'invite', to });
   }
   answerChallenge(id: string, accept: boolean): void {
     this.raw({ t: 'challenge-answer', id, accept });

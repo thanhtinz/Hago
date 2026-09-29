@@ -57,6 +57,15 @@ export type ClientMsg =
   | { t: 'act'; nonce: string; action: unknown }
   /** Rủ một người bạn đánh một ván. Chỉ rủ được người đã là bạn và đang trực tuyến. */
   | { t: 'challenge'; to: string; gameId: string }
+  /**
+   * Mời một người bạn vào **đúng cái phòng mình đang chờ**.
+   *
+   * Khác `challenge` ở một điểm quyết định: `challenge` dựng một phòng mới
+   * cho cả hai, còn `invite` kéo người kia vào phòng đã mở — cái phòng mà
+   * người mời đang nhìn mã của nó trên màn hình. Không có nó thì mở phòng
+   * xong chỉ còn cách đọc mã qua điện thoại.
+   */
+  | { t: 'invite'; to: string }
   | { t: 'challenge-answer'; id: string; accept: boolean }
   /** Rút lại lời rủ mình vừa gửi. */
   | { t: 'challenge-cancel'; id: string }
@@ -74,6 +83,22 @@ export type ClientMsg =
 
 export type ServerMsg =
   | { t: 'welcome'; youId: string }
+  /**
+   * Nhịp thở của sảnh: bao nhiêu người đang mở app, bao nhiêu ván đang chạy.
+   *
+   * Một sảnh cờ không nói được có ai ở đó không thì trông như một app đã
+   * chết. Máy chủ đếm sẵn mấy con số này từ đầu (`Rooms.stats`) nhưng chúng
+   * chỉ ra ở `/health`, không có đường nào tới màn hình.
+   */
+  | { t: 'lobby'; online: number; rooms: number; queued: number }
+  /**
+   * Số việc đang chờ chính người này xử lý: lời mời kết bạn đến.
+   *
+   * Trước đây sảnh hỏi con số này đúng **một lần** lúc mở màn, nên chấm đỏ
+   * đứng chết cho tới khi mount lại — ai đó gửi lời mời trong lúc mình đang
+   * ngồi ở sảnh thì không có gì nhúc nhích.
+   */
+  | { t: 'alerts'; friendRequests: number }
   | { t: 'queued'; gameId: string; waiting: number }
   | {
       t: 'room';
