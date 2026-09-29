@@ -4,6 +4,7 @@ import { Accounts, AuthError } from './accounts.js';
 import { googleConfigured, verifyGoogleIdToken } from './google.js';
 import type { Chat } from './chat.js';
 import { Avatars, MAX_BYTES, UP, UploadError, isUpload, uploadName } from './uploads.js';
+import { RULES, type Limiter, type Rule } from './limit.js';
 
 /**
  * API HTTP: tài khoản, hồ sơ, bạn bè.
@@ -23,6 +24,28 @@ export interface Ctx {
   notify: (body: string, to?: string) => void;
   /** Đổi tên thì mọi phòng người đó đang ngồi phải thấy tên mới ngay. */
   onRename?: (u: User) => void;
+  /** Bộ đếm tần suất. Bỏ trống thì không giới hạn — chỉ dùng trong test. */
+  limiter?: Limiter;
+}
+
+/** Lỗi khi gõ quá nhanh. Mang mã riêng để app nói được "thử lại sau N giây". */
+export class RateError extends Error {
+  constructor(readonly waitMs: number) {
+    super(`Bạn thao tác hơi nhanh, thử lại sau ${Math.ceil(waitMs / 1000)} giây`);
+  }
+}
+
+/**
+ * Địa chỉ của người gọi.
+ *
+ * Đọc `x-forwarded-for` trước vì máy chủ này chạy sau một proxy trong hầu
+ * hết cách triển khai; lấy **phần tử đầu**, là địa chỉ khách thật. Không có
+ * proxy thì rơi về địa chỉ socket.
+ */
+function callerKey(req: IncomingMessage): string {
+  const fwd = req.headers['x-forwarded-for'];
+  const first = Array.isArray(fwd) ? fwd[0] : fwd?.split(',')[0];
+  return (first ?? req.socket.remoteAddress ?? 'khong-ro').trim();
 }
 
 const json = (res: ServerResponse, code: number, body: unknown) => {
@@ -116,7 +139,27 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
     return me;
   };
 
+  /**
+   * Đếm theo **người đăng nhập nếu có, không thì theo địa chỉ**.
+   *
+   * Đếm thuần theo địa chỉ thì cả một quán net hay cả một nhà mạng di động
+   * dùng chung NAT sẽ chặn lẫn nhau. Đếm thuần theo tài khoản thì cửa đăng
+   * nhập không đếm được gì, vì lúc đó chưa có tài khoản nào.
+   */
+  const ip = callerKey(req);
+  const gate = (rule: Rule, scope: string, byUser = true) => {
+    if (!ctx.limiter) return;
+    const who = byUser && me ? `u:${me.id}` : `ip:${ip}`;
+    const wait = ctx.limiter.take(`${scope}|${who}`, rule);
+    if (wait > 0) throw new RateError(wait);
+  };
   try {
+    // Đọc thì rộng tay, nhưng vẫn có trần: một vòng lặp gọi /api/users?q=
+    // cũng đủ làm SQLite quét bảng liên tục. Đặt **trong** try để lỗi quá
+    // tần suất đi ra bằng đúng đường 429 phía dưới.
+    if (req.method === 'GET') gate(RULES.read, 'read');
+    else if (!p.startsWith('/api/auth/')) gate(RULES.write, 'write');
+
     /**
      * Tải ảnh đại diện lên. Thân yêu cầu là **chính tệp ảnh**, không phải
      * multipart: app đã vẽ lại ảnh thành ô vuông 256 điểm trước khi gửi, nên
@@ -142,11 +185,22 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
       return json(res, 200, { google: googleConfigured() }), true;
     }
     if (p === '/api/auth/register' && req.method === 'POST') {
-      const s = ctx.accounts.register(str(body.name), str(body.email), str(body.password));
+      gate(RULES.register, 'register', false);
+      const s = await ctx.accounts.register(str(body.name), str(body.email), str(body.password));
       return json(res, 200, { token: s.token, user: s.user }), true;
     }
     if (p === '/api/auth/login' && req.method === 'POST') {
-      const s = ctx.accounts.login(str(body.email), str(body.password));
+      // Đếm theo **địa chỉ và theo email**: chỉ đếm theo địa chỉ thì một
+      // mạng chung bị khoá oan, chỉ đếm theo email thì dò danh sách email
+      // khác nhau vẫn chạy tẹt ga.
+      const mailKey = `login-mail:${str(body.email).trim().toLowerCase()}`;
+      gate(RULES.login, 'login', false);
+      gate(RULES.login, mailKey, false);
+      const s = await ctx.accounts.login(str(body.email), str(body.password));
+      // Đăng nhập được rồi thì xoá dấu **cả hai bộ đếm**: người gõ sai hai
+      // lần rồi gõ đúng không đáng bị tính tiếp trong năm phút sau.
+      ctx.limiter?.clear(`login|ip:${ip}`);
+      ctx.limiter?.clear(`${mailKey}|ip:${ip}`);
       return json(res, 200, { token: s.token, user: s.user }), true;
     }
     if (p === '/api/auth/google' && req.method === 'POST') {
@@ -297,6 +351,12 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
     json(res, 404, { code: 'NO_ROUTE', msg: 'Không có đường dẫn này' });
     return true;
   } catch (e) {
+    if (e instanceof RateError) {
+      // 429 kèm `retry-after` là câu trả lời chuẩn; app đọc số giây từ đó.
+      res.setHeader('retry-after', String(Math.ceil(e.waitMs / 1000)));
+      json(res, 429, { code: 'TOO_FAST', msg: e.message, waitMs: e.waitMs });
+      return true;
+    }
     if (e instanceof UploadError) {
       json(res, 400, { code: e.code, msg: e.message });
       return true;

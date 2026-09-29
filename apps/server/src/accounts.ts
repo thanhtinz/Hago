@@ -1,4 +1,5 @@
-import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto';
+import { randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto';
+import { promisify } from 'node:util';
 import type { DatabaseSync } from 'node:sqlite';
 import { pairOf, type User } from './db.js';
 
@@ -52,24 +53,45 @@ const DAY = 86_400_000;
  *
  * Không dùng SHA-256 thẳng: hàm băm nhanh là thứ làm rò cơ sở dữ liệu trở
  * thành rò mật khẩu. scrypt tốn bộ nhớ nên GPU không nhân được lên hàng tỉ
- * lần thử mỗi giây. `N=16384` là mức chuẩn, tốn ~60ms một lần trên máy chủ
+ * lần thử mỗi giây. `N=16384` là mức chuẩn, tốn ~40ms một lần trên máy chủ
  * bình thường — đủ chậm cho kẻ dò, không đủ chậm để người dùng thấy.
+ *
+ * **Bản bất đồng bộ, không phải `scryptSync`.** Node chỉ có một luồng chạy
+ * JavaScript: 40ms đồng bộ mỗi lần đăng nhập nghĩa là khoảng 25 yêu cầu mỗi
+ * giây đóng băng toàn bộ máy chủ — `setInterval(tick, 250)` không chạy, đồng
+ * hồ mọi ván đứng lại, mọi nước đi treo. Một vòng lặp `curl` đánh sập cả nền
+ * tảng mà không cần đoán đúng một mật khẩu nào. Bản bất đồng bộ chạy trên
+ * threadpool của libuv nên vòng lặp sự kiện vẫn quay.
  */
-function hashPassword(pw: string): string {
+const scryptAsync = promisify(scrypt) as (pw: string, salt: Buffer, len: number, opts: { N: number; r: number; p: number }) => Promise<Buffer>;
+
+const PARAMS = { N: 16384, r: 8, p: 1 } as const;
+
+async function hashPassword(pw: string): Promise<string> {
   const salt = randomBytes(16);
-  const key = scryptSync(pw, salt, 64, { N: 16384, r: 8, p: 1 });
+  const key = await scryptAsync(pw, salt, 64, PARAMS);
   return `scrypt$${salt.toString('base64')}$${key.toString('base64')}`;
 }
 
-function verifyPassword(pw: string, stored: string): boolean {
+async function verifyPassword(pw: string, stored: string): Promise<boolean> {
   const [alg, saltB64, keyB64] = stored.split('$');
   if (alg !== 'scrypt' || !saltB64 || !keyB64) return false;
   const key = Buffer.from(keyB64, 'base64');
-  const got = scryptSync(pw, Buffer.from(saltB64, 'base64'), key.length, { N: 16384, r: 8, p: 1 });
+  const got = await scryptAsync(pw, Buffer.from(saltB64, 'base64'), key.length, PARAMS);
   // So sánh theo thời gian cố định: `===` trả lời sớm ở byte đầu khác nhau,
   // và thời gian trả lời đó đo được qua mạng.
   return timingSafeEqual(key, got);
 }
+
+/**
+ * Một bản băm giả để đốt thời gian khi email không tồn tại.
+ *
+ * Không có nó thì "email chưa đăng ký" trả lời sau chưa tới một mili giây
+ * còn "sai mật khẩu" trả lời sau bốn mươi — hai câu trả lời **giống hệt
+ * nhau về chữ** nhưng khác nhau về thời gian, và thời gian thì đo được qua
+ * mạng. Đó vẫn là một công cụ dò xem email nào đã có tài khoản.
+ */
+const DUMMY_HASH = `scrypt$${Buffer.alloc(16).toString('base64')}$${Buffer.alloc(64).toString('base64')}`;
 
 export class AuthError extends Error {
   constructor(
@@ -129,25 +151,31 @@ export class Accounts {
 
   // ---- tài khoản -----------------------------------------------------
 
-  register(nameRaw: string, emailRaw: string, password: string): Session {
+  async register(nameRaw: string, emailRaw: string, password: string): Promise<Session> {
     const name = cleanName(nameRaw);
     const email = checkEmail(emailRaw);
     checkPassword(password);
     if (this.byEmail(email)) throw new AuthError('EMAIL_TAKEN', 'Email này đã có tài khoản');
+    const hash = await hashPassword(password);
+    // Kiểm lại sau khi băm: băm mất mấy chục mili giây, đủ để hai lần đăng ký
+    // cùng một email chen nhau qua được cửa kiểm ở trên.
+    if (this.byEmail(email)) throw new AuthError('EMAIL_TAKEN', 'Email này đã có tài khoản');
     const id = randomUUID();
     this.db
       .prepare('INSERT INTO users (id, name, email, pass_hash, created_at) VALUES (?, ?, ?, ?, ?)')
-      .run(id, name, email, hashPassword(password), Date.now());
+      .run(id, name, email, hash, Date.now());
     return this.openSession(id);
   }
 
-  login(emailRaw: string, password: string): Session {
+  async login(emailRaw: string, password: string): Promise<Session> {
     const row = this.byEmail(checkEmail(emailRaw));
     // Cùng một lời báo lỗi cho "không có email này" và "sai mật khẩu". Phân
-    // biệt hai câu là cho không một công cụ dò xem email nào đã đăng ký.
-    const wrong = () => new AuthError('BAD_LOGIN', 'Email hoặc mật khẩu không đúng');
-    if (!row?.pass_hash) throw wrong();
-    if (!verifyPassword(password, row.pass_hash)) throw wrong();
+    // biệt hai câu là cho không một công cụ dò xem email nào đã đăng ký —
+    // và **thời gian trả lời cũng là một câu trả lời**, nên email không tồn
+    // tại vẫn phải đốt đúng chừng ấy thời gian băm.
+    const wrong = new AuthError('BAD_LOGIN', 'Email hoặc mật khẩu không đúng');
+    const ok = await verifyPassword(password, row?.pass_hash ?? DUMMY_HASH);
+    if (!row?.pass_hash || !ok) throw wrong;
     return this.openSession(row.id);
   }
 
@@ -258,6 +286,41 @@ export class Accounts {
 
   logout(token: string): void {
     this.db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
+  }
+
+  /**
+   * Dọn phiên đã hết hạn.
+   *
+   * `bearer` chỉ xoá đúng hàng nó vừa đụng tới, nên phiên của một người
+   * không bao giờ quay lại thì nằm lại vĩnh viễn. Sáu mươi ngày một phiên,
+   * mỗi lần đăng nhập một hàng mới — bảng chỉ có một chiều là lớn lên.
+   */
+  sweepSessions(now = Date.now()): number {
+    const r = this.db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(now);
+    return Number(r.changes ?? 0);
+  }
+
+  /**
+   * Những phiên đang mở của một người, mới nhất trước.
+   *
+   * Token **không bao giờ trả ra ngoài** — chỉ trả sáu ký tự cuối để người
+   * dùng nhận ra phiên nào là cái máy đang cầm trên tay. Trả cả token là
+   * biến trang "quản lý thiết bị" thành trang phát chìa khoá.
+   */
+  sessions(userId: string): { id: string; createdAt: number; expiresAt: number }[] {
+    return this.db
+      .prepare('SELECT token, created_at, expires_at FROM sessions WHERE user_id = ? ORDER BY created_at DESC')
+      .all(userId)
+      .map((r) => {
+        const row = r as unknown as { token: string; created_at: number; expires_at: number };
+        return { id: row.token.slice(-6), createdAt: row.created_at, expiresAt: row.expires_at };
+      });
+  }
+
+  /** Đăng xuất mọi nơi trừ phiên đang dùng. */
+  logoutOthers(userId: string, keep: string): number {
+    const r = this.db.prepare('DELETE FROM sessions WHERE user_id = ? AND token <> ?').run(userId, keep);
+    return Number(r.changes ?? 0);
   }
 
   // ---- thành tích, điểm và lịch sử -----------------------------------

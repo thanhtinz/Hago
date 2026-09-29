@@ -1,154 +1,46 @@
-import { createServer } from 'node:http';
-import { WebSocketServer, type WebSocket } from 'ws';
 import { registry } from '@co/core';
 import './catalog.js';
-import { PORT, type ClientMsg } from '@co/protocol';
-import { Accounts } from './accounts.js';
-import { Chat } from './chat.js';
-import { openDb } from './db.js';
-import { handleApi } from './http.js';
-import { Avatars } from './uploads.js';
-import { Rooms } from './rooms.js';
+import { PORT } from '@co/protocol';
+import { buildServer } from './serve.js';
 
 /**
- * Tầng truyền tải: WebSocket mỏng bọc quanh `Rooms`.
+ * Điểm vào của máy chủ. Mỏng cố ý.
  *
- * Ở đây **không có luật chơi nào cả**. Toàn bộ việc của file này là đọc một
- * thông điệp JSON, gọi đúng hàm của `Rooms`, và đẩy thông điệp trả về đúng
- * socket. Nhờ vậy đổi sang một tầng truyền tải khác sau này không đụng gì
- * tới phòng, đồng hồ hay ván đấu.
+ * Toàn bộ việc dựng nằm ở `serve.ts` để **test được cả đường dây thật**.
+ * Khi mọi thứ còn ở đây thì nhập file là mở cổng và chạy mãi, nên tầng
+ * truyền tải chưa từng có một bài kiểm nào — đúng cái tầng có lỗ hổng giết
+ * được cả tiến trình bằng một gói tin.
  */
-
-const db = openDb();
-const accounts = new Accounts(db);
-const avatars = new Avatars();
-const chat = new Chat(db);
 
 /**
- * Chỉ **ván ghép cặp** mới vào sổ thành tích.
+ * Mạng lưới cuối cùng.
  *
- * Phòng riêng mở bằng mã là phòng mời bạn: hai người quen nhau muốn bơm điểm
- * cho nhau chỉ cần mở phòng rồi thay nhau xin thua vài chục lần. Đây cũng
- * đúng là lý do `rated` có mặt từ đầu trong `Rooms`.
+ * Mọi ván đang chạy chỉ sống trong bộ nhớ của `Rooms`, nên một ngoại lệ
+ * không ai bắt là **mất sạch ván của tất cả mọi người**. Ghi lại rồi chạy
+ * tiếp đúng hơn là chết: dữ liệu lâu dài trong SQLite đã ghi xong rồi, còn
+ * ván đang chạy thì chỉ cứu được bằng cách đừng chết.
  */
-const rooms = new Rooms({
-  // Chỉ bạn bè mới rủ nhau được. `Rooms` không đọc cơ sở dữ liệu nên câu hỏi
-  // đó trả lời ở đây, nơi đã có sẵn lớp tài khoản.
-  mayChallenge: (from, to) => accounts.areFriends(from, to) && !accounts.isBlockedEither(from, to),
-  chat,
-  isBlocked: (a, b) => accounts.isBlockedEither(a, b),
-  onFinish: ({ gameId, code, rated, seats, names, outcome }) => {
-    accounts.recordMatch({
-      gameId,
-      code,
-      seats: [seats[0] ?? null, seats[1] ?? null],
-      names: [names[0] ?? '—', names[1] ?? '—'],
-      winner: outcome.winner,
-      reason: outcome.reason,
-      // Lịch sử ghi **mọi** ván, kể cả phòng riêng; chỉ điểm Elo là không
-      // tính. Giấu cả ván khỏi lịch sử thì người chơi tưởng app quên mất ván
-      // họ vừa đánh với bạn.
-      rated,
-    });
-  },
-});
+process.on('uncaughtException', (e) => console.error('Ngoại lệ không ai bắt:', e));
+process.on('unhandledRejection', (e) => console.error('Promise bị bỏ rơi:', e));
 
-const http = createServer((req, res) => {
-  void handleApi(req, res, {
-    accounts,
-    avatars,
-    chat,
-    notify: (body, to) => rooms.systemMessage(body, to),
-    onRename: (u) => rooms.rename(u.id, u.name),
-  }).then((done) => {
-    if (done) return;
-    if (req.url === '/health') {
-      res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
-      res.end(JSON.stringify({ ok: true, games: registry.catalog().map((g) => g.id), ...rooms.stats() }));
-      return;
-    }
-    res.writeHead(404);
-    res.end();
+const server = buildServer();
+
+await server.listen(PORT);
+console.log(`Máy chủ cờ nghe ở cổng ${PORT}, bộ môn: ${registry.catalog().map((g) => g.id).join(', ')}`);
+
+/**
+ * Tắt máy tử tế.
+ *
+ * Không nghe tín hiệu thì mỗi lần triển khai là cắt ngang mọi socket đang
+ * mở giữa chừng — người chơi thấy "mất kết nối" đúng lúc máy chủ chưa kịp
+ * ghi kết quả ván. Đóng cổng trước, để các ván đang chạy kết thúc đường của
+ * chúng, rồi mới thoát.
+ */
+for (const sig of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(sig, () => {
+    console.log(`Nhận ${sig}, đang đóng máy chủ…`);
+    void server.close().then(() => process.exit(0));
+    // Có socket cứng đầu thì vẫn phải đi, nhưng cho nó năm giây.
+    setTimeout(() => process.exit(0), 5000).unref();
   });
-});
-
-const wss = new WebSocketServer({ server: http });
-
-wss.on('connection', (ws: WebSocket) => {
-  let id: string | null = null;
-  const send = (m: unknown) => {
-    if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(m));
-  };
-
-  ws.on('message', (raw) => {
-    let msg: ClientMsg;
-    try {
-      msg = JSON.parse(String(raw)) as ClientMsg;
-    } catch {
-      return send({ t: 'error', code: 'BAD_JSON', msg: 'Không đọc được thông điệp' });
-    }
-    /**
-     * `hello` mang theo **token phiên**, và token quyết định mình là ai.
-     *
-     * Trước đây id do máy chủ phát rồi client nhớ lấy, nên ai gửi lại đúng
-     * chuỗi đó là thành người đó. Giờ danh tính đến từ phiên đăng nhập: không
-     * có token hợp lệ thì không vào được phòng nào.
-     *
-     * Vào lại cũng là `hello` với cùng token — không cần trường `id` nữa, vì
-     * `userId` **chính là** khoá ghế trong phòng.
-     */
-    if (msg.t === 'hello') {
-      const user = msg.token ? accounts.bearer(msg.token) : null;
-      if (!user) return send({ t: 'error', code: 'NO_AUTH', msg: 'Phải đăng nhập trước' });
-      id = user.id;
-      if (!rooms.reconnect(user.id, send)) rooms.connect(user.id, user.name, send);
-      return;
-    }
-    if (!id) return send({ t: 'error', code: 'NO_HELLO', msg: 'Phải gửi hello trước' });
-
-    switch (msg.t) {
-      case 'create':
-        return rooms.create(id, msg.gameId, msg.config);
-      case 'join':
-        return rooms.join(id, msg.code);
-      case 'quick':
-        return rooms.quick(id, msg.gameId);
-      case 'leave':
-        return rooms.leave(id);
-      case 'rematch':
-        return rooms.rematch(id, msg.want);
-      case 'act':
-        return rooms.act(id, msg.nonce, msg.action);
-      case 'challenge':
-        return rooms.challenge(id, msg.to, msg.gameId);
-      case 'challenge-answer':
-        return rooms.answerChallenge(id, msg.id, msg.accept);
-      case 'challenge-cancel':
-        return rooms.cancelChallenge(id, msg.id);
-      case 'watch':
-        return rooms.watch(id, msg.ids);
-      case 'chat-open':
-        return rooms.openChat(id, msg.channel);
-      case 'chat-send':
-        return rooms.sendChat(id, msg.channel, msg.body);
-      case 'chat-more':
-        return rooms.moreChat(id, msg.channel, msg.before);
-      case 'chat-read':
-        return rooms.markRead(id, msg.channel, msg.lastId);
-      default:
-        return send({ t: 'error', code: 'UNKNOWN', msg: 'Không hiểu thông điệp' });
-    }
-  });
-
-  ws.on('close', () => {
-    if (id) rooms.disconnect(id);
-  });
-});
-
-// Đồng hồ chạy ở máy chủ, một nhịp 250ms. Không để client tự báo hết giờ:
-// ai cũng tự tuyên bố đối thủ hết giờ được thì đồng hồ vô nghĩa.
-setInterval(() => rooms.tick(), 250);
-
-http.listen(PORT, () => {
-  console.log(`Máy chủ cờ nghe ở cổng ${PORT}, bộ môn: ${registry.catalog().map((g) => g.id).join(', ')}`);
-});
+}

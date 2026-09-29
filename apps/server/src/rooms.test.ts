@@ -630,3 +630,44 @@ test('đấu lại vẫn vào sổ thành tích, mỗi ván một lần', () => 
   assert.deepEqual(got[1]!.seats, ['b', 'a'], 'ván sau ghế đã đổi');
   assert.equal(got[1]!.winner, 0);
 });
+
+test('dọn người đã đi hẳn và phòng bỏ hoang', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+  assert.equal(rooms.stats().rooms, 1);
+
+  const t0 = 1_000_000;
+  rooms.disconnect(a.id, t0);
+  rooms.disconnect(b.id, t0);
+
+  // Rớt sóng vài phút thì ghế vẫn phải còn: người ta đi pha ấm trà rồi quay lại.
+  rooms.sweep(t0, 15 * 60_000);
+  assert.equal(rooms.stats().players, 2, 'chưa quá hạn thì không được dọn');
+  assert.equal(rooms.stats().rooms, 1);
+
+  // Đi hẳn thì dọn, và ván đang chạy tính là bỏ trận chứ không biến mất im lặng.
+  rooms.sweep(t0 + 16 * 60_000, 15 * 60_000);
+  assert.equal(rooms.stats().players, 0);
+  assert.equal(rooms.stats().rooms, 0);
+});
+
+test('phòng đã xong ván mà cả hai rớt mạng thì cũng được dọn', () => {
+  const got: number[] = [];
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes(), onFinish: () => got.push(1) });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+  rooms.act(a.id, 'r', { t: 'resign' });
+  assert.equal(got.length, 1);
+
+  rooms.disconnect(a.id);
+  rooms.disconnect(b.id);
+  rooms.sweep(Date.now(), 15 * 60_000);
+  assert.equal(rooms.stats().rooms, 0, 'ván xong và không ai ở đó thì phòng vô nghĩa');
+  // Dọn phòng không được ghi thêm một kết quả thứ hai.
+  assert.equal(got.length, 1);
+});

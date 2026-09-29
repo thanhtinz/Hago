@@ -4,16 +4,16 @@ import { Accounts } from './accounts.js';
 import { Chat, MAX_BODY, SYSTEM, dm, dmPair, systemFor } from './chat.js';
 import { openDb } from './db.js';
 
-const fresh = () => {
+const fresh = async () => {
   const db = openDb(':memory:');
   const a = new Accounts(db);
-  const x = a.register('An', 'an@example.com', 'matkhaudai').user;
-  const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
+  const x = (await a.register('An', 'an@example.com', 'matkhaudai')).user;
+  const y = (await a.register('Bình', 'binh@example.com', 'matkhaudai')).user;
   return { chat: new Chat(db), a, x, y };
 };
 
-test('kênh riêng của hai người là một, dù ai nhắn trước', () => {
-  const { x, y } = fresh();
+test('kênh riêng của hai người là một, dù ai nhắn trước', async () => {
+  const { x, y } = await fresh();
   // Ghép theo thứ tự người gửi thì A nhắn vào `A|B` còn B nhắn vào `B|A`, và
   // hai người ngồi nhìn hai cuộc trò chuyện khác nhau.
   assert.equal(dm(x.id, y.id), dm(y.id, x.id));
@@ -21,15 +21,15 @@ test('kênh riêng của hai người là một, dù ai nhắn trước', () => 
   assert.equal(dmPair('chung'), null);
 });
 
-test('gọn tin: bỏ ký tự điều khiển, gộp dòng trống, cắt quá dài', () => {
+test('gọn tin: bỏ ký tự điều khiển, gộp dòng trống, cắt quá dài', async () => {
   assert.equal(Chat.clean('  chào bạn \u0007 '), 'chào bạn');
   assert.equal(Chat.clean('a\n\n\n\n\nb'), 'a\n\nb');
   assert.equal(Chat.clean('x'.repeat(MAX_BODY + 50)).length, MAX_BODY, 'cắt chứ không từ chối');
   assert.equal(Chat.clean('   '), '');
 });
 
-test('lịch sử trả về cũ nhất trước, và phân trang lùi bằng con trỏ', () => {
-  const { chat, x, y } = fresh();
+test('lịch sử trả về cũ nhất trước, và phân trang lùi bằng con trỏ', async () => {
+  const { chat, x, y } = await fresh();
   const c = dm(x.id, y.id);
   for (let i = 1; i <= 7; i++) chat.post(c, x.id, 'An', `tin ${i}`);
 
@@ -44,8 +44,8 @@ test('lịch sử trả về cũ nhất trước, và phân trang lùi bằng co
   assert.equal(p3.more, false);
 });
 
-test('chưa đọc: không tính tin của chính mình, và đọc rồi thì về không', () => {
-  const { chat, x, y } = fresh();
+test('chưa đọc: không tính tin của chính mình, và đọc rồi thì về không', async () => {
+  const { chat, x, y } = await fresh();
   const c = dm(x.id, y.id);
   const m1 = chat.post(c, y.id, 'Bình', 'chào');
   chat.post(c, y.id, 'Bình', 'đánh không');
@@ -56,8 +56,8 @@ test('chưa đọc: không tính tin của chính mình, và đọc rồi thì v
   assert.equal(chat.unread(x.id, c), 1, 'mới đọc tới tin đầu');
 });
 
-test('gửi một tin là đã đọc cả kênh', () => {
-  const { chat, x, y } = fresh();
+test('gửi một tin là đã đọc cả kênh', async () => {
+  const { chat, x, y } = await fresh();
   const c = dm(x.id, y.id);
   chat.post(c, y.id, 'Bình', 'chào');
   chat.post(c, y.id, 'Bình', 'đánh không');
@@ -70,8 +70,8 @@ test('gửi một tin là đã đọc cả kênh', () => {
   assert.equal(chat.unread(y.id, c), 1, 'còn bên kia thì có một tin mới thật');
 });
 
-test('mốc đã đọc không lùi về sau', () => {
-  const { chat, x, y } = fresh();
+test('mốc đã đọc không lùi về sau', async () => {
+  const { chat, x, y } = await fresh();
   const c = dm(x.id, y.id);
   const m1 = chat.post(c, y.id, 'Bình', 'một');
   const m2 = chat.post(c, y.id, 'Bình', 'hai');
@@ -81,13 +81,13 @@ test('mốc đã đọc không lùi về sau', () => {
   assert.equal(chat.unread(x.id, c), 0);
 });
 
-test('chưa đọc gom theo từng người trong một câu truy vấn', () => {
+test('chưa đọc gom theo từng người trong một câu truy vấn', async () => {
   const db = openDb(':memory:');
   const a = new Accounts(db);
   const chat = new Chat(db);
-  const me = a.register('Tôi', 'toi@example.com', 'matkhaudai').user;
-  const b = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
-  const c = a.register('Cường', 'cuong@example.com', 'matkhaudai').user;
+  const me = (await (a.register('Tôi', 'toi@example.com', 'matkhaudai'))).user;
+  const b = (await (a.register('Bình', 'binh@example.com', 'matkhaudai'))).user;
+  const c = (await (a.register('Cường', 'cuong@example.com', 'matkhaudai'))).user;
 
   chat.post(dm(me.id, b.id), b.id, 'Bình', 'ê');
   chat.post(dm(me.id, b.id), b.id, 'Bình', 'ê ê');
@@ -99,19 +99,19 @@ test('chưa đọc gom theo từng người trong một câu truy vấn', () => 
   assert.equal(Object.keys(chat.unreadDms(me.id)).includes(me.id), false);
 });
 
-test('thông báo hệ thống không có người gửi và hiện tên Hệ thống', () => {
-  const { chat } = fresh();
+test('thông báo hệ thống không có người gửi và hiện tên Hệ thống', async () => {
+  const { chat } = await fresh();
   const m = chat.post('he-thong', null, 'Hệ thống', 'Máy chủ bảo trì lúc 2 giờ sáng');
   assert.equal(m.fromId, null);
   assert.equal(chat.page('he-thong').rows[0]!.fromName, 'Hệ thống');
 });
 
-test('xoá tài khoản: tin còn lại nhưng không còn trỏ về ai', () => {
+test('xoá tài khoản: tin còn lại nhưng không còn trỏ về ai', async () => {
   const db = openDb(':memory:');
   const a = new Accounts(db);
   const chat = new Chat(db);
-  const x = a.register('An', 'an@example.com', 'matkhaudai').user;
-  const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
+  const x = (await (a.register('An', 'an@example.com', 'matkhaudai'))).user;
+  const y = (await (a.register('Bình', 'binh@example.com', 'matkhaudai'))).user;
   const c = dm(x.id, y.id);
   chat.post(c, x.id, 'An', 'chào');
 
@@ -121,13 +121,13 @@ test('xoá tài khoản: tin còn lại nhưng không còn trỏ về ai', () =>
   assert.equal(rows[0]!.body, 'chào');
 });
 
-test('danh sách cuộc trò chuyện mang tên NGƯỜI KIA, không phải người gửi tin cuối', () => {
+test('danh sách cuộc trò chuyện mang tên NGƯỜI KIA, không phải người gửi tin cuối', async () => {
   const db = openDb(':memory:');
   const a = new Accounts(db);
   const chat = new Chat(db);
-  const me = a.register('Tôi', 'toi@example.com', 'matkhaudai').user;
-  const b = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
-  const c = a.register('Cường', 'cuong@example.com', 'matkhaudai').user;
+  const me = (await (a.register('Tôi', 'toi@example.com', 'matkhaudai'))).user;
+  const b = (await (a.register('Bình', 'binh@example.com', 'matkhaudai'))).user;
+  const c = (await (a.register('Cường', 'cuong@example.com', 'matkhaudai'))).user;
 
   chat.post(dm(me.id, b.id), b.id, 'Bình', 'ê');
   chat.post(dm(me.id, c.id), c.id, 'Cường', 'chào');
@@ -143,12 +143,12 @@ test('danh sách cuộc trò chuyện mang tên NGƯỜI KIA, không phải ngư
   assert.equal(rows[1]!.unread, 1);
 });
 
-test('thông báo hệ thống: chung và riêng gộp thành một dòng thời gian', () => {
+test('thông báo hệ thống: chung và riêng gộp thành một dòng thời gian', async () => {
   const db = openDb(':memory:');
   const a = new Accounts(db);
   const chat = new Chat(db);
-  const x = a.register('An', 'an@example.com', 'matkhaudai').user;
-  const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
+  const x = (await (a.register('An', 'an@example.com', 'matkhaudai'))).user;
+  const y = (await (a.register('Bình', 'binh@example.com', 'matkhaudai'))).user;
 
   chat.post(SYSTEM, null, 'Hệ thống', 'Bảo trì lúc 2 giờ');
   chat.post(systemFor(x.id), null, 'Hệ thống', 'Tài khoản của bạn vừa đổi tên', x.id);

@@ -93,6 +93,16 @@ npm test        # tsc --build --force + toàn bộ test
   nữa, kiểm luật trước là mỗi lần client mất mạng retry đều nhận `ILLEGAL`.
 - `flag` và `abandon` chỉ máy chủ phát được. Nhận từ client là mở đường cho ai
   cũng tự tuyên bố đối thủ hết giờ.
+- **Mọi dữ liệu ngoài đi vào máy chủ phải qua `parse.ts`.** `ClientMsg` là
+  kiểu TypeScript và kiểu biến mất sau khi biên dịch: ép `JSON.parse(...) as
+  ClientMsg` rồi đưa thẳng vào `Rooms` thì `{t:'join',code:5}` chạy tới
+  `code.toUpperCase()`, ném, thoát ra thành `uncaughtException`, và **xoá
+  sạch mọi ván đang chạy của mọi người** vì chúng chỉ sống trong bộ nhớ.
+- **Đừng băm mật khẩu đồng bộ.** `scryptSync` tốn ~40ms và Node chỉ có một
+  luồng: 25 yêu cầu đăng nhập mỗi giây là đóng băng cả máy chủ, đồng hồ mọi
+  ván đứng lại. Dùng bản bất đồng bộ, và có giới hạn tần suất ở cửa.
+- **Lời báo lỗi giống nhau chưa đủ — thời gian trả lời cũng là câu trả lời.**
+  Đăng nhập với email không tồn tại vẫn phải băm một bản giả.
 - **Luật có một nước thì giao diện phải có chỗ bấm nước đó.** Lớp meta có
   `accept-draw` từ ngày đầu và máy chủ vẫn phát sự kiện cầu hoà xuống, nhưng
   màn chơi không đọc `events`, nên suốt thời gian đó mọi lời cầu hoà trong

@@ -64,12 +64,23 @@ docs/
 ```bash
 npm install
 npm run build      # biên dịch packages/
-npm test           # 111 test: hợp đồng engine + luật ba game + bot + máy chủ
+npm test           # 132 test: hợp đồng engine + luật ba game + bot + máy chủ
 
 npm run web        # đóng gói app cho web để xem thử
-npm run serve      # mở ở http://localhost:8080
+npm start          # bật máy chủ cờ (8787) và trang web (8080) cùng lúc
 npm run shot       # chụp màn hình thật vào docs/screenshots/
+npm run kiem-giao-dien   # chạy cả bảy bài kiểm giao diện trên trình duyệt
 ```
+
+**Phải có máy chủ chạy thì app mới làm được gì ngoài đấu với máy.** Đăng
+nhập, ghép cặp, phòng riêng, bạn bè và nhắn tin đều đi qua cổng 8787; màn
+đăng nhập gọi `/api/auth/config` ngay khi mở, nên không bật máy chủ thì thứ
+đầu tiên nhìn thấy đã là một màn hỏng. `npm start` bật cả hai.
+
+Hai biến môi trường đáng biết: `ADMIN_TOKEN` mở đường `/api/admin/notice` để
+phát thông báo hệ thống (không đặt thì đường đó đóng hẳn), và `RATE_LIMIT=off`
+tắt giới hạn tần suất — chỉ dùng khi chạy bảy bài kiểm giao diện nối tiếp,
+vì chúng đăng ký hàng chục tài khoản từ cùng một địa chỉ.
 
 Ảnh trong `docs/screenshots/` **luôn chụp từ app chạy thật**, bằng Chromium ở
 đúng kích thước điện thoại, bấm đúng như người dùng bấm — kể cả ván thắng ở

@@ -64,7 +64,7 @@ jobs:
       # /api/auth/config ngay khi mở.
       - name: Dựng máy chủ và trang web
         run: |
-          ADMIN_TOKEN=bimat-quan-tri-cho-ci node apps/server/dist/index.js &
+          ADMIN_TOKEN=bimat-quan-tri-cho-ci RATE_LIMIT=off node apps/server/dist/index.js &
           npx serve -l 8080 -s apps/mobile/dist &
           npx wait-on -t 60000 http://127.0.0.1:8787/health http://127.0.0.1:8080
 

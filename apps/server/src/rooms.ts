@@ -30,6 +30,8 @@ export interface Player {
   /** Phòng đang ở, hoặc null. */
   code: string | null;
   connected: boolean;
+  /** Mốc lần cuối mất kết nối, để dọn người đã đi hẳn. */
+  offSince: number | null;
   /** Những người mà người này muốn biết trạng thái trực tuyến. */
   watching: Set<string>;
   /** Kênh nhắn tin đang mở. Một người mở một kênh tại một thời điểm. */
@@ -262,7 +264,7 @@ export class Rooms {
   static dmChannel = dm;
 
   connect(id: string, name: string, send: (m: ServerMsg) => void): Player {
-    const p: Player = { id, name, code: null, connected: true, watching: new Set(), channel: null, send };
+    const p: Player = { id, name, code: null, connected: true, offSince: null, watching: new Set(), channel: null, send };
     this.players.set(id, p);
     send({ t: 'welcome', youId: id });
     this.announce(id);
@@ -303,10 +305,13 @@ export class Rooms {
    * rớt sóng thì không ai chơi nổi. Ghế vẫn giữ, đồng hồ vẫn chạy, và họ vào
    * lại bằng đúng `playerId` là nhận tiếp từ `ply` hiện tại.
    */
-  disconnect(id: string): void {
+  disconnect(id: string, now = Date.now()): void {
     const p = this.players.get(id);
     if (!p) return;
     p.connected = false;
+    // `now` từ ngoài vào, đúng mạch với `tick(now)`: test tua mười lăm phút
+    // trong một phần nghìn giây thay vì ngồi chờ thật.
+    p.offSince = now;
     this.dequeue(id);
     // Rời khỏi mạng thì mọi lời rủ liên quan tới mình thành vô nghĩa.
     this.dropChallenges(id, 'expired');
@@ -333,6 +338,7 @@ export class Rooms {
     const p = this.players.get(id);
     if (!p) return null;
     p.connected = true;
+    p.offSince = null;
     p.send = send;
     send({ t: 'welcome', youId: id });
     this.announce(id);
@@ -813,6 +819,40 @@ export class Rooms {
       if (!this.rooms.has(s)) return s;
     }
     throw new Error('Không sinh được mã phòng mới');
+  }
+
+  /**
+   * Dọn phòng bỏ hoang và người đã đi hẳn.
+   *
+   * Không dọn thì `Map` chỉ lớn lên: mỗi người từng mở app một lần là một
+   * `Player` nằm lại mãi, mỗi phòng từng mở là một `Room` giữ cả `LiveMatch`
+   * với toàn bộ log nước đi. Một máy chủ chạy vài tuần là hết bộ nhớ vì
+   * những ván không ai còn nhớ.
+   *
+   * Ngưỡng rộng tay — mười lăm phút. Mất kết nối vài giây là chuyện thường,
+   * và ghế phải giữ được lâu hơn thời gian người ta đi pha một ấm trà.
+   */
+  sweep(now = Date.now(), graceMs = 15 * 60_000): void {
+    for (const [id, p] of [...this.players]) {
+      if (p.connected || p.offSince === null || now - p.offSince < graceMs) continue;
+      // `leave` lo phần khó: ván đang chạy thì tính là bỏ trận, phòng trống
+      // thì xoá. Đây là đúng cùng một đường người dùng bấm "về sảnh".
+      this.leave(id);
+      this.players.delete(id);
+    }
+    // Phòng không còn ai nối dây và ván đã xong thì không ai quay lại nữa.
+    for (const [code, room] of [...this.rooms]) {
+      if (room.players.some((x) => x?.connected)) continue;
+      const over = !room.match || !!room.match.outcome();
+      const empty = room.players.every((x) => x === null);
+      if (!empty && !over) continue;
+      if (!empty && over) {
+        // Ván xong mà cả hai đã rời mạng: không ai còn ở đó để đấu lại.
+        for (const p of room.players) if (p) p.code = null;
+      }
+      this.rooms.delete(code);
+      this.finished.delete(code);
+    }
   }
 
   /** Dùng cho test và trang trạng thái. */
