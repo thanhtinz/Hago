@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Accounts } from './accounts.js';
-import { Chat, MAX_BODY, dm, dmPair } from './chat.js';
+import { Chat, MAX_BODY, SYSTEM, dm, dmPair, systemFor } from './chat.js';
 import { openDb } from './db.js';
 
 const fresh = () => {
@@ -47,14 +47,27 @@ test('lịch sử trả về cũ nhất trước, và phân trang lùi bằng co
 test('chưa đọc: không tính tin của chính mình, và đọc rồi thì về không', () => {
   const { chat, x, y } = fresh();
   const c = dm(x.id, y.id);
-  chat.post(c, y.id, 'Bình', 'chào');
+  const m1 = chat.post(c, y.id, 'Bình', 'chào');
   chat.post(c, y.id, 'Bình', 'đánh không');
-  const mine = chat.post(c, x.id, 'An', 'ừ');
 
   assert.equal(chat.unread(x.id, c), 2);
-  assert.equal(chat.unread(y.id, c), 1, 'Bình chưa đọc tin của An');
-  chat.markRead(x.id, c, mine.id);
+  assert.equal(chat.unread(y.id, c), 0, 'tin của chính mình không tính là chưa đọc');
+  chat.markRead(x.id, c, m1.id);
+  assert.equal(chat.unread(x.id, c), 1, 'mới đọc tới tin đầu');
+});
+
+test('gửi một tin là đã đọc cả kênh', () => {
+  const { chat, x, y } = fresh();
+  const c = dm(x.id, y.id);
+  chat.post(c, y.id, 'Bình', 'chào');
+  chat.post(c, y.id, 'Bình', 'đánh không');
+  assert.equal(chat.unread(x.id, c), 2);
+
+  // Trả lời xong mà vẫn còn chấm đỏ trên chính cuộc trò chuyện mình vừa gõ
+  // vào là thứ người dùng thấy sai ngay lập tức.
+  chat.post(c, x.id, 'An', 'ừ, mai nhé');
   assert.equal(chat.unread(x.id, c), 0);
+  assert.equal(chat.unread(y.id, c), 1, 'còn bên kia thì có một tin mới thật');
 });
 
 test('mốc đã đọc không lùi về sau', () => {
@@ -106,4 +119,46 @@ test('xoá tài khoản: tin còn lại nhưng không còn trỏ về ai', () =>
   const rows = chat.page(c).rows;
   assert.equal(rows.length, 1, 'cuộc trò chuyện của người còn lại không bị thủng');
   assert.equal(rows[0]!.body, 'chào');
+});
+
+test('danh sách cuộc trò chuyện mang tên NGƯỜI KIA, không phải người gửi tin cuối', () => {
+  const db = openDb(':memory:');
+  const a = new Accounts(db);
+  const chat = new Chat(db);
+  const me = a.register('Tôi', 'toi@example.com', 'matkhaudai').user;
+  const b = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
+  const c = a.register('Cường', 'cuong@example.com', 'matkhaudai').user;
+
+  chat.post(dm(me.id, b.id), b.id, 'Bình', 'ê');
+  chat.post(dm(me.id, c.id), c.id, 'Cường', 'chào');
+  // Tin cuối của cuộc với Bình là tin của CHÍNH MÌNH.
+  chat.post(dm(me.id, b.id), me.id, 'Tôi', 'ừ sao');
+
+  const rows = chat.conversations(me.id);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0]!.withName, 'Bình', 'hàng mang tên người kia, không phải tên mình');
+  assert.equal(rows[0]!.last.body, 'ừ sao');
+  assert.equal(rows[0]!.unread, 0, 'tin cuối là của mình nên không có gì chưa đọc');
+  assert.equal(rows[1]!.withName, 'Cường');
+  assert.equal(rows[1]!.unread, 1);
+});
+
+test('thông báo hệ thống: chung và riêng gộp thành một dòng thời gian', () => {
+  const db = openDb(':memory:');
+  const a = new Accounts(db);
+  const chat = new Chat(db);
+  const x = a.register('An', 'an@example.com', 'matkhaudai').user;
+  const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
+
+  chat.post(SYSTEM, null, 'Hệ thống', 'Bảo trì lúc 2 giờ');
+  chat.post(systemFor(x.id), null, 'Hệ thống', 'Tài khoản của bạn vừa đổi tên', x.id);
+
+  const feed = chat.systemFeed(x.id);
+  assert.deepEqual(feed.map((m) => m.body), ['Bảo trì lúc 2 giờ', 'Tài khoản của bạn vừa đổi tên']);
+  assert.equal(chat.unreadSystem(x.id), 2);
+
+  // Bình chỉ thấy thông báo chung, không thấy thông báo riêng của An.
+  const other = chat.systemFeed(y.id);
+  assert.deepEqual(other.map((m) => m.body), ['Bảo trì lúc 2 giờ']);
+  assert.equal(chat.unreadSystem(y.id), 1);
 });

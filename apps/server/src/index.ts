@@ -54,7 +54,13 @@ const rooms = new Rooms({
 });
 
 const http = createServer((req, res) => {
-  void handleApi(req, res, { accounts, avatars, onRename: (u) => rooms.rename(u.id, u.name) }).then((done) => {
+  void handleApi(req, res, {
+    accounts,
+    avatars,
+    chat,
+    notify: (body, to) => rooms.systemMessage(body, to),
+    onRename: (u) => rooms.rename(u.id, u.name),
+  }).then((done) => {
     if (done) return;
     if (req.url === '/health') {
       res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });

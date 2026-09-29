@@ -240,6 +240,10 @@ export const api = {
     ),
   search: (q: string) => call<{ users: PublicUser[] }>(`/users?q=${encodeURIComponent(q)}`),
   friends: () => call<{ friends: Friend[]; blocked: PublicUser[] }>('/friends'),
+  conversations: () =>
+    call<{ rows: { withId: string; withName: string; last: { body: string; at: number; fromId: string | null }; unread: number }[] }>(
+      '/chat/conversations',
+    ),
   request: (id: string) => post<{ status: string }>('/friends/request', { id }),
   accept: (id: string) => post('/friends/accept', { id }),
   remove: (id: string) => post('/friends/remove', { id }),

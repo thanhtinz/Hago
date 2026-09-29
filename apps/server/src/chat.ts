@@ -44,6 +44,9 @@ export const dm = dmChannel;
 export const roomChannel = (code: string) => `phong:${code}`;
 export const LOBBY = 'chung';
 export const SYSTEM = 'he-thong';
+/** Kênh thông báo riêng của một người. Chỉ họ đọc được. */
+export const systemFor = (userId: string) => `he-thong:${userId}`;
+export const isSystem = (channel: string) => channel === SYSTEM || channel.startsWith('he-thong:');
 
 /** Hai người trong một kênh riêng. Không phải kênh riêng thì trả null. */
 export function dmPair(channel: string): [string, string] | null {
@@ -77,7 +80,11 @@ export class Chat {
     const r = this.db
       .prepare('INSERT INTO messages (channel, from_id, to_id, body, created_at) VALUES (?, ?, ?, ?, ?)')
       .run(channel, fromId, toId ?? null, body, at);
-    return { id: Number(r.lastInsertRowid), channel, fromId, fromName, body, at };
+    const id = Number(r.lastInsertRowid);
+    // **Gửi được là đã đọc.** Không đánh dấu ở đây thì trả lời xong vẫn còn
+    // chấm đỏ trên chính cuộc trò chuyện mình vừa gõ vào.
+    if (fromId) this.markRead(fromId, channel, id);
+    return { id, channel, fromId, fromName, body, at };
   }
 
   /**
@@ -135,6 +142,79 @@ export class Chat {
       )
       .get(channel, userId, userId, channel) as unknown as { n: number };
     return r.n;
+  }
+
+  /**
+   * Danh sách cuộc nhắn riêng, mới nhất trước, kèm tin cuối và số chưa đọc.
+   *
+   * Một câu truy vấn cho cả danh sách. Lấy từng cuộc rồi hỏi tin cuối của
+   * từng cuộc là N+1 lần gọi để vẽ một màn hình.
+   */
+  conversations(userId: string, limit = 50): { withId: string; withName: string; last: ChatMsg; unread: number }[] {
+    const rows = this.db
+      .prepare(
+        `SELECT m.id, m.channel, m.from_id, m.body, m.created_at, COALESCE(u.name, 'Người đã rời') AS name
+         FROM messages m
+         LEFT JOIN users u ON u.id = m.from_id
+         JOIN (SELECT channel, MAX(id) AS top FROM messages WHERE channel LIKE 'rieng:%' AND instr(channel, ?) > 0 GROUP BY channel) t
+           ON t.channel = m.channel AND t.top = m.id
+         ORDER BY m.id DESC LIMIT ?`,
+      )
+      .all(userId, limit) as unknown as {
+      id: number;
+      channel: string;
+      from_id: string | null;
+      body: string;
+      created_at: number;
+      name: string;
+    }[];
+    const unread = this.unreadDms(userId);
+    const out: { withId: string; withName: string; last: ChatMsg; unread: number }[] = [];
+    for (const r of rows) {
+      const pair = dmPair(r.channel);
+      if (!pair) continue;
+      const other = pair[0] === userId ? pair[1] : pair[0];
+      // Tên người kia, không phải tên người gửi tin cuối — tin cuối có thể là
+      // của chính mình, và lúc đó hàng sẽ mang tên mình.
+      const who = (this.db.prepare('SELECT name FROM users WHERE id = ?').get(other) as unknown as { name: string } | undefined)?.name;
+      out.push({
+        withId: other,
+        withName: who ?? 'Người đã rời',
+        last: { id: r.id, channel: r.channel, fromId: r.from_id, fromName: r.name, body: r.body, at: r.created_at },
+        unread: unread[other] ?? 0,
+      });
+    }
+    return out;
+  }
+
+  /** Số tin chưa đọc ở hai kênh thông báo hệ thống của một người. */
+  unreadSystem(userId: string): number {
+    return this.unread(userId, SYSTEM) + this.unread(userId, systemFor(userId));
+  }
+
+  /**
+   * Thông báo hệ thống: kênh chung và kênh riêng gộp làm một dòng thời gian.
+   *
+   * Người dùng không phân biệt "thông báo cho tất cả" với "thông báo cho
+   * riêng tôi" — với họ đó chỉ là thông báo. Gộp ở đây để giao diện không
+   * phải ghép hai danh sách rồi tự sắp xếp lại.
+   */
+  systemFeed(userId: string, limit = 40): ChatMsg[] {
+    const rows = this.db
+      .prepare(
+        `SELECT id, channel, from_id, body, created_at FROM messages
+         WHERE channel = ? OR channel = ? ORDER BY id DESC LIMIT ?`,
+      )
+      .all(SYSTEM, systemFor(userId), limit) as unknown as {
+      id: number;
+      channel: string;
+      from_id: string | null;
+      body: string;
+      created_at: number;
+    }[];
+    return rows
+      .map((r) => ({ id: r.id, channel: r.channel, fromId: r.from_id, fromName: 'Hệ thống', body: r.body, at: r.created_at }))
+      .reverse();
   }
 
   /**

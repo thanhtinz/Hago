@@ -6,6 +6,7 @@ import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useRestoreOnce } from '../src/net/api';
 import { useLiveSession } from '../src/net/live';
+import { FloatingChat } from '../src/ui/FloatingChat';
 import { A } from '../src/ui/theme';
 
 /**
@@ -57,7 +58,12 @@ export default function RootLayout() {
             bị che — lỗi chỉ lộ ra ở khe giữa các tấm, nhìn lướt rất dễ bỏ
             qua. */}
         {ready ? (
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: A.bg }, animation: 'fade' }} />
+          <>
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: A.bg }, animation: 'fade' }} />
+            {/* Nút chat nằm **ngoài** bộ điều hướng: tin nhắn đến bất kỳ lúc
+                nào, nên nó phải nổi trên mọi màn chứ không thuộc màn nào. */}
+            <FloatingChat />
+          </>
         ) : null}
       </View>
     </SafeAreaProvider>

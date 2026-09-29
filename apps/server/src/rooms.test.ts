@@ -3,6 +3,9 @@ import test from 'node:test';
 import type { CaroView } from '@co/game-co-caro';
 import './catalog.js';
 import type { ServerMsg } from '@co/protocol';
+import { Accounts } from './accounts.js';
+import { Chat, dm } from './chat.js';
+import { openDb } from './db.js';
 import { Rooms } from './rooms.js';
 
 /**
@@ -410,4 +413,100 @@ test('trực tuyến: chỉ báo cho người đang theo dõi, và báo cả lú
 
   rooms.reconnect(b.id, (m) => b.inbox.push(m));
   assert.deepEqual(a.last('presence')!.online.sort(), ['b', 'c']);
+});
+
+// ---- nhắn tin -------------------------------------------------------
+
+/**
+ * Kho có khoá ngoại thật, nên mấy id giả `a`/`b`/`c` của các bài phòng không
+ * dùng được cho phần nhắn tin. Dựng ba tài khoản mang đúng id đó.
+ */
+function withUsers(): { db: ReturnType<typeof openDb>; chat: Chat } {
+  const db = openDb(':memory:');
+  const people: [string, string][] = [
+    ['a', 'An'],
+    ['b', 'Bình'],
+    ['c', 'Cường'],
+  ];
+  for (const [id, name] of people) {
+    db.prepare('INSERT INTO users (id, name, created_at) VALUES (?, ?, ?)').run(id, name, Date.now());
+  }
+  return { db, chat: new Chat(db) };
+}
+
+test('kênh riêng chỉ hai người trong đó vào được', () => {
+  const { chat } = withUsers();
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes(), chat });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  const c = client(rooms, 'c', 'Cường');
+
+  const ch = dm('a', 'b');
+  rooms.openChat(a.id, ch);
+  rooms.openChat(b.id, ch);
+  // Id người dùng nằm ngay trong đường dẫn hồ sơ, không phải bí mật — nên
+  // không kiểm thì ai gõ đúng tên kênh cũng đọc được.
+  rooms.openChat(c.id, ch);
+  assert.equal(c.last('error')!.code, 'NO_CHANNEL');
+
+  rooms.sendChat(a.id, ch, 'chào Bình');
+  assert.equal(b.last('chat')!.m.body, 'chào Bình');
+  assert.equal(c.last('chat'), undefined, 'người ngoài không nhận được gì');
+});
+
+test('chặn nhau thì không vào được kênh riêng', () => {
+  const { chat } = withUsers();
+  const rooms = new Rooms({
+    serverSeed: 'test',
+    random: fixedCodes(),
+    chat,
+    isBlocked: (x, y) => [x, y].sort().join('|') === 'a|b',
+  });
+  const a = client(rooms, 'a', 'An');
+  client(rooms, 'b', 'Bình');
+  rooms.openChat(a.id, dm('a', 'b'));
+  assert.equal(a.last('error')!.code, 'NO_CHANNEL');
+});
+
+test('kênh thông báo đọc được nhưng không gửi vào được', () => {
+  const { chat } = withUsers();
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes(), chat });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+
+  rooms.openChat(a.id, 'he-thong');
+  assert.ok(a.last('chat-page'), 'đọc được');
+  // Đọc được không có nghĩa là viết được: người dùng gửi được vào kênh hệ
+  // thống là người dùng giả danh được máy chủ.
+  rooms.sendChat(a.id, 'he-thong', 'giả danh máy chủ');
+  assert.equal(a.last('error')!.code, 'READ_ONLY');
+
+  // Thông báo riêng chỉ đúng người đó mở được.
+  rooms.openChat(b.id, 'he-thong:a');
+  assert.equal(b.last('error')!.code, 'NO_CHANNEL');
+
+  rooms.systemMessage('Bảo trì lúc 2 giờ');
+  assert.equal(a.last('chat')!.m.body, 'Bảo trì lúc 2 giờ');
+  assert.equal(a.last('chat')!.m.fromId, null);
+});
+
+test('chat trong phòng chỉ người ngồi trong phòng đó', () => {
+  const { chat } = withUsers();
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes(), chat });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  const c = client(rooms, 'c', 'Cường');
+  rooms.create(a.id, 'co-caro', {});
+  const code = a.last('room')!.code;
+  rooms.join(b.id, code);
+
+  const ch = `phong:${code}`;
+  rooms.openChat(a.id, ch);
+  rooms.openChat(b.id, ch);
+  rooms.openChat(c.id, ch);
+  assert.equal(c.last('error')!.code, 'NO_CHANNEL');
+
+  rooms.sendChat(b.id, ch, 'nước hay đấy');
+  assert.equal(a.last('chat')!.m.body, 'nước hay đấy');
+  assert.equal(c.last('chat'), undefined);
 });

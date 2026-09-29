@@ -10,7 +10,7 @@ import {
   type Seat,
 } from '@co/core';
 import type { SeatInfo, ServerMsg } from '@co/protocol';
-import { Chat, LOBBY, dm, dmPair, roomChannel } from './chat.js';
+import { Chat, LOBBY, SYSTEM, dm, dmPair, isSystem, roomChannel, systemFor } from './chat.js';
 
 /**
  * Quản lý phòng — phần lõi của máy chủ, **không biết gì về WebSocket**.
@@ -153,6 +153,9 @@ export class Rooms {
    */
   private mayJoin(id: string, channel: string): boolean {
     if (channel === LOBBY) return true;
+    // Thông báo chung ai cũng đọc; thông báo riêng chỉ đúng người đó.
+    if (channel === SYSTEM) return true;
+    if (channel.startsWith('he-thong:')) return channel === systemFor(id);
     const pair = dmPair(channel);
     if (pair) return pair.includes(id) && !this.isBlocked?.(pair[0], pair[1]);
     if (channel.startsWith('phong:')) {
@@ -184,6 +187,10 @@ export class Rooms {
   sendChat(id: string, channel: string, body: string): void {
     const p = this.players.get(id);
     if (!p || !this.chat) return;
+    // Kênh thông báo **chỉ để đọc**. Đọc được không có nghĩa là viết được, và
+    // một người dùng gửi được vào kênh hệ thống là một người dùng giả danh
+    // được máy chủ.
+    if (isSystem(channel)) return p.send({ t: 'error', code: 'READ_ONLY', msg: 'Kênh thông báo chỉ để đọc' });
     if (!this.mayJoin(id, channel)) return p.send({ t: 'error', code: 'NO_CHANNEL', msg: 'Không gửi được vào đây' });
     let m;
     try {
@@ -201,10 +208,20 @@ export class Rooms {
     this.pushUnread(p);
   }
 
-  /** Thông báo của hệ thống: không có người gửi, và đi tới mọi người. */
-  systemMessage(channel: string, body: string): void {
+  /**
+   * Thông báo của hệ thống: không có người gửi.
+   *
+   * `to` bỏ trống là gửi cho tất cả; có `to` là gửi riêng một người.
+   */
+  systemMessage(body: string, to?: string): void {
     if (!this.chat) return;
-    this.deliver(channel, this.chat.post(channel, null, 'Hệ thống', body));
+    const channel = to ? systemFor(to) : SYSTEM;
+    const m = this.chat.post(channel, null, 'Hệ thống', body, to);
+    this.deliver(channel, m);
+    // Ai không mở kênh vẫn phải thấy chấm đỏ ngay, không đợi tải lại trang.
+    for (const p of this.players.values()) {
+      if (p.connected && (!to || p.id === to) && p.channel !== channel) this.pushUnread(p);
+    }
   }
 
   /**
@@ -228,7 +245,7 @@ export class Rooms {
 
   private pushUnread(p: Player): void {
     if (!this.chat) return;
-    p.send({ t: 'chat-unread', dms: this.chat.unreadDms(p.id) });
+    p.send({ t: 'chat-unread', dms: this.chat.unreadDms(p.id), system: this.chat.unreadSystem(p.id) });
   }
 
   /** Kênh nhắn tin của một phòng, để màn chơi mở đúng chỗ. */

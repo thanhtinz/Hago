@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { User } from './db.js';
 import { Accounts, AuthError } from './accounts.js';
 import { googleConfigured, verifyGoogleIdToken } from './google.js';
+import type { Chat } from './chat.js';
 import { Avatars, MAX_BYTES, UP, UploadError, isUpload, uploadName } from './uploads.js';
 
 /**
@@ -17,6 +18,9 @@ const MAX_BODY = 64 * 1024;
 export interface Ctx {
   accounts: Accounts;
   avatars: Avatars;
+  chat: Chat;
+  /** Phát một thông báo hệ thống tới người đang mở app. */
+  notify: (body: string, to?: string) => void;
   /** Đổi tên thì mọi phòng người đó đang ngồi phải thấy tên mới ngay. */
   onRename?: (u: User) => void;
 }
@@ -130,7 +134,8 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
     // Mọi đường còn lại nhận thân dạng JSON. Đọc ở đây, **sau** nhánh nhị
     // phân ở trên: `readJson` nuốt cả luồng, nên đặt nó trước là tệp ảnh bị
     // đem đi phân tích thành JSON và hỏng trước khi tới đúng nhánh.
-    const body = req.method === 'POST' || req.method === 'DELETE' ? await readJson(req) : {};
+    const reqBody = req.method === 'POST' || req.method === 'DELETE' ? await readJson(req) : {};
+    const body = reqBody;
 
     // ---- tài khoản ---------------------------------------------------
     if (p === '/api/auth/config') {
@@ -234,6 +239,33 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
     if (p === '/api/users' && req.method === 'GET') {
       const u = need();
       return json(res, 200, { users: ctx.accounts.search(url.searchParams.get('q') ?? '', u.id).map(publicUser) }), true;
+    }
+
+    // ---- nhắn tin ------------------------------------------------------
+    if (p === '/api/chat/conversations' && req.method === 'GET') {
+      const u = need();
+      return json(res, 200, { rows: ctx.chat.conversations(u.id) }), true;
+    }
+    if (p === '/api/chat/system' && req.method === 'GET') {
+      const u = need();
+      return json(res, 200, { rows: ctx.chat.systemFeed(u.id) }), true;
+    }
+
+    /**
+     * Phát một thông báo hệ thống.
+     *
+     * Bảo vệ bằng `ADMIN_TOKEN` trong biến môi trường, và **tắt hẳn khi chưa
+     * đặt biến đó**. Một đường phát thông báo cho toàn bộ người dùng mà để mở
+     * là món quà cho bất kỳ ai tìm thấy nó.
+     */
+    if (p === '/api/admin/notice' && req.method === 'POST') {
+      const admin = process.env.ADMIN_TOKEN;
+      if (!admin) throw new AuthError('NO_ADMIN', 'Chưa bật đường quản trị');
+      if (token !== admin) throw new AuthError('NO_AUTH', 'Sai khoá quản trị');
+      const body = str(reqBody.body).trim();
+      if (!body) throw new AuthError('EMPTY', 'Nội dung rỗng');
+      ctx.notify(body, str(reqBody.to) || undefined);
+      return json(res, 200, { ok: true }), true;
     }
 
     // ---- bạn bè --------------------------------------------------------

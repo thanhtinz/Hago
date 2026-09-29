@@ -64,7 +64,7 @@ jobs:
       # /api/auth/config ngay khi mở.
       - name: Dựng máy chủ và trang web
         run: |
-          node apps/server/dist/index.js &
+          ADMIN_TOKEN=bimat-quan-tri-cho-ci node apps/server/dist/index.js &
           npx serve -l 8080 -s apps/mobile/dist &
           npx wait-on -t 60000 http://127.0.0.1:8787/health http://127.0.0.1:8080
 
@@ -86,6 +86,11 @@ jobs:
 
       - name: Kết bạn, trực tuyến, tỷ thí, nhắn tin và chặn
         run: node tools/friends.mjs
+
+      - name: Nút chat nổi, sảnh chung, thông báo hệ thống, chat phòng
+        run: node tools/chat.mjs
+        env:
+          ADMIN_TOKEN: bimat-quan-tri-cho-ci
 
       # Ảnh chụp được giữ lại để soi tay. Nhiều lỗi giao diện của dự án này
       # chỉ lộ ra khi phóng to ảnh chụp, không lộ ra ở bất kỳ bài test nào.

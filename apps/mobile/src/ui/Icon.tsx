@@ -29,7 +29,9 @@ export type IconName =
   | 'chevron'
   | 'check'
   | 'bulb'
-  | 'undo';
+  | 'undo'
+  | 'chat'
+  | 'close';
 
 export function Icon({
   name,
@@ -200,6 +202,23 @@ function render(name: IconName, p: Record<string, unknown>, color: string) {
         <>
           <Rect x={5} y={10} width={14} height={10} rx={2.4} {...p} />
           <Path d="M8.5 10V7.5a3.5 3.5 0 0 1 7 0V10" {...p} />
+        </>
+      );
+    case 'chat':
+      // Bong bóng có đuôi ở góc dưới trái và ba chấm bên trong: đọc ra là
+      // "có người đang nói", không phải "một ô vuông bo góc".
+      return (
+        <>
+          <Path d="M20 12.2c0 3.7-3.6 6.7-8 6.7-.9 0-1.8-.13-2.6-.36L5 20l1.2-3.1A6.4 6.4 0 0 1 4 12.2C4 8.5 7.6 5.5 12 5.5s8 3 8 6.7Z" {...p} />
+          <Circle cx={8.8} cy={12.2} r={1.05} fill={color} stroke="none" />
+          <Circle cx={12} cy={12.2} r={1.05} fill={color} stroke="none" />
+          <Circle cx={15.2} cy={12.2} r={1.05} fill={color} stroke="none" />
+        </>
+      );
+    case 'close':
+      return (
+        <>
+          <Path d="M6 6l12 12M18 6L6 18" {...p} />
         </>
       );
   }

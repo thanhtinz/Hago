@@ -52,6 +52,7 @@ tools/
   avatar.mjs            tải ảnh đại diện lên rồi kiểm cả đường phát lại
   history.mjs           dựng 26 ván rồi kiểm phân trang và lọc lịch sử
   friends.mjs           kết bạn, trực tuyến, rủ đấu rồi cùng vào bàn, chặn
+  chat.mjs              nút nổi kéo được, sảnh chung, thông báo, chat phòng
 docs/
   ARCHITECTURE.md       hợp đồng ràng buộc — đọc cái này trước
   architecture-review.md biên bản thẩm định kiến trúc
@@ -63,7 +64,7 @@ docs/
 ```bash
 npm install
 npm run build      # biên dịch packages/
-npm test           # 104 test: hợp đồng engine + luật ba game + bot + máy chủ
+npm test           # 111 test: hợp đồng engine + luật ba game + bot + máy chủ
 
 npm run web        # đóng gói app cho web để xem thử
 npm run serve      # mở ở http://localhost:8080
@@ -135,8 +136,8 @@ Không sửa file nào trong `packages/core` để thêm game. Phải sửa ngh�
 | Tài khoản: đăng ký, đăng nhập, Google | ✅ `apps/server/src/accounts.ts` |
 | Trang cá nhân: điểm Elo từng bộ môn, lịch sử trận, chuỗi, ảnh đại diện, xoá tài khoản | ✅ |
 | Bạn bè: kết bạn, trực tuyến, tỷ thí, xoá, chặn, hồ sơ người khác | ✅ |
-| Nhắn tin riêng: trực tiếp, chưa đọc, lịch sử | ✅ |
-| Nhắn tin: chung, trong phòng, thông báo hệ thống, nút nổi kéo được | ⏳ |
+| Nhắn tin: riêng, sảnh chung, trong phòng, thông báo hệ thống | ✅ |
+| Nút chat nổi kéo được, vào ván thì đổi sang chat phòng | ✅ |
 | Hàng đợi bot chạy trên máy chủ | ⏳ |
 | Cờ lật, cờ ba quân, cờ Hex (luật gọn, làm trước) | ⏳ |
 | Cờ hùm (dùng lại bàn Alquerque của cờ gánh) | ⏳ |

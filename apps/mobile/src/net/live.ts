@@ -40,6 +40,8 @@ export interface LiveState {
   chat: { channel: string | null; rows: ChatLine[]; more: boolean };
   /** Số tin chưa đọc theo từng người. */
   unread: Record<string, number>;
+  /** Số thông báo hệ thống chưa đọc. */
+  unreadSystem: number;
 }
 
 const EMPTY: LiveState = {
@@ -53,6 +55,7 @@ const EMPTY: LiveState = {
   justMatched: null,
   chat: { channel: null, rows: [], more: false },
   unread: {},
+  unreadSystem: 0,
 };
 
 let state: LiveState = EMPTY;
@@ -101,7 +104,7 @@ function open(t: string): void {
       // Trang cũ hơn nối vào **đầu** danh sách: cuộn lên là đi ngược thời gian.
       set({ chat: { channel, rows: [...rows, ...state.chat.rows], more } });
     },
-    chatUnread: (dms) => set({ unread: dms }),
+    chatUnread: (dms, system) => set({ unread: dms, unreadSystem: system }),
   });
   client.connect();
   if (watchList.length) client.watch(watchList);

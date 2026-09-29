@@ -167,6 +167,23 @@ Chưa đọc lưu bằng **một mốc `last_id` mỗi người mỗi kênh**, k
 trên từng tin: chưa đọc = đếm tin có id lớn hơn mốc, một câu truy vấn. Mốc chỉ
 tiến, không lùi — tin cũ tới muộn không được làm tin đã đọc thành chưa đọc.
 
+**Trong ván, nút chat chỉ mở chat phòng** và không hiện số chưa đọc của bên
+ngoài — một con số dẫn tới chỗ không có gì còn tệ hơn không có con số nào.
+
+**Gửi một tin là đã đọc cả kênh.** Trả lời xong mà vẫn còn chấm đỏ trên chính
+cuộc trò chuyện mình vừa gõ vào là thứ người dùng thấy sai ngay lập tức.
+
+Kênh `he-thong` **đọc được nhưng không gửi vào được**: một người dùng gửi được
+vào kênh hệ thống là một người dùng giả danh được máy chủ. Phát thông báo đi
+qua `POST /api/admin/notice` có `ADMIN_TOKEN`, và **tắt hẳn khi chưa đặt biến
+đó** — một đường phát thông báo cho toàn bộ người dùng mà để mở là món quà cho
+bất kỳ ai tìm thấy nó.
+
+Nút nổi kéo được dùng **mốc thời gian** để phân biệt kéo với bấm, không dùng
+cờ đúng/sai: cú kéo trên web sinh ra một `click` ngay sau khi thả, và một cờ
+chỉ đặt lại lúc bắt đầu cử chỉ sau thì giữ nguyên `true` qua mọi cú bấm —
+nút không bao giờ mở được nữa sau lần kéo đầu tiên.
+
 ## 9. Điều hướng trong app
 
 Khôi phục phiên đăng nhập nằm ở **lớp ngoài cùng** (`app/_layout.tsx`), không

@@ -105,7 +105,7 @@ export type ServerMsg =
   /** Một trang lịch sử, cũ nhất trước. `reset` là trang đầu khi mở kênh. */
   | { t: 'chat-page'; channel: string; rows: ChatLine[]; more: boolean; reset: boolean }
   /** Số tin chưa đọc theo từng người, để chấm đỏ trong danh sách bạn. */
-  | { t: 'chat-unread'; dms: Record<string, number> }
+  | { t: 'chat-unread'; dms: Record<string, number>; system: number }
   | { t: 'error'; code: string; msg: string };
 
 export const PORT = Number(process.env.PORT ?? 8787);

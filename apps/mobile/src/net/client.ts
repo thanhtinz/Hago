@@ -49,7 +49,7 @@ export interface ClientEvents {
   presence: (online: string[]) => void;
   chat: (m: ChatLine) => void;
   chatPage: (channel: string, rows: ChatLine[], more: boolean, reset: boolean) => void;
-  chatUnread: (dms: Record<string, number>) => void;
+  chatUnread: (dms: Record<string, number>, system: number) => void;
 }
 
 /**
@@ -147,7 +147,7 @@ export class GameClient {
         case 'chat-page':
           return this.on.chatPage?.(m.channel, m.rows, m.more, m.reset);
         case 'chat-unread':
-          return this.on.chatUnread?.(m.dms);
+          return this.on.chatUnread?.(m.dms, m.system);
         case 'error':
           return this.on.error?.(m.code, m.msg);
       }
