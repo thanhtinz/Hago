@@ -84,6 +84,9 @@ jobs:
       - name: Lịch sử trận — phân trang và lọc theo bộ môn
         run: node tools/history.mjs
 
+      - name: Kết bạn, trực tuyến, tỷ thí và chặn
+        run: node tools/friends.mjs
+
       # Ảnh chụp được giữ lại để soi tay. Nhiều lỗi giao diện của dự án này
       # chỉ lộ ra khi phóng to ảnh chụp, không lộ ra ở bất kỳ bài test nào.
       - uses: actions/upload-artifact@v4

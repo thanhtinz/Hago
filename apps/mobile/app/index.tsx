@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,7 +6,8 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { registry } from '@co/core';
 import '../src/catalog';
 import { FACES, type GameFace } from '../src/games/faces';
-import { useAuth } from '../src/net/api';
+import { api, useAuth } from '../src/net/api';
+import { live, useLive } from '../src/net/live';
 import { Icon, type IconName } from '../src/ui/Icon';
 import { Btn, Txt } from '../src/ui/parts';
 import { Face } from '../src/ui/Crest';
@@ -32,6 +33,22 @@ export default function Lobby() {
   /** Chế độ online đang chọn bộ môn, hoặc 'join' đang nhập mã. */
   const [sheet, setSheet] = useState<'quick' | 'create' | 'join' | null>(null);
   const { me } = useAuth();
+  const s = useLive();
+  // Số việc đang chờ mình: lời mời kết bạn đến, cộng lời rủ đấu đến.
+  const [requests, setRequests] = useState(0);
+  useEffect(() => {
+    if (!me) return setRequests(0);
+    void api.me().then((r) => setRequests(r.requests)).catch(() => setRequests(0));
+  }, [me]);
+  const pending = requests + s.challenges.filter((c) => c.dir === 'in').length;
+
+  // Lời rủ được nhận lời trong lúc đang ở sảnh: vào bàn ngay.
+  useEffect(() => {
+    if (s.justMatched) {
+      live.clearMatched();
+      router.replace('/online/live');
+    }
+  }, [s.justMatched, router]);
   /** Ba chế độ online đều cần danh tính, nên chưa đăng nhập là đưa sang màn đăng nhập. */
   const online = (go: () => void) => (me ? go() : router.push('/auth'));
   const insets = useSafeAreaInsets();
@@ -106,6 +123,7 @@ export default function Lobby() {
             <Mode icon="bolt" label="Ghép cặp" onPress={() => online(() => setSheet('quick'))} />
             <Mode icon="door" label="Tạo phòng" onPress={() => online(() => setSheet('create'))} />
             <Mode icon="key" label="Vào mã" onPress={() => online(() => setSheet('join'))} />
+            <Mode icon="user" label="Bạn bè" badge={pending} onPress={() => online(() => router.push('/friends'))} />
           </View>
 
           <Txt size={11} color={A.inkFaint} center style={{ paddingHorizontal: S.sm }}>
@@ -176,18 +194,47 @@ export default function Lobby() {
   );
 }
 
-/** Một trong ba cách vào ván với người thật. */
-function Mode({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+/** Một ô trong hàng chế độ. `badge` là số việc đang chờ mình xử lý. */
+function Mode({ icon, label, onPress, badge = 0 }: { icon: IconName; label: string; onPress: () => void; badge?: number }) {
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={{ flex: 1, borderRadius: R.md }}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={badge ? `${label}, ${badge} việc chờ` : label}
+      style={{ flex: 1, borderRadius: R.md }}
+    >
       <Panel radius={R.md} tone={0} seed={label.length * 7}>
         <View style={{ gap: 5, paddingVertical: S.md, alignItems: 'center' }}>
           <Icon name={icon} size={19} color={A.gold} />
-          <Txt size={11.5} weight="semi" color={A.inkSoft}>
+          <Txt size={10.5} weight="semi" color={A.inkSoft} numberOfLines={1}>
             {label}
           </Txt>
         </View>
       </Panel>
+      {/* Chấm đếm việc chờ. Số chứ không phải chấm trơn: "3 lời mời" khác hẳn
+          "có gì đó mới" về mức độ đáng bấm vào ngay. */}
+      {badge > 0 ? (
+        <View
+          style={{
+            position: 'absolute',
+            top: -4,
+            right: -4,
+            minWidth: 19,
+            height: 19,
+            borderRadius: 10,
+            paddingHorizontal: 5,
+            backgroundColor: A.seal,
+            borderWidth: 1.5,
+            borderColor: A.bg,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Txt size={10} weight="bold" color="#FFF">
+            {badge > 9 ? '9+' : badge}
+          </Txt>
+        </View>
+      ) : null}
     </Pressable>
   );
 }

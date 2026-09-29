@@ -30,12 +30,23 @@ export interface StateMsg {
 
 export type Phase = 'off' | 'connecting' | 'ready' | 'queued' | 'lost';
 
+export interface ChallengeMsg {
+  id: string;
+  dir: 'in' | 'out';
+  withId: string;
+  withName: string;
+  gameId: string;
+}
+
 export interface ClientEvents {
   phase: (p: Phase) => void;
   room: (r: RoomInfo | null) => void;
   state: (s: StateMsg) => void;
   queued: (gameId: string, waiting: number) => void;
   error: (code: string, msg: string) => void;
+  challenge: (c: ChallengeMsg) => void;
+  challengeGone: (id: string, why: 'declined' | 'cancelled' | 'expired' | 'accepted') => void;
+  presence: (online: string[]) => void;
 }
 
 /**
@@ -69,8 +80,14 @@ export class GameClient {
   private tries = 0;
   private closed = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
-  /** Ý định đang chờ gửi khi dây nối xong, ví dụ "tạo phòng cờ caro". */
-  private pending: ClientMsg | null = null;
+  /**
+   * Ý định chờ gửi khi dây nối xong.
+   *
+   * Là **hàng đợi** chứ không phải một ô: dây chung của cả app có thể nhận
+   * "theo dõi danh sách bạn" và "vào hàng chờ ghép cặp" trước khi socket mở
+   * xong, và giữ mỗi cái cuối là im lặng đánh rơi cái đầu.
+   */
+  private pending: ClientMsg[] = [];
   private nonce = 0;
 
   constructor(
@@ -89,10 +106,9 @@ export class GameClient {
       this.tries = 0;
       this.raw({ t: 'hello', token: this.token });
       this.on.phase?.('ready');
-      if (this.pending) {
-        this.raw(this.pending);
-        this.pending = null;
-      }
+      const queued = this.pending;
+      this.pending = [];
+      for (const m of queued) this.raw(m);
     };
 
     ws.onmessage = (e) => {
@@ -117,6 +133,12 @@ export class GameClient {
           return this.on.queued?.(m.gameId, m.waiting);
         case 'left':
           return this.on.room?.(null);
+        case 'challenge':
+          return this.on.challenge?.(m);
+        case 'challenge-gone':
+          return this.on.challengeGone?.(m.id, m.why);
+        case 'presence':
+          return this.on.presence?.(m.online);
         case 'error':
           return this.on.error?.(m.code, m.msg);
       }
@@ -135,7 +157,7 @@ export class GameClient {
 
   private raw(m: ClientMsg): void {
     if (this.ws?.readyState === 1) this.ws.send(JSON.stringify(m));
-    else this.pending = m;
+    else this.pending.push(m);
   }
 
   create(gameId: string, config?: unknown): void {
@@ -149,6 +171,18 @@ export class GameClient {
   }
   leave(): void {
     this.raw({ t: 'leave' });
+  }
+  challenge(to: string, gameId: string): void {
+    this.raw({ t: 'challenge', to, gameId });
+  }
+  answerChallenge(id: string, accept: boolean): void {
+    this.raw({ t: 'challenge-answer', id, accept });
+  }
+  cancelChallenge(id: string): void {
+    this.raw({ t: 'challenge-cancel', id });
+  }
+  watch(ids: string[]): void {
+    this.raw({ t: 'watch', ids });
   }
 
   /**

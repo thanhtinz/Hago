@@ -19,7 +19,8 @@ import { MatchShell } from '../ui/MatchShell';
 import { Btn, Panel, Txt } from '../ui/parts';
 import { AppBackdrop } from '../ui/surface';
 import { A, R, S, lift } from '../ui/theme';
-import { useOnline, type Intent, type Online } from './useOnline';
+import { live, useIntentOnce, useMatch, type Online } from './live';
+import type { Intent } from './useOnline';
 
 /**
  * Ván với người thật.
@@ -41,8 +42,15 @@ const SUBTITLE: Record<string, string> = {
 };
 
 export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => void }) {
-  const o = useOnline(intent);
-  const gameId = o.room?.gameId ?? (intent.kind === 'join' ? '' : intent.gameId);
+  const o = useMatch();
+  // Gửi ý định **một lần**, ngay khi dây đã nối. Gửi trong lúc chưa nối thì
+  // nó nằm hàng đợi; gửi lại mỗi lần render thì vào hàng chờ hai ba lần.
+  useIntentOnce(() => {
+    if (intent.kind === 'quick') live.quick(intent.gameId);
+    else if (intent.kind === 'create') live.create(intent.gameId);
+    else if (intent.kind === 'join') live.join(intent.code);
+  });
+  const gameId = o.room?.gameId ?? (intent.kind === 'quick' || intent.kind === 'create' ? intent.gameId : '');
   const face = faceOf(gameId);
 
   const leaveHome = () => {

@@ -5,12 +5,13 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useRestoreOnce } from '../src/net/api';
+import { useLiveSession } from '../src/net/live';
 import { A } from '../src/ui/theme';
 
 /**
  * Khung ngoài cùng.
  *
- * Ba việc: nạp chữ, khôi phục phiên đăng nhập, và trải mặt gỗ cho toàn app.
+ * Bốn việc: nạp chữ, khôi phục phiên, mở dây nối, và trải mặt gỗ cho toàn app.
  * Nền gỗ nằm ở đây chứ không ở từng màn, nên cuộn màn này sang màn kia thì
  * mặt bàn không đổi — cảm giác là đi trong cùng một căn phòng, không phải
  * nhảy giữa mấy trang rời.
@@ -25,6 +26,9 @@ export default function RootLayout() {
    * gì để lần theo.
    */
   useRestoreOnce();
+  // Một dây nối cho cả app, mở khi đăng nhập. Lời rủ đấu và tin nhắn đến khi
+  // người dùng đang ở sảnh hay danh sách bạn, không phải chỉ lúc đang đánh.
+  useLiveSession();
 
   const [ready] = useFonts({
     Playfair: require('../assets/fonts/PlayfairDisplay-Bold.ttf'),

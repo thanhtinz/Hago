@@ -144,6 +144,18 @@ sách mọc thêm ở đầu mỗi khi đánh xong một ván, nên `OFFSET 20` 
 hàng đã thấy ở trang trước. Có test dựng đúng tình huống đó: lấy trang một,
 đánh thêm một ván, rồi lấy trang hai.
 
+**Một dây nối cho cả app** (`src/net/live.ts`), mở khi đăng nhập ở
+`app/_layout.tsx`. Trước đây mỗi màn chơi tự mở một socket rồi đóng khi rời
+màn — cách đó không nhận được gì khi người dùng đang ở sảnh hay danh sách
+bạn, mà lời rủ đấu và tin nhắn thì đến đúng lúc đó.
+
+Hàng đợi ý định trong `GameClient` là **mảng**, không phải một ô: dây chung có
+thể nhận "theo dõi danh sách bạn" và "vào hàng chờ" trước khi socket mở xong,
+và giữ mỗi cái cuối là im lặng đánh rơi cái đầu.
+
+**Chỉ bạn bè mới rủ nhau được**, và `Rooms` không tự biết điều đó — nó không
+đọc cơ sở dữ liệu. Câu hỏi đó trả lời qua `mayChallenge` ở `index.ts`.
+
 ## 9. Điều hướng trong app
 
 Khôi phục phiên đăng nhập nằm ở **lớp ngoài cùng** (`app/_layout.tsx`), không

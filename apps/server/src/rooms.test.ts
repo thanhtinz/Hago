@@ -316,3 +316,98 @@ function firstLegal(rooms: Rooms, id: string): unknown {
   assert.ok(move, 'máy chủ phải liệt kê được ít nhất một nước đi');
   return move;
 }
+
+// ---- rủ đấu và trực tuyến -------------------------------------------
+
+test('rủ đấu: chỉ bạn bè, chỉ người đang trực tuyến, và chỉ người được rủ mới trả lời', () => {
+  const friends = new Set(['a|b']);
+  const rooms = new Rooms({
+    serverSeed: 'test',
+    random: fixedCodes(),
+    mayChallenge: (f, t) => friends.has([f, t].sort().join('|')),
+  });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  const c = client(rooms, 'c', 'Cường');
+
+  rooms.challenge(a.id, 'c', 'co-caro');
+  assert.equal(a.last('error')!.code, 'NOT_FRIEND');
+
+  rooms.challenge(a.id, 'a', 'co-caro');
+  assert.equal(a.last('error')!.code, 'SELF');
+
+  rooms.disconnect(b.id);
+  rooms.challenge(a.id, 'b', 'co-caro');
+  assert.equal(a.last('error')!.code, 'OFFLINE');
+  rooms.reconnect(b.id, (m) => b.inbox.push(m));
+
+  rooms.challenge(a.id, 'b', 'co-caro');
+  const out = a.last('challenge')!;
+  const inc = b.last('challenge')!;
+  assert.equal(out.dir, 'out');
+  assert.equal(inc.dir, 'in');
+  assert.equal(inc.withName, 'An');
+  assert.equal(out.id, inc.id);
+
+  // Người gửi không tự đồng ý được lời rủ của chính mình.
+  rooms.answerChallenge(a.id, out.id, true);
+  assert.equal(a.last('room'), undefined, 'không được mở phòng nào');
+
+  rooms.answerChallenge(b.id, out.id, true);
+  assert.equal(a.last('challenge-gone')!.why, 'accepted');
+  assert.equal(a.last('room')!.started, true);
+  assert.equal(a.last('room')!.rated, false, 'hai người tự chọn nhau thì không tính xếp hạng');
+  assert.ok(b.last('state'));
+  assert.equal(c.last('room'), undefined, 'người ngoài không nhận được gì');
+});
+
+test('rủ hai lần liên tiếp chỉ ra một lời rủ, và từ chối thì báo cả hai bên', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+
+  rooms.challenge(a.id, 'b', 'co-caro');
+  const first = b.last('challenge')!.id;
+  rooms.challenge(a.id, 'b', 'co-caro');
+  assert.equal(b.inbox.filter((m) => m.t === 'challenge').length, 1, 'bấm hai lần không thành hai lời mời');
+  assert.equal(rooms.stats().challenges, 1);
+
+  rooms.answerChallenge(b.id, first, false);
+  assert.equal(a.last('challenge-gone')!.why, 'declined');
+  assert.equal(b.last('challenge-gone')!.why, 'declined');
+  assert.equal(rooms.stats().challenges, 0);
+});
+
+test('lời rủ hết hạn sau hai phút, và rớt mạng thì huỷ luôn', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+
+  rooms.challenge(a.id, 'b', 'co-caro');
+  rooms.tick(Date.now() + 119_000);
+  assert.equal(rooms.stats().challenges, 1, 'chưa tới hạn thì còn nguyên');
+  rooms.tick(Date.now() + 121_000);
+  assert.equal(a.last('challenge-gone')!.why, 'expired');
+  assert.equal(rooms.stats().challenges, 0);
+
+  rooms.challenge(a.id, 'b', 'co-caro');
+  rooms.disconnect(b.id);
+  assert.equal(a.last('challenge-gone')!.why, 'expired', 'người kia rớt mạng thì lời rủ cũng hết');
+});
+
+test('trực tuyến: chỉ báo cho người đang theo dõi, và báo cả lúc vào lẫn lúc ra', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  client(rooms, 'c', 'Cường');
+
+  rooms.watch(a.id, ['b', 'c', 'khong-co-ai']);
+  assert.deepEqual(a.last('presence')!.online.sort(), ['b', 'c']);
+
+  rooms.disconnect(b.id);
+  assert.deepEqual(a.last('presence')!.online, ['c']);
+  assert.equal(b.last('presence'), undefined, 'b không theo dõi ai nên không nhận gì');
+
+  rooms.reconnect(b.id, (m) => b.inbox.push(m));
+  assert.deepEqual(a.last('presence')!.online.sort(), ['b', 'c']);
+});

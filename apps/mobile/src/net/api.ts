@@ -234,7 +234,10 @@ export const api = {
     const s = q.toString();
     return call<HistoryPage>(`/me/history${s ? `?${s}` : ''}`);
   },
-  user: (id: string) => call<{ user: PublicUser; stats: GameStat[]; friend: boolean; blocked: boolean }>(`/users/${id}`),
+  user: (id: string) =>
+    call<{ user: PublicUser; stats: GameStat[]; history: HistoryPage; streak: Profile['streak']; friend: boolean; blocked: boolean }>(
+      `/users/${id}`,
+    ),
   search: (q: string) => call<{ users: PublicUser[] }>(`/users?q=${encodeURIComponent(q)}`),
   friends: () => call<{ friends: Friend[]; blocked: PublicUser[] }>('/friends'),
   request: (id: string) => post<{ status: string }>('/friends/request', { id }),

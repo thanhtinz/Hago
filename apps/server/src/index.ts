@@ -30,6 +30,9 @@ const avatars = new Avatars();
  * đúng là lý do `rated` có mặt từ đầu trong `Rooms`.
  */
 const rooms = new Rooms({
+  // Chỉ bạn bè mới rủ nhau được. `Rooms` không đọc cơ sở dữ liệu nên câu hỏi
+  // đó trả lời ở đây, nơi đã có sẵn lớp tài khoản.
+  mayChallenge: (from, to) => accounts.areFriends(from, to) && !accounts.isBlockedEither(from, to),
   onFinish: ({ gameId, code, rated, seats, names, outcome }) => {
     accounts.recordMatch({
       gameId,
@@ -104,6 +107,14 @@ wss.on('connection', (ws: WebSocket) => {
         return rooms.leave(id);
       case 'act':
         return rooms.act(id, msg.nonce, msg.action);
+      case 'challenge':
+        return rooms.challenge(id, msg.to, msg.gameId);
+      case 'challenge-answer':
+        return rooms.answerChallenge(id, msg.id, msg.accept);
+      case 'challenge-cancel':
+        return rooms.cancelChallenge(id, msg.id);
+      case 'watch':
+        return rooms.watch(id, msg.ids);
       default:
         return send({ t: 'error', code: 'UNKNOWN', msg: 'Không hiểu thông điệp' });
     }
