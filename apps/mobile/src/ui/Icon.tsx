@@ -34,6 +34,7 @@ export type IconName =
   | 'copy'
   | 'crown'
   | 'list'
+  | 'eye'
   | 'close';
 
 export function Icon({
@@ -81,6 +82,15 @@ function render(name: IconName, p: Record<string, unknown>, color: string) {
       );
     case 'check':
       return <Path d="M5 12.5 L10 17.5 L19 7" {...p} />;
+    // Con mắt: dấu của "đang xem". Mí trên và mí dưới là hai cung đối
+    // xứng nên hình cân ở mọi cỡ, kể cả cỡ 14 điểm trong dải nhãn.
+    case 'eye':
+      return (
+        <>
+          <Path d="M2.5 12S6.5 5.5 12 5.5 21.5 12 21.5 12 17.5 18.5 12 18.5 2.5 12 2.5 12z" {...p} />
+          <Circle cx={12} cy={12} r={3} {...p} />
+        </>
+      );
     // Hai tờ giấy chồng lệch — hình quen của "sao chép" ở mọi nơi. Vẽ tờ
     // sau trước để tờ trước đè lên đúng thứ tự chiều sâu.
     // Ba dòng kẻ có chấm đầu dòng — dấu của một bản danh sách.

@@ -85,6 +85,10 @@ export function parseClientMsg(raw: unknown): ClientMsg | null {
       if (!m.ids.every((x) => str(x, 64))) return null;
       return { t: 'watch', ids: m.ids as string[] };
     }
+    case 'spectate':
+      return str(m.code, 16) ? { t: 'spectate', code: m.code } : null;
+    case 'unspectate':
+      return { t: 'unspectate' };
     case 'chat-open':
       return str(m.channel, 128) ? { t: 'chat-open', channel: m.channel } : null;
     case 'chat-send':

@@ -881,3 +881,140 @@ test('người được mời thẳng không phải gõ mật khẩu', () => {
   assert.equal(b.last('room')!.code, a.last('room')!.code);
   assert.equal(b.last('room')!.started, true);
 });
+
+// ---- khán giả ------------------------------------------------------------
+
+test('khán giả xem được ván đang đánh, và nước đi tới thẳng màn họ', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  const c = client(rooms, 'c', 'Cường');
+
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+  const code = a.last('room')!.code;
+
+  rooms.spectate(c.id, code);
+  const seen = c.last('room')!;
+  assert.equal(seen.code, code);
+  assert.equal(seen.yourSeat, null, 'khán giả không có ghế');
+  assert.ok(c.last('state'), 'vào giữa ván là thấy ngay thế cờ hiện tại');
+  assert.equal(c.view().cells.filter((x) => x >= 0).length, 0);
+
+  // Hai người chơi phải biết có người đang xem.
+  assert.equal(a.last('room')!.fans, 1);
+  assert.equal(b.last('room')!.fans, 1);
+
+  rooms.act(a.id, 'n1', { t: 'game', a: { r: 7, c: 7 } });
+  assert.equal(c.view().cells.filter((x) => x >= 0).length, 1, 'nước đi tới thẳng màn khán giả');
+  assert.equal(c.last('state')!.moves.length, 1, 'khán giả đọc được biên bản');
+
+  rooms.unspectate(c.id);
+  assert.equal(c.last('left')!.t, 'left');
+  assert.equal(a.last('room')!.fans, 0);
+});
+
+test('khán giả không đi được nước nào', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  const c = client(rooms, 'c', 'Cường');
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+  rooms.spectate(c.id, a.last('room')!.code);
+
+  rooms.act(c.id, 'x1', { t: 'game', a: { r: 7, c: 7 } });
+  assert.equal(c.view().cells.filter((x) => x >= 0).length, 0, 'bàn cờ không nhúc nhích');
+  // Xin thua cũng không: một người ngồi xem không có ghế để thua.
+  rooms.act(c.id, 'x2', { t: 'resign' });
+  assert.equal(a.last('state')!.outcome, null);
+});
+
+test('phòng có mật khẩu thì không ai xem được, và không lên sảnh', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  const c = client(rooms, 'c', 'Cường');
+
+  rooms.create(a.id, 'co-caro', {}, undefined, 'bimat');
+  const code = a.last('room')!.code;
+  rooms.join(b.id, code, 'bimat');
+  assert.equal(a.last('room')!.started, true);
+
+  rooms.spectate(c.id, code);
+  assert.equal(c.last('error')!.code, 'LOCKED');
+  assert.equal(c.last('room'), undefined);
+  assert.equal(
+    c.last('lobby')!.live.length,
+    0,
+    'khoá cửa rồi mà vẫn phát tên hai người ra sảnh thì cái khoá chỉ khoá nước đi',
+  );
+});
+
+test('sảnh liệt kê ván đang đánh, và bỏ ván đã xong', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  const c = client(rooms, 'c', 'Cường');
+
+  assert.equal(c.last('lobby')!.live.length, 0);
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+
+  const live = c.last('lobby')!.live;
+  assert.equal(live.length, 1);
+  assert.deepEqual(live[0]!.names, ['An', 'Bình']);
+  assert.equal(live[0]!.gameId, 'co-caro');
+  assert.equal(live[0]!.rated, true);
+
+  rooms.act(a.id, 'r1', { t: 'resign' });
+  assert.equal(c.last('lobby')!.live.length, 0, 'ván đã xong không còn là ván đang đánh');
+});
+
+test('đang có ván của mình thì không bỏ ngang để đi xem', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  const c = client(rooms, 'c', 'Cường');
+  const d = client(rooms, 'd', 'Dũng');
+
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+  const watched = a.last('room')!.code;
+
+  rooms.quick(c.id, 'co-caro');
+  rooms.quick(d.id, 'co-caro');
+  rooms.spectate(c.id, watched);
+  assert.equal(c.last('error')!.code, 'IN_MATCH');
+  assert.equal(c.last('room')!.yourSeat, 0, 'vẫn ngồi nguyên ghế của mình');
+  assert.equal(a.last('room')!.fans, 0);
+});
+
+test('ván tan thì khán giả được tiễn ra, không ngồi lại với bàn cờ đứng hình', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  const c = client(rooms, 'c', 'Cường');
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+  rooms.spectate(c.id, a.last('room')!.code);
+  assert.equal(c.last('left'), undefined);
+
+  rooms.leave(a.id);
+  rooms.leave(b.id);
+  assert.ok(c.last('left'), 'phòng biến mất thì khán giả phải được báo');
+});
+
+test('rớt mạng là thôi xem, không giữ chỗ như giữ ghế', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  const c = client(rooms, 'c', 'Cường');
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+  rooms.spectate(c.id, a.last('room')!.code);
+  assert.equal(a.last('room')!.fans, 1);
+
+  rooms.disconnect(c.id);
+  assert.equal(a.last('room')!.fans, 0);
+});

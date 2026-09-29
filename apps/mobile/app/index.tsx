@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { registry, type BotLevel } from '@co/core';
 import { load as remembered, recentRooms, save } from '../src/net/store';
-import { CLOCKS } from '@co/protocol';
+import { CLOCKS, type LiveRoom } from '@co/protocol';
 import { Chip as ClockChip } from '../src/ui/Tabs';
 import { Field } from '../src/ui/Field';
 import { LEVEL_NAME } from '../src/ui/MatchShell';
@@ -169,6 +169,8 @@ export default function Lobby() {
           </Txt>
         </View>
 
+        <LiveBoard rooms={s.liveRooms} onOpen={(code) => online(() => router.push(`/theo-doi/${code}`))} />
+
         <View
           onLayout={(e) => {
             gridY.current = e.nativeEvent.layout.y;
@@ -247,6 +249,78 @@ export default function Lobby() {
  * sai, và nói sai về chuyện có ai ở đây không là kiểu nói sai tệ nhất với
  * một sảnh game.
  */
+/**
+ * Những ván đang đánh, xem được ngay.
+ *
+ * Một sảnh cờ mà không nhìn thấy ván nào đang chạy thì mọi con số ở nhịp
+ * thở chỉ là con số. Danh sách này là chỗ duy nhất trong app cho người mới
+ * xem người khác đánh trước khi tự đánh — cách học cờ cũ nhất.
+ *
+ * Phòng có khoá không nằm ở đây; máy chủ đã lọc trước khi gửi, và lọc ở
+ * máy chủ chứ không ở đây vì một danh sách gửi ra rồi thì đã ra rồi.
+ */
+function LiveBoard({ rooms, onOpen }: { rooms: LiveRoom[]; onOpen: (code: string) => void }) {
+  if (!rooms.length) return null;
+  return (
+    <View style={{ paddingTop: S.xxl, gap: S.sm }}>
+      <View style={{ alignItems: 'center', gap: 2, paddingBottom: S.xs }}>
+        <Txt size={20} weight="display" color={A.ink}>
+          Đang đánh
+        </Txt>
+        <Txt size={11.5} color={A.inkFaint}>
+          {rooms.length === 1 ? 'Một ván đang chạy' : `${rooms.length} ván đang chạy`}
+        </Txt>
+      </View>
+      <View style={{ paddingHorizontal: S.lg, gap: S.sm }}>
+        {rooms.slice(0, 6).map((r) => (
+          <LiveRow key={r.code} room={r} onPress={() => onOpen(r.code)} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function LiveRow({ room, onPress }: { room: LiveRoom; onPress: () => void }) {
+  const face = faceOf(room.gameId);
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Xem ván ${room.names[0] ?? ''} với ${room.names[1] ?? ''}`}
+      style={({ pressed }) => [
+        {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: S.md,
+          padding: S.md,
+          borderRadius: R.md,
+          backgroundColor: A.panel,
+          borderWidth: 1,
+          borderColor: A.lineSoft,
+        },
+        press({ pressed }),
+      ]}
+    >
+      <View style={{ flex: 1, gap: 3 }}>
+        <Txt size={13.5} weight="semi" color={A.ink} numberOfLines={1}>
+          {room.names[0] ?? '—'} — {room.names[1] ?? '—'}
+        </Txt>
+        <Txt size={11} color={A.inkFaint}>
+          {face?.nameVi ?? room.gameId} · nước {room.ply}
+          {room.rated ? ' · xếp hạng' : ''}
+          {room.fans > 0 ? ` · ${room.fans} đang xem` : ''}
+        </Txt>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+        <Icon name="eye" size={15} color={A.gold} />
+        <Txt size={12} weight="semi" color={A.gold}>
+          Xem
+        </Txt>
+      </View>
+    </Pressable>
+  );
+}
+
 function Pulse({ lobby }: { lobby: { online: number; rooms: number; queued: number } | null }) {
   if (!lobby) return null;
   const parts = [`${lobby.online} người đang chơi`];

@@ -288,7 +288,13 @@ export function CaroBoard({ view, size, mySeat, onPlay, disabled, hint, confirm,
           <View key={r} style={{ flexDirection: 'row', height: cell }}>
             {Array.from({ length: n }, (_, c) => {
               const i = r * n + c;
-              const taken = (view.cells[i] ?? -1) >= 0;
+              const at = view.cells[i] ?? -1;
+              const taken = at >= 0;
+              // Ô đã có quân phải **nói ra là quân gì**. Nhãn cũ đọc lên chỉ
+              // là toạ độ, nên người dùng trình đọc màn hình rà hết bàn cờ
+              // mà không biết chỗ nào có gì.
+              const where = `Ô hàng ${r + 1} cột ${c + 1}`;
+              const label = aim === i ? `Đặt vào hàng ${r + 1} cột ${c + 1}` : taken ? `${where}, quân ${at === 0 ? 'X' : 'O'}` : where;
               const canTap = myTurn && !taken;
               const aiming = aim === i;
               return (
@@ -303,7 +309,7 @@ export function CaroBoard({ view, size, mySeat, onPlay, disabled, hint, confirm,
                     } else setAim(i);
                   }}
                   accessibilityRole="button"
-                  accessibilityLabel={aiming ? `Đặt vào hàng ${r + 1} cột ${c + 1}` : `Ô hàng ${r + 1} cột ${c + 1}`}
+                  accessibilityLabel={label}
                   style={{ width: cell, height: cell }}
                 />
               );

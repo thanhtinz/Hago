@@ -93,7 +93,9 @@ export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => 
   return (
     <MatchShell
       title={face?.nameVi ?? 'Ván cờ'}
-      headerRight={<CodePill code={o.room?.code ?? ''} rated={!!o.room?.rated} clock={o.room?.clock ?? ''} />}
+      headerRight={
+        <CodePill code={o.room?.code ?? ''} rated={!!o.room?.rated} clock={o.room?.clock ?? ''} fans={o.room?.fans ?? 0} />
+      }
       banner={<Banner o={o} />}
       onHome={leaveHome}
       onRules={() => router.push(`/luat/${gameId}`)}
@@ -131,13 +133,13 @@ export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => 
   );
 }
 
-function surfaceFor(gameId: string) {
+export function surfaceFor(gameId: string) {
   if (gameId === 'co-caro') return (w: number, h: number) => <DeskBackdrop width={w} height={h} />;
   if (gameId === 'co-ganh') return (w: number, h: number) => <CourtBackdrop width={w} height={h} />;
   return (w: number, h: number) => <GroundBackdrop width={w} height={h} />;
 }
 
-function Board({ gameId, o, onAim }: { gameId: string; o: Online; onAim: (t: string | null) => void }) {
+export function Board({ gameId, o, onAim }: { gameId: string; o: Online; onAim: (t: string | null) => void }) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [picked, setPicked] = useState<number | null>(null);
@@ -215,9 +217,33 @@ function Board({ gameId, o, onAim }: { gameId: string; o: Online; onAim: (t: str
 }
 
 /** Mã phòng luôn hiện: đó là thứ người chơi phải đọc cho bạn mình. */
-function CodePill({ code, rated, clock }: { code: string; rated: boolean; clock: string }) {
+function CodePill({ code, rated, clock, fans }: { code: string; rated: boolean; clock: string; fans: number }) {
   return (
-    <View
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }}>
+      {/* Có người đang xem thì phải nói: đánh trước mặt khán giả khác với
+          đánh kín, và người chơi có quyền biết mình đang ở tình huống nào. */}
+      {fans > 0 ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            minHeight: 30,
+            paddingHorizontal: 9,
+            borderRadius: R.pill,
+            borderWidth: 1,
+            borderColor: A.goldDeep,
+          }}
+          accessibilityRole="text"
+          accessibilityLabel={`${fans} người đang xem`}
+        >
+          <Icon name="eye" size={13} color={A.gold} />
+          <Txt size={12} weight="bold" color={A.gold}>
+            {fans}
+          </Txt>
+        </View>
+      ) : null}
+      <View
       style={{
         alignItems: 'center',
         minHeight: 34,
@@ -238,6 +264,7 @@ function CodePill({ code, rated, clock }: { code: string; rated: boolean; clock:
       <Txt size={11} weight="semi" color={A.inkFaint} style={{ letterSpacing: 0.5 }}>
         {clock ? (CLOCKS[clock]?.nameVi ?? 'Theo bộ môn') : rated ? 'Xếp hạng' : 'Phòng riêng'}
       </Txt>
+      </View>
     </View>
   );
 }
@@ -457,7 +484,7 @@ function InviteFriends() {
 }
 
 /** Quân của một ghế, vẽ theo bộ môn. */
-function Token({ gameId, seat, active }: { gameId: string; seat: number; active: boolean }) {
+export function Token({ gameId, seat, active }: { gameId: string; seat: number; active: boolean }) {
   const ring = active ? A.gold : A.lineSoft;
   if (gameId === 'co-caro') {
     return (

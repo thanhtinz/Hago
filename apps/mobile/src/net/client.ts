@@ -1,4 +1,4 @@
-import type { ChatLine, ClientMsg, SeatInfo, ServerMsg } from '@co/protocol';
+import type { ChatLine, ClientMsg, LiveRoom, SeatInfo, ServerMsg } from '@co/protocol';
 import type { Outcome, Seat, Turn } from '@co/core';
 
 /**
@@ -25,6 +25,8 @@ export interface RoomInfo {
   clock: string;
   /** Phòng có khoá mật khẩu không. */
   locked: boolean;
+  /** Bao nhiêu người đang xem ván này. */
+  fans: number;
 }
 
 export interface StateMsg {
@@ -63,7 +65,7 @@ export interface ClientEvents {
   /** Nhịp đồng hồ từ máy chủ, một giây một lần trong lúc ván chạy. */
   clock: (ms: number[]) => void;
   /** Nhịp thở của sảnh: số người đang nối, số ván đang chạy, số người xếp hàng. */
-  lobby: (online: number, rooms: number, queued: number) => void;
+  lobby: (online: number, rooms: number, queued: number, live: LiveRoom[]) => void;
   /** Số việc đang chờ chính mình. */
   alerts: (friendRequests: number) => void;
   /** Nối dây xong. `inRoom` là máy chủ đã nối lại ghế cũ hay chưa. */
@@ -159,7 +161,7 @@ export class GameClient {
         case 'clock':
           return this.on.clock?.(m.ms);
         case 'lobby':
-          return this.on.lobby?.(m.online, m.rooms, m.queued);
+          return this.on.lobby?.(m.online, m.rooms, m.queued, m.live);
         case 'alerts':
           return this.on.alerts?.(m.friendRequests);
         case 'challenge':
@@ -206,6 +208,12 @@ export class GameClient {
   }
   leave(): void {
     this.raw({ t: 'leave' });
+  }
+  spectate(code: string): void {
+    this.raw({ t: 'spectate', code: code.trim().toUpperCase() });
+  }
+  unspectate(): void {
+    this.raw({ t: 'unspectate' });
   }
   rematch(want: boolean): void {
     this.raw({ t: 'rematch', want });

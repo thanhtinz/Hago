@@ -62,8 +62,15 @@ export interface MatchShellProps {
    */
   homeConfirms?: boolean;
   onReset?: () => void;
-  onDraw: () => void;
-  onResign: () => void;
+  /**
+   * Cầu hoà và xin thua. Bỏ trống **cả hai** thì khung giấu luôn hai nút.
+   *
+   * Người ngồi xem không có ghế: họ không hoà được với ai và không có gì
+   * để thua. Hai cái nút mờ ở đáy màn nói rằng có thứ đang bị khoá, mà ở
+   * đây thì không có thứ gì bị khoá cả.
+   */
+  onDraw?: () => void;
+  onResign?: () => void;
   /**
    * Lời cầu hoà đang treo là của ai.
    *
@@ -221,13 +228,17 @@ export function MatchShell(p: MatchShellProps) {
         ) : null}
         {p.onReset ? <IconBtn name="newmatch" label="Ván mới" onPress={p.onReset} /> : null}
         {p.record ? <IconBtn name="list" label="Biên bản" onPress={() => setRecord(true)} /> : null}
-        <IconBtn
-          name="scales"
-          label={p.drawOffer === 'mine' ? 'Đã cầu hoà' : 'Cầu hoà'}
-          disabled={!!p.ended || !!p.drawOffer}
-          onPress={() => setAsk('draw')}
-        />
-        <IconBtn name="flag" label="Xin thua" tone="seal" disabled={!!p.ended} onPress={() => setAsk('resign')} />
+        {p.onDraw ? (
+          <IconBtn
+            name="scales"
+            label={p.drawOffer === 'mine' ? 'Đã cầu hoà' : 'Cầu hoà'}
+            disabled={!!p.ended || !!p.drawOffer}
+            onPress={() => setAsk('draw')}
+          />
+        ) : null}
+        {p.onResign ? (
+          <IconBtn name="flag" label="Xin thua" tone="seal" disabled={!!p.ended} onPress={() => setAsk('resign')} />
+        ) : null}
       </View>
 
       {p.ended ? (
@@ -264,7 +275,7 @@ export function MatchShell(p: MatchShellProps) {
           ok="Xin thua"
           onOk={() => {
             setAsk(null);
-            p.onResign();
+            p.onResign?.();
           }}
           onClose={() => setAsk(null)}
         />
@@ -295,7 +306,7 @@ export function MatchShell(p: MatchShellProps) {
           tone="gold"
           onOk={() => {
             setAsk(null);
-            p.onDraw();
+            p.onDraw?.();
           }}
           onClose={() => setAsk(null)}
         />

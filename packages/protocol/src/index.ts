@@ -27,6 +27,20 @@ export interface SeatInfo {
   ms: number;
 }
 
+/** Một ván đang đánh, như sảnh nhìn thấy nó. */
+export interface LiveRoom {
+  code: string;
+  gameId: string;
+  /** Tên hai bên, theo ghế. */
+  names: string[];
+  /** Đã đi bao nhiêu nước. */
+  ply: number;
+  /** Bao nhiêu người đang xem. */
+  fans: number;
+  /** Ván có tính xếp hạng không. */
+  rated: boolean;
+}
+
 export type ClientMsg =
   /**
    * Mở phiên bằng **token đăng nhập**.
@@ -83,6 +97,16 @@ export type ClientMsg =
   /** Hỏi xem trong số này ai đang trực tuyến. */
   | { t: 'watch'; ids: string[] }
   /**
+   * Vào xem một ván đang đánh, không ngồi ghế nào.
+   *
+   * Khán giả nhận đúng hai thông điệp mà người chơi nhận — `room` và
+   * `state` — chỉ khác `yourSeat: null`. Không mở một đường dữ liệu riêng
+   * cho khán giả: đường thứ hai là đường không ai canh, và nó sẽ rò đúng
+   * thứ mà `view(state, seat)` sinh ra để che.
+   */
+  | { t: 'spectate'; code: string }
+  | { t: 'unspectate' }
+  /**
    * Mở một kênh nhắn tin: nhận lịch sử và **từ đó nhận tin mới theo thời
    * gian thực**. Mở kênh khác thì kênh cũ tự đóng.
    */
@@ -109,7 +133,23 @@ export type ServerMsg =
    * chết. Máy chủ đếm sẵn mấy con số này từ đầu (`Rooms.stats`) nhưng chúng
    * chỉ ra ở `/health`, không có đường nào tới màn hình.
    */
-  | { t: 'lobby'; online: number; rooms: number; queued: number }
+  | {
+      t: 'lobby';
+      online: number;
+      rooms: number;
+      queued: number;
+      /**
+       * Những ván đang đánh mà người lạ xem được.
+       *
+       * Phòng có mật khẩu **không** nằm trong này: khoá cửa rồi mà vẫn
+       * phát tên hai người và mã phòng ra sảnh thì cái khoá chỉ khoá nước
+       * đi. `ply` là ảnh chụp lúc sảnh đổi, không phải đếm theo từng nước
+       * — một danh sách tự nhảy số theo mỗi nước cờ của người khác là một
+       * danh sách không đọc nổi, và nó bắt máy chủ phát cho mọi người đang
+       * mở app mỗi lần có ai đó đặt một quân.
+       */
+      live: LiveRoom[];
+    }
   /**
    * Số việc đang chờ chính người này xử lý: lời mời kết bạn đến.
    *
@@ -135,6 +175,8 @@ export type ServerMsg =
       clock: string;
       /** Phòng có khoá mật khẩu không. */
       locked: boolean;
+      /** Bao nhiêu người đang xem ván này. */
+      fans: number;
     }
   | {
       t: 'state';

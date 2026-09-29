@@ -255,6 +255,10 @@ export function buildServer(opts: ServeOptions = {}): Serving {
             return rooms.cancelChallenge(id, msg.id);
           case 'watch':
             return rooms.watch(id, msg.ids);
+          case 'spectate':
+            return rooms.spectate(id, msg.code);
+          case 'unspectate':
+            return rooms.unspectate(id);
           case 'chat-open':
             return rooms.openChat(id, msg.channel);
           case 'chat-send':

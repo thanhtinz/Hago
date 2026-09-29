@@ -9,7 +9,7 @@ import {
   type Outcome,
   type Seat,
 } from '@co/core';
-import { CLOCKS, type SeatInfo, type ServerMsg } from '@co/protocol';
+import { CLOCKS, type LiveRoom, type SeatInfo, type ServerMsg } from '@co/protocol';
 import { Chat, LOBBY, SYSTEM, dm, dmPair, isSystem, roomChannel, systemFor } from './chat.js';
 
 /**
@@ -36,6 +36,14 @@ export interface Player {
   watching: Set<string>;
   /** Kênh nhắn tin đang mở. Một người mở một kênh tại một thời điểm. */
   channel: string | null;
+  /**
+   * Mã phòng đang **xem**, hoặc null.
+   *
+   * Tách hẳn khỏi `code`. Dùng chung một trường thì khán giả rời chỗ sẽ
+   * chạy qua `leave()` — hàm đó xoá lời xin đấu lại và, nếu ván đang chạy,
+   * tuyên bố bỏ trận. Một người ngồi xem không có ghế để bỏ.
+   */
+  fanOf: string | null;
   send: (m: ServerMsg) => void;
 }
 
@@ -108,6 +116,8 @@ interface Room {
    * riêng của hai người lạ.
    */
   pass: string | null;
+  /** Id những người đang xem ván này mà không ngồi ghế nào. */
+  fans: Set<string>;
 }
 
 /**
@@ -306,7 +316,7 @@ export class Rooms {
   static dmChannel = dm;
 
   connect(id: string, name: string, send: (m: ServerMsg) => void): Player {
-    const p: Player = { id, name, code: null, connected: true, offSince: null, watching: new Set(), channel: null, send };
+    const p: Player = { id, name, code: null, connected: true, offSince: null, watching: new Set(), channel: null, fanOf: null, send };
     this.players.set(id, p);
     send({ t: 'welcome', youId: id, inRoom: false });
     this.announce(id);
@@ -350,8 +360,9 @@ export class Rooms {
    */
   private pushLobby(): void {
     const s = this.stats();
+    const live = this.liveRooms();
     for (const p of this.players.values()) {
-      if (p.connected) p.send({ t: 'lobby', online: s.online, rooms: s.rooms, queued: s.queued });
+      if (p.connected) p.send({ t: 'lobby', online: s.online, rooms: s.rooms, queued: s.queued, live });
     }
   }
 
@@ -386,6 +397,10 @@ export class Rooms {
     this.dequeue(id);
     // Rời khỏi mạng thì mọi lời rủ liên quan tới mình thành vô nghĩa.
     this.dropChallenges(id, 'expired');
+    // Ghế thì giữ qua một lần rớt sóng, chỗ ngồi xem thì không: không có gì
+    // để giữ, và giữ thì số khán giả trên màn hai người chơi đếm cả người
+    // đã tắt máy.
+    this.unspectate(id, false);
     this.announce(id);
     if (p.code) {
       const room = this.rooms.get(p.code);
@@ -456,6 +471,7 @@ export class Rooms {
       rated: false,
       seed: revealSeed(this.serverSeed, code, '1'),
       rematch: new Set(),
+      fans: new Set(),
       game: 1,
       lastClock: [-1, -1],
     };
@@ -534,6 +550,7 @@ export class Rooms {
         rated: true,
         seed: revealSeed(this.serverSeed, code, '1'),
         rematch: new Set(),
+      fans: new Set(),
         game: 1,
         lastClock: [-1, -1],
       };
@@ -600,6 +617,100 @@ export class Rooms {
     this.startIfReady(room);
   }
 
+  // ---- khán giả ---------------------------------------------------------
+
+  /**
+   * Vào xem một ván đang đánh, không ngồi ghế nào.
+   *
+   * Ba cửa phải qua. Phòng có mật khẩu thì không: hai người khoá cửa lại
+   * là họ đã nói rõ họ muốn gì. Bộ môn có quân giấu thì không, vì khán giả
+   * nhìn qua mắt ghế 0 và mắt ghế 0 ở bộ môn ấy là một nửa bí mật của ván.
+   * Và người đang có ván của chính mình thì không — đổi một ván đang đánh
+   * lấy một ghế ngồi xem là một cú bấm nhầm không gỡ lại được.
+   */
+  spectate(id: string, code: string): void {
+    const p = this.players.get(id);
+    if (!p) return;
+    const room = this.rooms.get(String(code).trim().toUpperCase());
+    if (!room) return p.send({ t: 'error', code: 'NO_ROOM', msg: 'Không có ván nào với mã này' });
+    if (room.players.includes(p)) return p.send({ t: 'error', code: 'SEATED', msg: 'Bạn đang ngồi trong ván này' });
+    if (room.pass !== null) return p.send({ t: 'error', code: 'LOCKED', msg: 'Ván riêng, không xem được' });
+    if (room.engine.spec.hiddenInfo) {
+      return p.send({ t: 'error', code: 'HIDDEN', msg: 'Bộ môn có quân giấu, không xem trực tiếp được' });
+    }
+    if (p.code) {
+      const mine = this.rooms.get(p.code);
+      if (mine?.match && !mine.match.outcome()) {
+        return p.send({ t: 'error', code: 'IN_MATCH', msg: 'Bạn đang có ván của mình' });
+      }
+      this.leave(id);
+    }
+    this.unspectate(id, false);
+    this.dequeue(id);
+    p.fanOf = room.code;
+    room.fans.add(id);
+    // `broadcastRoom` gửi cho cả người chơi lẫn khán giả, nên một lần gọi
+    // vừa dựng màn cho người vừa vào, vừa cập nhật số khán giả cho hai
+    // người đang đánh.
+    this.broadcastRoom(room);
+    if (room.match) this.pushState(room);
+    this.pushLobby();
+  }
+
+  /** Thôi xem. `tell` tắt khi đang dọn dẹp cho một người đã rời mạng. */
+  unspectate(id: string, tell = true): void {
+    const p = this.players.get(id);
+    if (!p?.fanOf) return;
+    const room = this.rooms.get(p.fanOf);
+    p.fanOf = null;
+    room?.fans.delete(id);
+    if (tell) p.send({ t: 'left' });
+    if (room) this.broadcastRoom(room);
+    this.pushLobby();
+  }
+
+  /**
+   * Phòng sắp biến mất: tiễn khán giả ra trước.
+   *
+   * Không tiễn thì `fanOf` trỏ vào một mã không còn phòng nào, và người
+   * đang xem ngồi lại với một bàn cờ đứng hình mà không có gì nói cho họ
+   * biết ván đã tan.
+   */
+  private closeFans(room: Room): void {
+    for (const id of [...room.fans]) {
+      const p = this.players.get(id);
+      room.fans.delete(id);
+      if (!p) continue;
+      p.fanOf = null;
+      if (p.connected) p.send({ t: 'left' });
+    }
+  }
+
+  /**
+   * Những ván người lạ xem được, cho sảnh.
+   *
+   * Phòng chưa bắt đầu và phòng có khoá đều không vào danh sách. Trần 30:
+   * một sảnh đông thì ba mươi dòng đã dài hơn màn hình, và danh sách này
+   * đi kèm **mọi** nhịp thở của sảnh.
+   */
+  private liveRooms(): LiveRoom[] {
+    const out: LiveRoom[] = [];
+    for (const room of this.rooms.values()) {
+      if (!room.match || room.pass !== null || room.engine.spec.hiddenInfo) continue;
+      if (room.match.outcome()) continue;
+      out.push({
+        code: room.code,
+        gameId: room.gameId,
+        names: room.seatedNames.map((x) => x ?? '—'),
+        ply: room.match.s.ply,
+        fans: room.fans.size,
+        rated: room.rated,
+      });
+      if (out.length >= 30) break;
+    }
+    return out;
+  }
+
   leave(id: string): void {
     const p = this.players.get(id);
     if (!p) return;
@@ -622,6 +733,7 @@ export class Rooms {
       this.serverAction(room, { t: 'abandon', seat });
     }
     if (room.players.every((x) => x === null)) {
+      this.closeFans(room);
       this.rooms.delete(code);
       this.finished.delete(code);
     }
@@ -758,6 +870,7 @@ export class Rooms {
       rated: false,
       seed: revealSeed(this.serverSeed, code, '1'),
       rematch: new Set(),
+      fans: new Set(),
       game: 1,
       lastClock: [-1, -1],
     };
@@ -954,20 +1067,39 @@ export class Rooms {
 
   private broadcastRoom(room: Room): void {
     const seats = this.seatInfos(room);
-    for (const [seat, p] of room.players.entries()) {
-      p?.send({
-        t: 'room',
-        code: room.code,
-        gameId: room.gameId,
-        rated: room.rated,
-        yourSeat: seat,
-        seats,
-        started: room.match !== null,
-        rematch: [...room.rematch],
-        game: room.game,
-        clock: room.clockKey,
-        locked: room.pass !== null,
-      });
+    for (const [seat, p] of room.players.entries()) if (p) this.sendRoom(room, p, seat, seats);
+    for (const p of this.fansOf(room)) this.sendRoom(room, p, null, seats);
+  }
+
+  /**
+   * Một bản `room` cho một người.
+   *
+   * Khán giả nhận **đúng thông điệp này**, chỉ khác `yourSeat: null`. Đắp
+   * một thông điệp riêng cho khán giả là đắp một đường dữ liệu thứ hai, và
+   * đường thứ hai là đường không ai canh.
+   */
+  private sendRoom(room: Room, p: Player, seat: Seat | null, seats = this.seatInfos(room)): void {
+    p.send({
+      t: 'room',
+      code: room.code,
+      gameId: room.gameId,
+      rated: room.rated,
+      yourSeat: seat,
+      seats,
+      started: room.match !== null,
+      rematch: [...room.rematch],
+      game: room.game,
+      clock: room.clockKey,
+      locked: room.pass !== null,
+      fans: room.fans.size,
+    });
+  }
+
+  /** Khán giả còn nối dây. Id đã đi hẳn thì bỏ qua, không dọn ở đây. */
+  private *fansOf(room: Room): Generator<Player> {
+    for (const id of room.fans) {
+      const p = this.players.get(id);
+      if (p?.connected) yield p;
     }
   }
 
@@ -981,11 +1113,13 @@ export class Rooms {
     room.lastClock = seats.map((x) => Math.ceil(x.ms / 1000));
     const turn = room.engine.turn(room.match.s);
     const outcome: Outcome | null = room.match.outcome();
+    let justEnded = false;
     // Mọi đường kết thúc ván — thắng theo luật, xin thua, hết giờ, bỏ trận —
     // đều đi qua đây, nên đây là chỗ duy nhất cần canh. Đặt ở từng nhánh là
     // chắc chắn sẽ quên một nhánh.
     if (outcome && !this.finished.has(room.code)) {
       this.finished.add(room.code);
+      justEnded = true;
       this.onFinish?.({
         gameId: room.gameId,
         code: room.code,
@@ -1007,6 +1141,17 @@ export class Rooms {
       const view = room.engine.view(room.match.s, seat);
       p.send({ t: 'state', ply: view.ply, v: view.v, events: view.events as unknown[], turn, seats, outcome, moves });
     }
+    // Khán giả nhìn bàn qua **con mắt của ghế 0**, không qua một đường
+    // riêng. `spectate` đã chặn bộ môn có quân giấu, nên ghế 0 ở đây thấy
+    // đúng bằng mọi ghế khác — và nếu mai có bộ môn giấu bài, cái chặn đó
+    // là chỗ duy nhất phải nhớ.
+    const fanView = room.engine.view(room.match.s, 0);
+    for (const p of this.fansOf(room)) {
+      p.send({ t: 'state', ply: fanView.ply, v: fanView.v, events: fanView.events as unknown[], turn, seats, outcome, moves });
+    }
+    // Ván vừa xong là danh sách "đang đánh" ở sảnh vừa sai. Không báo ở đây
+    // thì nó còn sai cho tới lúc tình cờ có ai đó vào hoặc ra.
+    if (justEnded) this.pushLobby();
   }
 
   private dequeue(id: string): void {
@@ -1056,6 +1201,7 @@ export class Rooms {
         // Ván xong mà cả hai đã rời mạng: không ai còn ở đó để đấu lại.
         for (const p of room.players) if (p) p.code = null;
       }
+      this.closeFans(room);
       this.rooms.delete(code);
       this.finished.delete(code);
     }

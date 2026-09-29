@@ -121,6 +121,9 @@ jobs:
       - name: Luật chơi đọc được từ sảnh và từ trong ván
         run: node tools/luat.mjs
 
+      - name: Xem ván người khác đang đánh
+        run: node tools/khan-gia.mjs
+
       # Ảnh chụp được giữ lại để soi tay. Nhiều lỗi giao diện của dự án này
       # chỉ lộ ra khi phóng to ảnh chụp, không lộ ra ở bất kỳ bài test nào.
       - uses: actions/upload-artifact@v4

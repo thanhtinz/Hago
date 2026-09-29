@@ -284,3 +284,23 @@ chỗ — hai chỗ trong `rooms.ts`, một trong `serve.ts`, một ở màn xem
 Mười ba bộ môn có mặt trong `faces.ts` và trong `src/games/rules.ts`, nhưng
 chỉ ba bộ có engine. Mọi màn đọc theo tên bộ môn phải chạy được cho **cả
 mười ba**, kể cả mười bộ chưa mở.
+
+## 11. Khán giả
+
+Khán giả nhận **đúng hai thông điệp người chơi nhận** — `room` và `state` —
+chỉ khác `yourSeat: null`. Không đắp một đường dữ liệu riêng cho khán giả:
+đường thứ hai là đường không ai canh, và nó sẽ rò đúng thứ mà
+`view(state, seat)` sinh ra để che.
+
+Khán giả nhìn bàn qua **con mắt của ghế 0**. Chỉ hợp lệ vì `spectate()` chặn
+bộ môn có `spec.hiddenInfo`. Khi có bộ môn giấu bài, cái chặn đó là chỗ duy
+nhất phải nhớ — không phải rải điều kiện khắp `pushState`.
+
+Ba cửa `spectate()` phải qua: phòng có mật khẩu thì không (khoá cửa rồi mà
+vẫn phát tên hai người ra sảnh thì cái khoá chỉ khoá nước đi), bộ môn giấu
+bài thì không, và người **đang có ván của mình** thì không — đổi một ván
+đang đánh lấy một ghế ngồi xem là cú bấm nhầm không gỡ lại được.
+
+`Player.fanOf` tách hẳn khỏi `Player.code`. Dùng chung một trường thì khán
+giả rời chỗ sẽ chạy qua `leave()`, mà `leave()` xoá lời xin đấu lại và tuyên
+bố bỏ trận. Một người ngồi xem không có ghế để bỏ.
