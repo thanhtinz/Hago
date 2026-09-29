@@ -108,6 +108,13 @@ function open(t: string): void {
       set({ chat: { channel, rows: [...rows, ...state.chat.rows], more } });
     },
     chatUnread: (dms, system) => set({ unread: dms, unreadSystem: system }),
+    // Nhịp đồng hồ chỉ đụng vào `ms` của từng ghế, không đụng thế cờ. Gộp
+    // vào `st` để màn chơi đọc đồng hồ ở đúng một chỗ như mọi thứ khác.
+    clock: (ms) => {
+      const st = state.st;
+      if (!st) return;
+      set({ st: { ...st, seats: st.seats.map((s, i) => ({ ...s, ms: ms[i] ?? s.ms })) } });
+    },
   });
   client.connect();
   if (watchList.length) client.watch(watchList);

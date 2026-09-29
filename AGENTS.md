@@ -103,6 +103,10 @@ npm test        # tsc --build --force + toàn bộ test
   ván đứng lại. Dùng bản bất đồng bộ, và có giới hạn tần suất ở cửa.
 - **Lời báo lỗi giống nhau chưa đủ — thời gian trả lời cũng là câu trả lời.**
   Đăng nhập với email không tồn tại vẫn phải băm một bản giả.
+- **Đồng hồ do máy chủ phát nhịp, client không tự đếm.** Client tự đếm thì
+  phải đoán cả phần ân hạn, và hai máy đoán ra hai con số khác nhau — con số
+  người chơi nhìn và con số máy chủ dùng để xử hết giờ phải là một. Nhịp chỉ
+  gửi khi **chữ số giây** đổi, không phải mỗi 250ms.
 - **Luật có một nước thì giao diện phải có chỗ bấm nước đó.** Lớp meta có
   `accept-draw` từ ngày đầu và máy chủ vẫn phát sự kiện cầu hoà xuống, nhưng
   màn chơi không đọc `events`, nên suốt thời gian đó mọi lời cầu hoà trong

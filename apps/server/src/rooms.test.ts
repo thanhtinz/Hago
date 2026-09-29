@@ -671,3 +671,58 @@ test('phòng đã xong ván mà cả hai rớt mạng thì cũng được dọn'
   // Dọn phòng không được ghi thêm một kết quả thứ hai.
   assert.equal(got.length, 1);
 });
+
+test('đồng hồ chạy thật giữa lượt: máy chủ phát nhịp và trừ đúng giờ đang nghĩ', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+
+  const full = a.last('state')!.seats[0]!.ms;
+  assert.ok(full > 0);
+  const t0 = Date.now();
+
+  // Ân hạn: nghĩ trong ngưỡng ân hạn thì chưa mất giây nào.
+  rooms.tick(t0 + 500);
+  assert.equal(a.last('clock'), undefined, 'trong ân hạn thì không có gì đổi để mà phát');
+
+  // Nghĩ lâu hơn ân hạn: con số phải tụt, và phải tụt **ở máy khách** chứ
+  // không đợi tới nước đi. Trước đây `clock` không tồn tại nên suốt lượt
+  // đối thủ nghĩ, màn hình đứng im rồi nhảy một phát.
+  rooms.tick(t0 + 8000);
+  const tick = a.last('clock');
+  assert.ok(tick, 'phải có nhịp đồng hồ trong lúc đối thủ nghĩ');
+  assert.ok(tick.ms[0]! < full, `giờ ghế đang đi phải tụt: ${tick.ms[0]} so với ${full}`);
+  assert.equal(tick.ms[1], full, 'ghế đang chờ không mất giờ');
+  // Cả hai bên cùng nhận, không chỉ bên đang đi.
+  assert.ok(b.last('clock'));
+
+  // Và con số trong `state` cũng phải là giờ tính tới lúc này, không phải
+  // giờ của nước cuối — vào lại giữa lượt mà nhận số cũ thì đồng hồ nhảy
+  // ngược lên rồi mới tụt xuống.
+  rooms.disconnect(b.id, t0 + 8000);
+  rooms.reconnect(b.id, (m) => b.inbox.push(m), t0 + 8000);
+  assert.ok(b.last('state')!.seats[0]!.ms < full, 'vào lại phải thấy giờ thật');
+});
+
+test('nhịp đồng hồ chỉ phát khi con số giây thật sự đổi', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+  const t0 = Date.now();
+
+  // Ân hạn của cờ caro là 1,5 giây và quỹ là 5 phút, nên mốc giây rơi vào
+  // t0+8500. Bốn nhịp dưới đây nằm gọn trong cùng một giây hiển thị.
+  rooms.tick(t0 + 8000);
+  const n1 = a.inbox.filter((m) => m.t === 'clock').length;
+  assert.equal(n1, 1);
+  // Máy chủ tick 250ms một lần, mà màn hình chỉ hiện tới giây. Phát cả bốn
+  // là nhân bốn lưu lượng để không đổi lấy một chữ số.
+  for (const dt of [8100, 8200, 8300, 8400]) rooms.tick(t0 + dt);
+  assert.equal(a.inbox.filter((m) => m.t === 'clock').length, n1, 'cùng một giây thì không phát lại');
+  rooms.tick(t0 + 8600);
+  assert.equal(a.inbox.filter((m) => m.t === 'clock').length, n1 + 1, 'sang giây mới thì phát');
+});

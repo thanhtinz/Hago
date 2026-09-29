@@ -54,6 +54,8 @@ export interface ClientEvents {
   chat: (m: ChatLine) => void;
   chatPage: (channel: string, rows: ChatLine[], more: boolean, reset: boolean) => void;
   chatUnread: (dms: Record<string, number>, system: number) => void;
+  /** Nhịp đồng hồ từ máy chủ, một giây một lần trong lúc ván chạy. */
+  clock: (ms: number[]) => void;
 }
 
 /**
@@ -140,6 +142,8 @@ export class GameClient {
           return this.on.queued?.(m.gameId, m.waiting);
         case 'left':
           return this.on.room?.(null);
+        case 'clock':
+          return this.on.clock?.(m.ms);
         case 'challenge':
           return this.on.challenge?.(m);
         case 'challenge-gone':

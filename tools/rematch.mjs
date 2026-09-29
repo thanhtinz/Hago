@@ -34,6 +34,28 @@ async function pair() {
 console.log('Hai người vào chung một phòng');
 await pair();
 
+// ---- đồng hồ chạy thật -------------------------------------------------
+
+console.log('Đồng hồ phải tụt trong lúc đối thủ nghĩ, không đợi tới nước đi');
+const clockOf = async (page) => (await page.locator('text=/^\\d+:\\d\\d$/').first().innerText()).trim();
+const before = await clockOf(B);
+await B.waitForTimeout(4000);
+const after = await clockOf(B);
+const ticking = before !== after;
+console.log(`  ghế đang chờ nhìn thấy đồng hồ đối thủ: ${before} -> ${after} (${ticking ? 'chạy' : 'đứng im'})`);
+await shot(B, '69-dong-ho-chay');
+
+console.log('Mũi tên Về sảnh giữa ván phải hỏi lại — rời phòng là bỏ trận');
+await B.getByLabel('Về sảnh').click();
+await B.waitForTimeout(600);
+await shot(B, '70-hoi-lai-roi-van');
+const warnsLeave = (await B.getByText('Rời ván đang đánh?').count()) > 0;
+console.log(`  có hộp cảnh báo: ${warnsLeave}`);
+await B.getByText('Huỷ').click();
+await B.waitForTimeout(500);
+const stayed = (await B.getByLabel('Xin thua').count()) > 0;
+console.log(`  bấm Huỷ thì vẫn ở lại bàn: ${stayed}`);
+
 // ---- cầu hoà -----------------------------------------------------------
 
 console.log('A bấm Cầu hoà — phải hỏi lại trước khi gửi');
@@ -110,6 +132,8 @@ await shot(A, '68-doi-thu-roi-phong');
 
 await browser.close();
 finish([
+  [ticking, 'Đồng hồ đứng im trong lúc đối thủ nghĩ.'],
+  [warnsLeave && stayed, 'Mũi tên Về sảnh giữa ván không hỏi lại.'],
   [asksFirst, 'Nút Cầu hoà gửi thẳng, không hỏi lại.'],
   [seesOffer, 'Đối thủ không thấy lời cầu hoà.'],
   [gone && stillPlaying, 'Từ chối cầu hoà không trả ván về trạng thái đang đánh.'],

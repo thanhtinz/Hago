@@ -100,6 +100,16 @@ export type ServerMsg =
     }
   | { t: 'left' }
   /**
+   * Nhịp đồng hồ, một giây một lần trong lúc ván đang chạy.
+   *
+   * Không có nó thì con số trên màn hình chỉ đổi mỗi khi có nước đi: suốt
+   * lượt đối thủ nghĩ, đồng hồ đứng im rồi nhảy một phát, và nhảy thẳng về
+   * 0:00 lúc hết giờ — ngưỡng cảnh báo sắp hết giờ gần như không bao giờ
+   * bật đúng lúc. Để **máy chủ** phát chứ không để client tự đếm: client tự
+   * đếm thì phải đoán cả phần ân hạn, và hai máy đoán ra hai con số khác nhau.
+   */
+  | { t: 'clock'; ms: number[] }
+  /**
    * Lời rủ đấu.
    *
    * `dir` nói đây là lời rủ **đến** hay lời rủ mình vừa gửi **đi**. Hai phía

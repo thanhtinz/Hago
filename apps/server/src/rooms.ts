@@ -91,6 +91,8 @@ interface Room {
   rematch: Set<Seat>;
   /** Ván thứ mấy trong phòng, đếm từ 1. Trộn vào hạt giống cho khác ván trước. */
   game: number;
+  /** Số giây đã phát lần trước, để chỉ gửi khi con số thật sự đổi. */
+  lastClock: number[];
 }
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -334,7 +336,7 @@ export class Rooms {
   }
 
   /** Vào lại bằng cùng `playerId`: nối lại ghế cũ và nhận ngay state hiện tại. */
-  reconnect(id: string, send: (m: ServerMsg) => void): Player | null {
+  reconnect(id: string, send: (m: ServerMsg) => void, now = Date.now()): Player | null {
     const p = this.players.get(id);
     if (!p) return null;
     p.connected = true;
@@ -346,7 +348,7 @@ export class Rooms {
       const room = this.rooms.get(p.code);
       if (room) {
         this.broadcastRoom(room);
-        this.pushState(room);
+        this.pushState(room, now);
       }
     }
     return p;
@@ -377,6 +379,7 @@ export class Rooms {
       seed: revealSeed(this.serverSeed, code, '1'),
       rematch: new Set(),
       game: 1,
+      lastClock: [-1, -1],
     };
     this.rooms.set(code, room);
     p.code = code;
@@ -439,6 +442,7 @@ export class Rooms {
         seed: revealSeed(this.serverSeed, code, '1'),
         rematch: new Set(),
         game: 1,
+        lastClock: [-1, -1],
       };
       this.rooms.set(code, room);
       other.code = code;
@@ -600,6 +604,7 @@ export class Rooms {
       seed: revealSeed(this.serverSeed, code, '1'),
       rematch: new Set(),
       game: 1,
+      lastClock: [-1, -1],
     };
     this.rooms.set(code, room);
     from.code = code;
@@ -716,10 +721,40 @@ export class Rooms {
       const t = room.engine.turn(room.match.s);
       if (t.kind !== 'seat') continue;
       const spent = Math.max(0, now - room.turnSince - room.clockSpec.graceMs);
-      if ((room.clocks[t.seat] ?? 0) - spent > 0) continue;
+      if ((room.clocks[t.seat] ?? 0) - spent > 0) {
+        this.pushClock(room, now);
+        continue;
+      }
       room.clocks[t.seat] = 0;
       this.serverAction(room, { t: 'flag', seat: t.seat });
     }
+  }
+
+  /**
+   * Thời gian còn lại **tính tới lúc này**, không phải lúc nước cuối.
+   *
+   * `clocks[seat]` chỉ bị trừ khi nước đi được áp dụng, nên giữa lượt nó là
+   * một con số cũ. Đây là cùng một phép tính `tick` dùng để quyết định hết
+   * giờ, nên cái người chơi nhìn thấy và cái máy chủ quyết định là một.
+   */
+  private liveClocks(room: Room, now: number): number[] {
+    const out = room.clocks.slice();
+    if (!room.match || room.match.outcome() || room.turnSince === null) return out;
+    const t = room.engine.turn(room.match.s);
+    if (t.kind !== 'seat') return out;
+    const spent = Math.max(0, now - room.turnSince - room.clockSpec.graceMs);
+    out[t.seat] = Math.max(0, (out[t.seat] ?? 0) - spent);
+    return out;
+  }
+
+  /** Phát nhịp đồng hồ, nhưng chỉ khi con số giây thật sự đổi. */
+  private pushClock(room: Room, now: number): void {
+    if (!room.match || room.match.outcome() || room.turnSince === null) return;
+    const ms = this.liveClocks(room, now);
+    const secs = ms.map((x) => Math.ceil(x / 1000));
+    if (secs.every((x, i) => x === room.lastClock[i])) return;
+    room.lastClock = secs;
+    for (const p of room.players) p?.send({ t: 'clock', ms });
   }
 
   private serverAction(room: Room, action: unknown): void {
@@ -750,12 +785,15 @@ export class Rooms {
     this.pushState(room);
   }
 
-  private seatInfos(room: Room): SeatInfo[] {
+  private seatInfos(room: Room, now = Date.now()): SeatInfo[] {
+    // Giờ **tính tới lúc này**: vào lại giữa lượt mà nhận con số của nước
+    // cuối thì đồng hồ nhảy ngược lên rồi mới tụt xuống.
+    const live = this.liveClocks(room, now);
     return room.players.map((p, seat) => ({
       seat,
       name: p?.name ?? '—',
       connected: p?.connected ?? false,
-      ms: room.clocks[seat] ?? 0,
+      ms: live[seat] ?? 0,
     }));
   }
 
@@ -777,9 +815,13 @@ export class Rooms {
   }
 
   /** Mỗi ghế nhận đúng `view` của ghế mình, không phải state chung. */
-  private pushState(room: Room): void {
+  private pushState(room: Room, now = Date.now()): void {
     if (!room.match) return;
-    const seats = this.seatInfos(room);
+    const seats = this.seatInfos(room, now);
+    // `state` đã mang giờ của cả hai ghế, nên nhịp đồng hồ kế tiếp không
+    // cần nhắc lại đúng con số đó. Không ghi nhận ở đây thì mỗi nước đi kéo
+    // theo một thông điệp thừa.
+    room.lastClock = seats.map((x) => Math.ceil(x.ms / 1000));
     const turn = room.engine.turn(room.match.s);
     const outcome: Outcome | null = room.match.outcome();
     // Mọi đường kết thúc ván — thắng theo luật, xin thua, hết giờ, bỏ trận —

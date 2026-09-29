@@ -47,6 +47,15 @@ export interface MatchShellProps {
   /** Thay chỗ nhãn mức máy ở góc phải, ví dụ mã phòng của ván online. */
   headerRight?: React.ReactNode;
   onHome: () => void;
+  /**
+   * Về sảnh có phải hỏi lại không.
+   *
+   * Ván online thì có: rời phòng giữa ván là **bỏ trận**, máy chủ xử thua
+   * và ghi vào sổ thành tích. Mũi tên quay lại nằm ở góc trên bên trái,
+   * đúng chỗ tay quen bấm theo phản xạ. Ván với máy thì không hỏi — bấm ra
+   * là ra, không mất gì.
+   */
+  homeConfirms?: boolean;
   onReset?: () => void;
   onDraw: () => void;
   onResign: () => void;
@@ -99,14 +108,15 @@ export function MatchShell(p: MatchShellProps) {
   const [picking, setPicking] = useState(false);
   const [midH, setMidH] = useState(0);
   /** Việc đang chờ người chơi xác nhận lại. */
-  const [ask, setAsk] = useState<'resign' | 'draw' | null>(null);
+  const [ask, setAsk] = useState<'resign' | 'draw' | 'home' | null>(null);
+  const goHome = () => (p.homeConfirms && !p.ended ? setAsk('home') : p.onHome());
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top + S.sm, paddingBottom: insets.bottom + S.sm }}>
       <AppBackdrop width={width} height={height} />
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, paddingHorizontal: S.lg, paddingBottom: S.sm }}>
-        <Pressable onPress={p.onHome} hitSlop={14} accessibilityRole="button" accessibilityLabel="Về sảnh">
+        <Pressable onPress={goHome} hitSlop={14} accessibilityRole="button" accessibilityLabel="Về sảnh">
           <Icon name="back" size={22} color={A.inkSoft} />
         </Pressable>
         <Txt size={18} weight="display" style={{ flex: 1 }}>
@@ -216,6 +226,18 @@ export function MatchShell(p: MatchShellProps) {
           onOk={() => {
             setAsk(null);
             p.onResign();
+          }}
+          onClose={() => setAsk(null)}
+        />
+      ) : null}
+      {ask === 'home' ? (
+        <Confirm
+          title="Rời ván đang đánh?"
+          body="Rời phòng giữa ván bị xử là bỏ trận: đối thủ thắng, và ván vào sổ thành tích của bạn."
+          ok="Rời ván"
+          onOk={() => {
+            setAsk(null);
+            p.onHome();
           }}
           onClose={() => setAsk(null)}
         />

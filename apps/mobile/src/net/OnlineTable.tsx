@@ -69,6 +69,7 @@ export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => 
       headerRight={<CodePill code={o.room?.code ?? ''} rated={!!o.room?.rated} />}
       banner={<Banner o={o} />}
       onHome={leaveHome}
+      homeConfirms
       onDraw={() => o.send({ t: 'offer-draw' })}
       onResign={() => o.send({ t: 'resign' })}
       rematch={o.rematch}
