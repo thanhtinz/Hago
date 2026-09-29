@@ -6,7 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { api, auth, useAction, useAuth, type GameStat, type MatchRow, type Profile } from '../src/net/api';
 import { faceOf } from '../src/games/faces';
-import { CRESTS, Crest, crestFor, type CrestId } from '../src/ui/Crest';
+import { CRESTS, Crest, Face, crestFor, type CrestId } from '../src/ui/Crest';
+import { canPickImage, pickSquareImage } from '../src/net/pickImage';
 import { Field } from '../src/ui/Field';
 import { Icon } from '../src/ui/Icon';
 import { Btn, Panel, Txt } from '../src/ui/parts';
@@ -100,7 +101,7 @@ function Hero({ me, p }: { me: { id: string; name: string; email: string | null;
     <Panel radius={R.lg} tone={1} seed={11} style={lift(0.4, 14, 6)}>
       <View style={{ alignItems: 'center', gap: S.xs, padding: S.lg }}>
         <View style={[{ borderRadius: 100 }, lift(0.5, 16, 6)]}>
-          <Crest id={crestFor(me.avatar, me.id)} size={86} />
+          <Face avatar={me.avatar} id={me.id} size={86} />
         </View>
         <Txt size={22} weight="display" style={{ paddingTop: S.xs }}>
           {me.name}
@@ -322,10 +323,39 @@ function Settings({ me, onChanged }: { me: { id: string; name: string; avatar: s
 
   return (
     <>
-      <Card title="Con dấu" sub="Chọn một con dấu làm ảnh đại diện">
+      <Card title="Ảnh đại diện" sub="Tải ảnh của bạn lên, hoặc chọn một con dấu">
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, paddingBottom: S.sm }}>
+          <Face avatar={me.avatar} id={me.id} size={56} />
+          <View style={{ flex: 1, gap: 6 }}>
+            <Btn
+              tone="wood"
+              size="md"
+              icon="user"
+              label={canPickImage() ? 'Tải ảnh lên' : 'Tải ảnh (chỉ trên web)'}
+              disabled={busy || !canPickImage()}
+              onPress={() => run(async () => {
+                const blob = await pickSquareImage();
+                await auth.uploadAvatar(blob);
+                onChanged();
+              })}
+            />
+            <Txt size={10} color={A.inkFaint}>
+              Ảnh được cắt vuông và thu về 256 điểm ngay trên máy bạn, nên không gửi kèm dữ liệu vị trí trong ảnh.
+            </Txt>
+          </View>
+        </View>
+        {error ? (
+          <Txt size={12} color={A.sealLit} style={{ paddingBottom: S.xs }}>
+            {error}
+          </Txt>
+        ) : null}
+        <Rule width={120} />
+        <Txt size={11} color={A.inkFaint} style={{ paddingTop: S.xs }}>
+          Hoặc chọn một con dấu
+        </Txt>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.sm, paddingTop: S.xs }}>
           {CRESTS.map((c: CrestId) => {
-            const on = crestFor(me.avatar, me.id) === c;
+            const on = !me.avatar?.startsWith('up:') && crestFor(me.avatar, me.id) === c;
             return (
               <Pressable
                 key={c}

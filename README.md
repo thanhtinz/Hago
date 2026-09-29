@@ -49,6 +49,7 @@ apps/
 tools/
   screenshot.mjs        chụp màn hình app thật để kiểm chứng giao diện
   two-players.mjs       hai cửa sổ trình duyệt đánh nhau qua máy chủ thật
+  avatar.mjs            tải ảnh đại diện lên rồi kiểm cả đường phát lại
 docs/
   ARCHITECTURE.md       hợp đồng ràng buộc — đọc cái này trước
   architecture-review.md biên bản thẩm định kiến trúc
@@ -60,7 +61,7 @@ docs/
 ```bash
 npm install
 npm run build      # biên dịch packages/
-npm test           # 82 test: hợp đồng engine + luật ba game + bot + máy chủ
+npm test           # 89 test: hợp đồng engine + luật ba game + bot + máy chủ
 
 npm run web        # đóng gói app cho web để xem thử
 npm run serve      # mở ở http://localhost:8080
@@ -130,7 +131,7 @@ Không sửa file nào trong `packages/core` để thêm game. Phải sửa ngh�
 | Máy chủ: phòng, ghép cặp, đồng hồ, chống gửi lặp | ✅ `apps/server` |
 | App nối máy chủ: ghép cặp, tạo phòng, vào mã — chơi với người thật | ✅ |
 | Tài khoản: đăng ký, đăng nhập, Google | ✅ `apps/server/src/accounts.ts` |
-| Trang cá nhân: điểm Elo từng bộ môn, lịch sử trận, chuỗi, con dấu, xoá tài khoản | ✅ |
+| Trang cá nhân: điểm Elo từng bộ môn, lịch sử trận, chuỗi, ảnh đại diện, xoá tài khoản | ✅ |
 | Bạn bè: kết bạn, tỷ thí, xoá, chặn | ⏳ API xong, chưa có giao diện |
 | Nhắn tin: chung, riêng, trong phòng, thông báo hệ thống | ⏳ |
 | Hàng đợi bot chạy trên máy chủ | ⏳ |

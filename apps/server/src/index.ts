@@ -6,6 +6,7 @@ import { PORT, type ClientMsg } from '@co/protocol';
 import { Accounts } from './accounts.js';
 import { openDb } from './db.js';
 import { handleApi } from './http.js';
+import { Avatars } from './uploads.js';
 import { Rooms } from './rooms.js';
 
 /**
@@ -19,6 +20,7 @@ import { Rooms } from './rooms.js';
 
 const db = openDb();
 const accounts = new Accounts(db);
+const avatars = new Avatars();
 
 /**
  * Chỉ **ván ghép cặp** mới vào sổ thành tích.
@@ -45,7 +47,7 @@ const rooms = new Rooms({
 });
 
 const http = createServer((req, res) => {
-  void handleApi(req, res, { accounts, onRename: (u) => rooms.rename(u.id, u.name) }).then((done) => {
+  void handleApi(req, res, { accounts, avatars, onRename: (u) => rooms.rename(u.id, u.name) }).then((done) => {
     if (done) return;
     if (req.url === '/health') {
       res.writeHead(200, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });

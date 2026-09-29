@@ -121,12 +121,23 @@ trí, không thanh tiến độ tới một cấp bậc không tồn tại, khô
 điểm dữ liệu. Chưa đánh ván nào thì nói thẳng là chưa có gì, chứ không bày một
 bộ khung rỗng trông như đang hỏng.
 
-Ảnh đại diện là **con dấu chọn sẵn**, không tải ảnh lên — tải ảnh lên kéo theo
-kho tệp, lọc nội dung và trách nhiệm pháp lý, cho một nhu cầu chỉ là "cho tôi
-khác người bên cạnh". Bộ hình là mười bốn quân cờ tướng, chữ triện. Bản đầu tôi
-tự vẽ thêm sen, tre, nón, rồng bằng nét SVG: ở cỡ 46 điểm chúng đọc ra thành
-dấu thăng, tam giác cảnh báo và một nét nguệch ngoạc. Chữ khắc thì cỡ nào cũng
-sắc.
+Ảnh đại diện: **tải ảnh lên, hoặc chọn một trong mười bốn con dấu** (quân cờ
+tướng, chữ triện). Bản đầu tôi vẽ thêm sen, tre, nón, rồng bằng nét SVG; ở cỡ
+46 điểm chúng đọc ra thành dấu thăng, tam giác cảnh báo và một nét nguệch
+ngoạc. Chữ khắc thì cỡ nào cũng sắc.
+
+Nhận tệp của người lạ rồi phát lại cho người lạ khác là chỗ dễ hỏng nhất trong
+máy chủ. Sáu quy tắc trong `apps/server/src/uploads.ts`, mỗi cái một lý do:
+đọc dấu nhận dạng trong tệp chứ không tin `Content-Type`; **từ chối SVG** (SVG
+chạy được JavaScript — phát nó từ cùng tên miền là XSS lưu trữ); tên tệp do máy
+chủ sinh; phát kèm `X-Content-Type-Options: nosniff`; có trần dung lượng; và
+xoá tệp cũ khi đổi ảnh. App cắt vuông, thu về 256 điểm và mã hoá lại thành JPEG
+**trước khi gửi** — việc vẽ lại qua canvas cũng xoá sạch EXIF, trong đó có toạ
+độ GPS nơi chụp.
+
+Chọn ảnh mới chạy trên web. Bản gói cho iOS/Android cần `expo-image-picker`;
+chưa cài thì nút nói thẳng là chỉ chạy trên web, không mở một hộp thoại không
+bao giờ hiện ra.
 
 ## 9. Điều hướng trong app
 

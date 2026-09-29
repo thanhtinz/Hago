@@ -12,8 +12,14 @@ export interface Me {
   id: string;
   name: string;
   email: string | null;
+  /** Mã con dấu (`do-xe`), hoặc `up:<tên tệp>` khi là ảnh tải lên. */
   avatar: string | null;
   createdAt: number;
+}
+
+/** Đường dẫn ảnh đại diện nếu là ảnh tải lên, null nếu là con dấu. */
+export function avatarUrl(avatar: string | null): string | null {
+  return avatar?.startsWith('up:') ? `${apiBase()}/avatars/${avatar.slice(3)}` : null;
 }
 
 export interface PublicUser {
@@ -189,6 +195,18 @@ export const auth = {
   avatar: async (avatar: string) => {
     const r = await post<{ user: Me }>('/me/avatar', { avatar });
     set({ me: r.user });
+  },
+  /** Gửi thẳng tệp ảnh làm thân yêu cầu — không multipart, chỉ có một tệp. */
+  uploadAvatar: async (blob: Blob) => {
+    const t = read();
+    const res = await fetch(`${apiBase()}/api/me/avatar/upload`, {
+      method: 'POST',
+      headers: { 'content-type': blob.type || 'image/jpeg', ...(t ? { authorization: `Bearer ${t}` } : {}) },
+      body: blob,
+    });
+    const body = (await res.json().catch(() => ({}))) as { code?: string; msg?: string; user?: Me };
+    if (!res.ok || !body.user) throw new ApiError(body.code ?? 'SERVER', body.msg ?? 'Không tải được ảnh lên');
+    set({ me: body.user });
   },
   remove: async (confirm: string) => {
     await call('/me', { method: 'DELETE', body: JSON.stringify({ confirm }) });

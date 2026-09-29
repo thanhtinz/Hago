@@ -1,6 +1,7 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Image, View } from 'react-native';
 import Svg, { Circle, Defs, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
+import { avatarUrl } from '../net/api';
 import { A } from './theme';
 
 /**
@@ -83,6 +84,34 @@ export function crestFor(avatar: string | null, id: string): CrestId {
   return CRESTS[h % CRESTS.length]!;
 }
 
+/**
+ * Ảnh đại diện của một người: **ảnh tải lên nếu có, không thì con dấu**.
+ *
+ * Một chỗ duy nhất quyết định chuyện đó, nên sảnh, thanh người chơi, danh
+ * sách bạn và trang cá nhân không thể lệch nhau.
+ */
+export function Face({ avatar, id, size = 44, ring = true }: { avatar: string | null; id: string; size?: number; ring?: boolean }) {
+  const url = avatarUrl(avatar);
+  if (url) {
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          overflow: 'hidden',
+          borderWidth: ring ? Math.max(1.4, size * 0.038) : 0,
+          borderColor: A.goldDeep,
+          backgroundColor: A.panelLo,
+        }}
+      >
+        <Image source={{ uri: url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" accessibilityLabel="Ảnh đại diện" />
+      </View>
+    );
+  }
+  return <Crest id={crestFor(avatar, id)} size={size} ring={ring} />;
+}
+
 /** Khung tròn có viền, dùng ở sảnh, thanh người chơi và danh sách bạn. */
 export function CrestBadge({ avatar, id, size = 44, active }: { avatar: string | null; id: string; size?: number; active?: boolean }) {
   return (
@@ -98,7 +127,7 @@ export function CrestBadge({ avatar, id, size = 44, active }: { avatar: string |
         overflow: 'hidden',
       }}
     >
-      <Crest id={crestFor(avatar, id)} size={size - 4} ring={false} />
+      <Face avatar={avatar} id={id} size={size - 4} ring={false} />
     </View>
   );
 }

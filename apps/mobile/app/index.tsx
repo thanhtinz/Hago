@@ -9,7 +9,7 @@ import { FACES, type GameFace } from '../src/games/faces';
 import { useAuth, useRestoreOnce } from '../src/net/api';
 import { Icon, type IconName } from '../src/ui/Icon';
 import { Btn, Txt } from '../src/ui/parts';
-import { CrestBadge } from '../src/ui/Crest';
+import { Face } from '../src/ui/Crest';
 import { AppBackdrop, Panel, Rule, WoodFill } from '../src/ui/surface';
 import { A, R, S, glow, lift } from '../src/ui/theme';
 
@@ -76,7 +76,7 @@ export default function Lobby() {
               style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md }}
             >
               {me ? (
-                <CrestBadge avatar={me.avatar} id={me.id} size={46} active />
+                <Face avatar={me.avatar} id={me.id} size={46} />
               ) : (
                 <View style={{ width: 46, height: 46, borderRadius: 23, borderWidth: 1.2, borderColor: A.lineSoft, alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name="user" size={22} color={A.inkFaint} />
