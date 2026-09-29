@@ -135,6 +135,8 @@ export interface RoomsOptions {
     seats: (string | null)[];
     names: string[];
     outcome: Outcome;
+    /** Log input của ván, dạng JSON. Đủ để phát lại toàn bộ. */
+    log: string;
   }) => void;
   /** Hạt giống bí mật của máy chủ. Trộn với mã phòng ra hạt giống của ván. */
   serverSeed?: string;
@@ -940,12 +942,19 @@ export class Rooms {
         seats: room.seated.map((x) => x ?? null),
         names: room.seatedNames.map((x) => x ?? '—'),
         outcome,
+        log: JSON.stringify(room.match.log),
       });
     }
+    // Chỉ nước của người chơi. Nước máy chủ phát (hết giờ, bỏ trận) mang
+    // ghế -1 và không phải một nước cờ; nước meta (xin thua, cầu hoà) thì
+    // đã hiện ở chỗ khác rồi.
+    const moves = room.match.log.inputs
+      .filter((r) => r.seat >= 0 && (r.action as { t?: string } | null)?.t === 'game')
+      .map((r) => ({ seat: r.seat, a: (r.action as { a: unknown }).a }));
     for (const [seat, p] of room.players.entries()) {
       if (!p) continue;
       const view = room.engine.view(room.match.s, seat);
-      p.send({ t: 'state', ply: view.ply, v: view.v, events: view.events as unknown[], turn, seats, outcome });
+      p.send({ t: 'state', ply: view.ply, v: view.v, events: view.events as unknown[], turn, seats, outcome, moves });
     }
   }
 

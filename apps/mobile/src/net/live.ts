@@ -221,6 +221,8 @@ export interface Online {
    * không phải một sự kiện chớp qua một lần rồi mất.
    */
   drawOffer: 'mine' | 'theirs' | null;
+  /** Biên bản nước đi, theo thứ tự. */
+  moves: { seat: Seat; a: unknown }[];
   /** Mình đã xin đấu lại chưa, và đối thủ đã xin chưa. */
   rematch: { mine: boolean; theirs: boolean };
   send: (action: unknown) => void;
@@ -270,6 +272,7 @@ export function useMatch(): Online {
     waiting: s.waiting,
     error: s.error,
     drawOffer: drawOfferOf(s.st?.events, mySeat),
+    moves: s.st?.moves ?? [],
     rematch: {
       mine: mySeat !== null && !!s.room?.rematch?.includes(mySeat),
       theirs: !!s.room?.rematch?.some((x) => x !== mySeat),

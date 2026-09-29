@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { makeRng, withStandardMeta } from '@co/core';
+import { makeRng, replay, replayFrames, withStandardMeta, type MatchLog } from '@co/core';
 import { runEngineConformance } from '@co/core/testkit';
 import { caroBot } from './bot.js';
 import { caroEngine, neighbourhood, type CaroAction, type CaroState } from './engine.js';
@@ -222,4 +222,38 @@ test('bot chỉ trả nước hợp lệ, và biết chặn thế thắng của 
     (a.r === 4 && a.c === 0) || (a.r === 4 && a.c === 5),
     `phải bịt một đầu của chuỗi bốn, nhưng bot đi (${a.r},${a.c})`,
   );
+});
+
+test('phát lại giữ được từng khung hình, và khung cuối trùng với replay()', () => {
+  // Xem lại một ván đã đánh cần **mọi** thế cờ trung gian, không chỉ thế
+  // cuối — và tính lại từ đầu mỗi lần bấm nút lùi là việc thừa ở một ván
+  // hai trăm nước.
+  const engine = withStandardMeta(caroEngine);
+  const log: MatchLog = {
+    matchId: 'xem-lai',
+    gameId: 'co-caro',
+    engineVersion: engine.version,
+    ruleHash: engine.ruleHash,
+    seed: 'hat-giong',
+    seats: SEATS,
+    config: {},
+    inputs: [
+      { seq: 0, seat: 0, action: { t: 'game', a: { r: 7, c: 7 } } },
+      { seq: 1, seat: 1, action: { t: 'game', a: { r: 0, c: 0 } } },
+      { seq: 2, seat: 0, action: { t: 'game', a: { r: 7, c: 8 } } },
+    ],
+  };
+
+  // `as never` cho tham số action: `replay` không cần biết kiểu action,
+  // và `exactOptionalPropertyTypes` không cho một engine cụ thể trượt vào
+  // chỗ `Engine<S, never, …>`.
+  const frames = replayFrames(engine as never, log) as ReturnType<typeof engine.init>[];
+  // Khung 0 là thế mở ván, nên số khung luôn là số nước cộng một.
+  assert.equal(frames.length, log.inputs.length + 1);
+  // Bàn cờ lớn dần đúng một quân mỗi khung.
+  const filled = (s: (typeof frames)[number]) => engine.view(s, 0).v.cells.filter((c) => c >= 0).length;
+  assert.deepEqual(frames.map(filled), [0, 1, 2, 3]);
+  // Khung cuối phải giống hệt kết quả của `replay()`: hai đường phát lại
+  // mà ra hai thế cờ khác nhau thì cái nào cũng không tin được.
+  assert.deepEqual(frames[frames.length - 1], replay(engine as never, log));
 });

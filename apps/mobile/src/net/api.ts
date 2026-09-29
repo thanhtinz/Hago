@@ -254,8 +254,23 @@ export interface Board {
   minRanked: number;
 }
 
+export interface MatchDetail {
+  id: number;
+  gameId: string;
+  names: [string, string];
+  ids: [string | null, string | null];
+  winner: number | null;
+  reason: string;
+  rated: boolean;
+  at: number;
+  /** Log input dạng JSON, đủ để dựng lại toàn bộ ván. `null` là ván cũ. */
+  log: string | null;
+}
+
 export const api = {
   me: () => call<Profile>('/me'),
+  /** Một ván đã đánh, kèm log để phát lại. */
+  match: (id: number | string) => call<MatchDetail>(`/matches/${id}`),
   /** `game` bỏ trống là bảng tổng. */
   board: (game?: string) => call<Board>(`/leaderboard${game ? `?game=${encodeURIComponent(game)}` : ''}`),
   /** Một trang lịch sử. `before` là `id` của hàng cuối trang trước. */

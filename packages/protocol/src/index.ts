@@ -122,6 +122,18 @@ export type ServerMsg =
       turn: Turn;
       seats: SeatInfo[];
       outcome: Outcome | null;
+      /**
+       * Biên bản: mọi nước **của người chơi** trong ván, theo thứ tự.
+       *
+       * Gửi cả danh sách mỗi lần, không gửi phần đuôi mới. Một nước cờ là
+       * mươi byte nên ván hai trăm nước vẫn dưới ba KB, và một danh sách
+       * đầy đủ thì không bao giờ lệch pha với bàn cờ — phần đuôi thì lệch
+       * ngay lần đầu một gói tin rơi.
+       *
+       * `a` là hành động **của engine**, đã bóc lớp meta. Định dạng thành
+       * chữ là việc của app: chỉ app mới biết cột của cờ caro gọi là gì.
+       */
+      moves: { seat: Seat; a: unknown }[];
     }
   | { t: 'left' }
   /**

@@ -307,6 +307,20 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
       return json(res, 200, ctx.accounts.exportAll(need().id)), true;
     }
 
+    /**
+     * Một ván đã đánh, kèm log để phát lại.
+     *
+     * Chỉ cần đăng nhập là xem được, không cần từng đánh ván đó — cùng lý
+     * lẽ với bảng xếp hạng: xem lại ván của người giỏi là cách học cờ.
+     */
+    if (p.startsWith('/api/matches/') && req.method === 'GET') {
+      need();
+      const id = Number(p.slice('/api/matches/'.length));
+      const m = Number.isFinite(id) ? ctx.accounts.match(id) : null;
+      if (!m) return json(res, 404, { code: 'NO_MATCH', msg: 'Không có ván này' }), true;
+      return json(res, 200, m), true;
+    }
+
     // ---- hồ sơ người khác ---------------------------------------------
     if (p.startsWith('/api/users/') && req.method === 'GET') {
       const id = p.slice('/api/users/'.length);

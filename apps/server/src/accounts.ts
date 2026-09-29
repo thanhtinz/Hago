@@ -446,6 +446,8 @@ export class Accounts {
     winner: number | null;
     reason: string;
     rated: boolean;
+    /** Log input của ván, dạng JSON, để phát lại. */
+    log?: string;
     /** Điểm đổi bao nhiêu cho từng ghế. Trả ra để tầng ngoài báo cho người chơi. */
   }): { delta: [number, number] } {
     const [a, b] = m.seats;
@@ -474,10 +476,10 @@ export class Accounts {
       }
       this.db
         .prepare(
-          `INSERT INTO matches (game_id, code, a_id, b_id, a_name, b_name, winner, reason, rated, delta_a, delta_b, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO matches (game_id, code, a_id, b_id, a_name, b_name, winner, reason, rated, delta_a, delta_b, log, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .run(m.gameId, m.code, a, b, m.names[0], m.names[1], m.winner, m.reason, m.rated ? 1 : 0, dA, dB, Date.now());
+        .run(m.gameId, m.code, a, b, m.names[0], m.names[1], m.winner, m.reason, m.rated ? 1 : 0, dA, dB, m.log ?? null, Date.now());
     };
     this.db.exec('BEGIN');
     try {
@@ -767,6 +769,53 @@ export class Accounts {
     this.db
       .prepare('INSERT INTO reports (reporter, target, reason, note, created_at) VALUES (?, ?, ?, ?, ?)')
       .run(me, target, reason, clean, now);
+  }
+
+  /**
+   * Một ván đã đánh, kèm log để phát lại.
+   *
+   * Ai đăng nhập cũng xem được — cùng lý lẽ với bảng xếp hạng: xem lại ván
+   * của người giỏi là cách học cờ, và giấu nó đi chẳng bảo vệ ai. Không trả
+   * về id người chơi thì cũng chẳng để làm gì, nên trả cả tên.
+   */
+  match(id: number): {
+    id: number;
+    gameId: string;
+    names: [string, string];
+    ids: [string | null, string | null];
+    winner: number | null;
+    reason: string;
+    rated: boolean;
+    at: number;
+    log: string | null;
+  } | null {
+    const r = this.db.prepare('SELECT * FROM matches WHERE id = ?').get(id) as unknown as
+      | {
+          id: number;
+          game_id: string;
+          a_id: string | null;
+          b_id: string | null;
+          a_name: string;
+          b_name: string;
+          winner: number | null;
+          reason: string;
+          rated: number;
+          log: string | null;
+          created_at: number;
+        }
+      | undefined;
+    if (!r) return null;
+    return {
+      id: r.id,
+      gameId: r.game_id,
+      names: [r.a_name, r.b_name],
+      ids: [r.a_id, r.b_id],
+      winner: r.winner,
+      reason: r.reason,
+      rated: !!r.rated,
+      at: r.created_at,
+      log: r.log,
+    };
   }
 
   /** Hàng đợi báo cáo, mới nhất trước. Chỉ tầng quản trị gọi. */

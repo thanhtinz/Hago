@@ -141,6 +141,11 @@ npm test        # tsc --build --force + toàn bộ test
 
 ## 7. Tài khoản và dữ liệu lâu dài
 
+- **Lưu log input, không lưu thế cờ.** Xem lại một ván là tải vài trăm byte
+  log về rồi dựng lại bằng chính engine đã đánh ván đó (`replayFrames`).
+  Không có ảnh chụp thế cờ nào phải giữ đồng bộ, và ván xem lại không thể
+  khác ván đã đánh. Đây là chỗ ràng buộc R1 trả công.
+
 - **Thêm cột thì phải thêm vào `migrate()` trong `db.ts`.** `CREATE TABLE IF
   NOT EXISTS` chỉ chạy lần đầu, nên sửa câu lệnh tạo bảng **không** đụng tới
   tệp `.db` đã có — máy chủ đang chạy thật sẽ báo "no such column" ở đúng

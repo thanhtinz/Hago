@@ -82,7 +82,7 @@ export function buildServer(opts: ServeOptions = {}): Serving {
     chat,
     isBlocked: (a, b) => accounts.isBlockedEither(a, b),
     pendingRequests: (id) => accounts.friends(id).filter((f) => f.incoming).length,
-    onFinish: ({ gameId, code, rated, seats, names, outcome }) => {
+    onFinish: ({ gameId, code, rated, seats, names, outcome, log }) => {
       const { delta } = accounts.recordMatch({
         gameId,
         code,
@@ -94,6 +94,9 @@ export function buildServer(opts: ServeOptions = {}): Serving {
         // tính. Giấu cả ván khỏi lịch sử thì người chơi tưởng app quên mất
         // ván họ vừa đánh với bạn.
         rated,
+        // Log là thứ duy nhất cần để dựng lại cả ván. Không lưu nó thì ván
+        // xong là mất sạch: không xem lại được, không xử tranh chấp được.
+        ...(log ? { log } : {}),
       });
       /**
        * Báo kết quả vào hộp thông báo riêng của từng người.

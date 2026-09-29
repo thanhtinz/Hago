@@ -99,6 +99,10 @@ CREATE TABLE IF NOT EXISTS matches (
   -- Điểm Elo đổi bao nhiêu cho ghế 0 (ghế 1 đổi ngược dấu khi không hoà).
   delta_a    INTEGER NOT NULL DEFAULT 0,
   delta_b    INTEGER NOT NULL DEFAULT 0,
+  -- Log input của ván, dạng JSON, để phát lại. Không lưu state: state chỉ
+  -- là kết quả phát lại log, mà log thì nhỏ hơn nhiều lần và còn dùng
+  -- được để xử tranh chấp.
+  log        TEXT,
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS matches_a ON matches(a_id, id);
@@ -198,7 +202,13 @@ export function openDb(file = process.env.DB_FILE ?? 'data/co.db'): DatabaseSync
  * kho SQLite một tiến trình.
  */
 function migrate(db: DatabaseSync): void {
-  const add = ['ALTER TABLE users ADD COLUMN bio TEXT', 'ALTER TABLE users ADD COLUMN renamed_at INTEGER'];
+  const add = [
+    'ALTER TABLE users ADD COLUMN bio TEXT',
+    'ALTER TABLE users ADD COLUMN renamed_at INTEGER',
+    // Log input của ván, dạng JSON. Đây là thứ duy nhất cần để dựng lại
+    // toàn bộ ván: state không phải nguồn chân lý, log mới là (R1).
+    'ALTER TABLE matches ADD COLUMN log TEXT',
+  ];
   for (const sql of add) {
     try {
       db.exec(sql);

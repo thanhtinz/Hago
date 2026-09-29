@@ -6,7 +6,8 @@ import type { Tally } from '../games/useVsBot';
 import { Icon } from './Icon';
 import { Btn, Clock, IconBtn, Panel, Tag, Txt, press } from './parts';
 import { CHAT_SPACE } from './FloatingChat';
-import { Confirm } from './Sheet';
+import { MoveList } from './MoveList';
+import { Confirm, Sheet } from './Sheet';
 import { AppBackdrop, Rule } from './surface';
 import { A, R, S, glow, lift } from './theme';
 import { useBackClose } from './useBackClose';
@@ -97,6 +98,14 @@ export interface MatchShellProps {
   canUndo?: boolean;
   onUndo?: () => void;
   undosLeft?: number;
+  /**
+   * Biên bản nước đi. Bỏ trống thì khung giấu luôn nút mở nó.
+   *
+   * Ván với máy chưa có: `useVsBot` giữ state chứ không giữ log input, và
+   * dựng log ở đó chỉ để hiện biên bản thì không đáng — ván với máy đã có
+   * nút lùi lại, thứ mà ván online không có.
+   */
+  record?: { gameId: string; moves: { seat: number; a: unknown }[]; mySeat: number | null };
   /** Tỉ số phiên. Ván online chưa có phiên nào để đếm nên bỏ trống. */
   tally?: Tally;
   /** Dải thông báo trên cùng: đang chờ đối thủ, mất kết nối, lỗi từ máy chủ. */
@@ -111,9 +120,11 @@ export function MatchShell(p: MatchShellProps) {
   const [midH, setMidH] = useState(0);
   /** Việc đang chờ người chơi xác nhận lại. */
   const [ask, setAsk] = useState<'resign' | 'draw' | 'home' | null>(null);
+  const [record, setRecord] = useState(false);
   const goHome = () => (p.homeConfirms && !p.ended ? setAsk('home') : p.onHome());
   // Nút quay lại cứng đóng hộp đang mở, không rời bàn cờ.
   useBackClose(ask !== null, () => setAsk(null));
+  useBackClose(record, () => setRecord(false));
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top + S.sm, paddingBottom: insets.bottom + S.sm }}>
@@ -190,6 +201,7 @@ export function MatchShell(p: MatchShellProps) {
           <IconBtn name="undo" label={`Lùi lại ${p.undosLeft ?? 0}`} disabled={!p.canUndo} onPress={p.onUndo} />
         ) : null}
         {p.onReset ? <IconBtn name="newmatch" label="Ván mới" onPress={p.onReset} /> : null}
+        {p.record ? <IconBtn name="list" label="Biên bản" onPress={() => setRecord(true)} /> : null}
         <IconBtn
           name="scales"
           label={p.drawOffer === 'mine' ? 'Đã cầu hoà' : 'Cầu hoà'}
@@ -238,6 +250,12 @@ export function MatchShell(p: MatchShellProps) {
           onClose={() => setAsk(null)}
         />
       ) : null}
+      {record && p.record ? (
+        <Sheet title="Biên bản" sub={`${p.record.moves.length} nước đã đi`} onClose={() => setRecord(false)}>
+          <MoveList gameId={p.record.gameId} moves={p.record.moves} mySeat={p.record.mySeat} height={height * 0.42} />
+        </Sheet>
+      ) : null}
+
       {ask === 'home' ? (
         <Confirm
           title="Rời ván đang đánh?"

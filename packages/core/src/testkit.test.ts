@@ -211,3 +211,4 @@ test('ply tiến đơn điệu khi xen kẽ nước cờ và meta-action', () =>
   // ply về đúng cái lỗi vừa sửa.
   assert.equal(engine.decode(engine.encode(s)).ply, s.ply);
 });
+

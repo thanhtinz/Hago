@@ -30,6 +30,8 @@ export interface StateMsg {
   turn: Turn;
   seats: SeatInfo[];
   outcome: Outcome | null;
+  /** Biên bản: mọi nước của người chơi trong ván, theo thứ tự. */
+  moves: { seat: Seat; a: unknown }[];
 }
 
 export type Phase = 'off' | 'connecting' | 'ready' | 'queued' | 'lost';

@@ -92,6 +92,7 @@ export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => 
       homeConfirms
       onDraw={() => o.send({ t: 'offer-draw' })}
       onResign={() => o.send({ t: 'resign' })}
+      record={{ gameId, moves: o.moves, mySeat: o.mySeat }}
       rematch={o.rematch}
       onRematch={o.askRematch}
       drawOffer={o.drawOffer}

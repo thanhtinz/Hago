@@ -115,6 +115,37 @@ export function replay<S extends BaseState>(engine: Engine<S, never, unknown, un
   return s;
 }
 
+/**
+ * Phát lại và giữ **từng khung hình** một, không chỉ khung cuối.
+ *
+ * `replay()` trả về thế cờ cuối, đủ cho máy chủ dựng lại một ván đang chạy.
+ * Nhưng xem lại một ván đã đánh thì cần tua tới tua lui, tức là cần mọi thế
+ * cờ trung gian — và tính lại từ đầu mỗi lần bấm nút lùi là việc thừa ở
+ * một ván hai trăm nước.
+ *
+ * Khung 0 là thế mở ván, khung `i` là thế sau nước thứ `i`. Nên số khung
+ * luôn là `inputs.length + 1`.
+ */
+export function replayFrames<S extends BaseState>(engine: Engine<S, never, unknown, unknown>, log: MatchLog): S[] {
+  if (log.engineVersion !== engine.version) {
+    throw new Error(
+      `Log ghi engineVersion=${log.engineVersion} nhưng engine hiện tại là ${engine.version}. ` +
+        'Phải lấy đúng bản engine cũ từ registry theo version.',
+    );
+  }
+  const rng0 = makeRng(log.seed, 0);
+  let s = engine.init(log.seats, log.config, rng0);
+  if (s.rngCursor !== rng0.cursor) throw new RngCursorDesync(rng0.cursor, s.rngCursor);
+  s = runAuto(engine, s, log.seed);
+  const frames: S[] = [s];
+  for (const rec of log.inputs) {
+    s = applyChecked(engine, s, rec.seat, rec.action as never, log.seed);
+    s = runAuto(engine, s, log.seed);
+    frames.push(s);
+  }
+  return frames;
+}
+
 /** Trận đang chạy: giữ state hiện thời và nối thêm vào log. */
 export class LiveMatch<S extends BaseState> {
   readonly log: MatchLog;

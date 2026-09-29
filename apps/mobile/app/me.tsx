@@ -233,6 +233,7 @@ function GameRow({ s }: { s: GameStat }) {
  * giữ giờ phút chính xác; tiêu đề ngày lo phần còn lại.
  */
 function History({ p, gameIds }: { p: Profile | null; gameIds: string[] }) {
+  const router = useRouter();
   const [game, setGame] = useState<string | null>(null);
   const [page, setPage] = useState<HistoryPage | null>(null);
   const [rows, setRows] = useState<MatchRow[]>([]);
@@ -297,7 +298,7 @@ function History({ p, gameIds }: { p: Profile | null; gameIds: string[] }) {
               <View style={{ flex: 1, height: 1, backgroundColor: A.lineSoft }} />
             </View>
             {list.map((m) => (
-              <MatchLine key={m.id} m={m} showGame={!game} />
+              <MatchLine key={m.id} m={m} showGame={!game} onPress={() => router.push(`/xem/${m.id}`)} />
             ))}
           </View>
         ))}
@@ -363,10 +364,18 @@ const TONE = {
  * `showGame` tắt khi đang lọc đúng một bộ môn: tiêu đề thẻ đã ghi tên bộ môn
  * rồi, lặp lại ở cả hai mươi hàng là hai mươi lần nói cùng một điều.
  */
-function MatchLine({ m, showGame = true }: { m: MatchRow; showGame?: boolean }) {
+function MatchLine({ m, showGame = true, onPress }: { m: MatchRow; showGame?: boolean; onPress?: () => void }) {
   const tone = TONE[m.result];
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingVertical: 9 }}>
+    // Cả hàng bấm được để **xem lại ván**. Một dòng lịch sử chỉ nói kết quả
+    // thì trả lời được "thắng hay thua"; xem lại mới trả lời được "vì sao".
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Xem lại ván với ${m.opponent}`}
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingVertical: 9 }, onPress ? press({ pressed }) : undefined]}
+    >
       {/* Giờ phút chính xác, không phải "3 giờ trước". Tiêu đề ngày đã lo phần
           "hôm nào"; cái người ta cần ở đây là mốc để đối chiếu với trí nhớ. */}
       <Txt size={11} color={A.inkFaint} style={{ minWidth: 38 }}>
@@ -391,7 +400,8 @@ function MatchLine({ m, showGame = true }: { m: MatchRow; showGame?: boolean }) 
           {m.rated ? (m.delta > 0 ? `+${m.delta}` : String(m.delta)) : 'không tính'}
         </Txt>
       </View>
-    </View>
+      {onPress ? <Icon name="chevron" size={15} color={A.inkFaint} /> : null}
+    </Pressable>
   );
 }
 

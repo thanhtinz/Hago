@@ -33,6 +33,7 @@ export type IconName =
   | 'chat'
   | 'copy'
   | 'crown'
+  | 'list'
   | 'close';
 
 export function Icon({
@@ -82,6 +83,18 @@ function render(name: IconName, p: Record<string, unknown>, color: string) {
       return <Path d="M5 12.5 L10 17.5 L19 7" {...p} />;
     // Hai tờ giấy chồng lệch — hình quen của "sao chép" ở mọi nơi. Vẽ tờ
     // sau trước để tờ trước đè lên đúng thứ tự chiều sâu.
+    // Ba dòng kẻ có chấm đầu dòng — dấu của một bản danh sách.
+    case 'list':
+      return (
+        <>
+          <Path d="M9 6.5 H20" {...p} />
+          <Path d="M9 12 H20" {...p} />
+          <Path d="M9 17.5 H20" {...p} />
+          <Circle cx={4.6} cy={6.5} r={1.4} {...p} />
+          <Circle cx={4.6} cy={12} r={1.4} {...p} />
+          <Circle cx={4.6} cy={17.5} r={1.4} {...p} />
+        </>
+      );
     // Vương miện ba ngạnh, nét mảnh — dấu của bảng xếp hạng.
     case 'crown':
       return (
