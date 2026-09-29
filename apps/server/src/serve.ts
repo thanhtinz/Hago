@@ -109,7 +109,7 @@ export function buildServer(opts: ServeOptions = {}): Serving {
       if (!rated) return;
       // Tên tiếng Việt lấy từ chính engine (`spec.nameVi`), không chép lại
       // ở đây — chép là sớm muộn cũng lệch với tên hiện trong app.
-      const name = registry.get(gameId)?.spec.nameVi ?? gameId;
+      const name = registry.has(gameId) ? registry.get(gameId).spec.nameVi : gameId;
       for (const [seat, id] of seats.entries()) {
         if (!id) continue;
         const d = delta[seat] ?? 0;

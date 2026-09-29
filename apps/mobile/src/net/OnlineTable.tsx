@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, View, useWindowDimensions } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 import type { CaroView } from '@co/game-co-caro';
@@ -43,6 +44,7 @@ import type { Intent } from './useOnline';
  */
 
 export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => void }) {
+  const router = useRouter();
   const o = useMatch();
   /** Nước đang ướm trên bàn caro, để nhắc "chạm lại để đặt". */
   const [aim, setAim] = useState<string | null>(null);
@@ -94,6 +96,7 @@ export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => 
       headerRight={<CodePill code={o.room?.code ?? ''} rated={!!o.room?.rated} clock={o.room?.clock ?? ''} />}
       banner={<Banner o={o} />}
       onHome={leaveHome}
+      onRules={() => router.push(`/luat/${gameId}`)}
       homeConfirms
       onDraw={() => o.send({ t: 'offer-draw' })}
       onResign={() => o.send({ t: 'resign' })}

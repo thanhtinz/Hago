@@ -70,8 +70,8 @@ export default function ReplayScreen() {
     if (!data?.log) return null;
     try {
       const log = JSON.parse(data.log) as MatchLog;
+      if (!registry.has(log.gameId)) return null;
       const engine = registry.get(log.gameId);
-      if (!engine) return null;
       return { engine, log, list: replayFrames(engine as never, log) as BaseState[] };
     } catch {
       return null;

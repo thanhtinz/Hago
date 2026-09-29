@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { View, useWindowDimensions } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import type { BotLevel, MetaState, Seat, Wrapped } from '@co/core';
@@ -23,6 +24,7 @@ const HINTS: Record<BotLevel, string> = {
 };
 
 export function CaroTable({ level, onLevel, onHome }: { level: BotLevel; onLevel: (l: BotLevel) => void; onHome: () => void }) {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
 
@@ -49,6 +51,7 @@ export function CaroTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
       onLevel={onLevel}
       levelHints={HINTS}
       onHome={onHome}
+      onRules={() => router.push('/luat/co-caro')}
       onReset={m.reset}
       onDraw={() => {
         m.send(ME, { t: 'offer-draw' });

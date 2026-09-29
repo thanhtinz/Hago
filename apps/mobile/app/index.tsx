@@ -191,7 +191,8 @@ export default function Lobby() {
               face={f}
               seed={i * 17 + 5}
               ready={READY.has(f.id)}
-              onPress={() => READY.has(f.id) && router.push(`/play/${f.id}`)}
+              onPress={() => router.push(READY.has(f.id) ? `/play/${f.id}` : `/luat/${f.id}`)}
+              onRules={() => router.push(`/luat/${f.id}`)}
             />
           ))}
         </View>
@@ -506,18 +507,20 @@ function GameCard({
   ready,
   seed,
   onPress,
+  onRules,
 }: {
   face: GameFace;
   ready: boolean;
   seed: number;
   onPress: () => void;
+  /** Mở trang luật. Thẻ chưa mở thì bấm vào đâu cũng ra đây. */
+  onRules: () => void;
 }) {
   const Motif = face.Motif;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={ready ? `Chơi ${face.nameVi}` : `${face.nameVi}, chưa mở`}
-      disabled={!ready}
+      accessibilityLabel={ready ? `Chơi ${face.nameVi}` : `Xem luật ${face.nameVi}, chưa mở`}
       onPress={onPress}
       style={({ pressed }) => [
         // Bo góc phải khai ngay ở đây, chỗ mang bóng đổ. Bóng đổ bám theo bo
@@ -557,6 +560,31 @@ function GameCard({
                 <Chip label="Sắp có" muted />
               </View>
             )}
+            {/* Nút luật nằm **trong khung hình**, góc dưới trái: ở đó nó
+                không chen vào hàng nhãn, và nó ở xa nhãn "Sắp có" nên hai
+                thứ không đọc thành một. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Luật ${face.nameVi}`}
+              hitSlop={SLOP}
+              onPress={onRules}
+              style={({ pressed }) => [
+                {
+                  position: 'absolute',
+                  left: 6,
+                  bottom: 6,
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: R.sm,
+                  backgroundColor: '#00000088',
+                },
+                press({ pressed }),
+              ]}
+            >
+              <Txt size={11} weight="semi" color={A.ink}>
+                Luật
+              </Txt>
+            </Pressable>
           </View>
         </View>
         <View style={{ paddingHorizontal: S.md, paddingBottom: S.md, paddingTop: 2, gap: 6 }}>

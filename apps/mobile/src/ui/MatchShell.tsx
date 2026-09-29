@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BotLevel, Outcome } from '@co/core';
 import type { Tally } from '../games/useVsBot';
 import { Icon } from './Icon';
-import { Btn, Clock, IconBtn, Panel, Tag, Txt, press } from './parts';
+import { Btn, Clock, IconBtn, Panel, SLOP, Tag, Txt, press } from './parts';
 import { CHAT_SPACE } from './FloatingChat';
 import { MoveList } from './MoveList';
 import { Confirm, Sheet } from './Sheet';
@@ -49,6 +49,8 @@ export interface MatchShellProps {
   levelHints?: Record<BotLevel, string>;
   /** Thay chỗ nhãn mức máy ở góc phải, ví dụ mã phòng của ván online. */
   headerRight?: React.ReactNode;
+  /** Mở trang luật của bộ môn này. Bỏ trống thì khung giấu nút hỏi. */
+  onRules?: () => void;
   onHome: () => void;
   /**
    * Về sảnh có phải hỏi lại không.
@@ -134,9 +136,26 @@ export function MatchShell(p: MatchShellProps) {
         <Pressable onPress={goHome} hitSlop={16} accessibilityRole="button" accessibilityLabel="Về sảnh" style={press}>
           <Icon name="back" size={22} color={A.inkSoft} />
         </Pressable>
-        <Txt size={18} weight="display" style={{ flex: 1 }}>
+        <Txt size={18} weight="display">
           {p.title}
         </Txt>
+        {/* Nút hỏi ngay cạnh tên bộ môn: lúc cần luật là lúc đang nhìn bàn
+            cờ và không biết nước này có hợp lệ không, chứ không phải lúc
+            đang ở sảnh. */}
+        {p.onRules ? (
+          <Pressable
+            onPress={p.onRules}
+            hitSlop={SLOP}
+            accessibilityRole="button"
+            accessibilityLabel={`Luật ${p.title}`}
+            style={press}
+          >
+            <Txt size={15} weight="bold" color={A.inkFaint}>
+              ?
+            </Txt>
+          </Pressable>
+        ) : null}
+        <View style={{ flex: 1 }} />
         {p.level !== undefined ? (
           <Pressable
             onPress={() => setPicking(true)}

@@ -272,3 +272,15 @@ Về sảnh thì dùng `backToLobby(router)` (`src/nav.ts`), **không** dùng
 màn trên cùng, sảnh cũ vẫn nằm dưới, và app có hai sảnh cùng gắn vào cây: mọi
 nút có hai bản, mỗi màn chơi online mở thêm một socket. Đã mắc lỗi này ở cả ba
 màn cùng lúc.
+
+## 10. `registry.get` ném, không trả về `undefined`
+
+`registry.get(id)` **ném** khi bộ môn chưa đăng ký. Viết
+`const e = registry.get(id); if (!e) …` là một cái chốt không bao giờ đóng:
+nhánh xử lý nằm sau chỗ đã ném, nên người dùng nhận "máy chủ gặp lỗi" thay
+cho câu đúng. Hỏi `registry.has(id)` trước. Lỗi này từng nằm cùng lúc ở bốn
+chỗ — hai chỗ trong `rooms.ts`, một trong `serve.ts`, một ở màn xem lại.
+
+Mười ba bộ môn có mặt trong `faces.ts` và trong `src/games/rules.ts`, nhưng
+chỉ ba bộ có engine. Mọi màn đọc theo tên bộ môn phải chạy được cho **cả
+mười ba**, kể cả mười bộ chưa mở.

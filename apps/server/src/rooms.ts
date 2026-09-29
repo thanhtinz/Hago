@@ -429,8 +429,11 @@ export class Rooms {
   create(id: string, gameId: string, config: unknown, clockKey?: string, pass?: string): void {
     const p = this.players.get(id);
     if (!p) return;
+    // `registry.get` **ném** khi chưa đăng ký, không trả về undefined — nên
+    // phải hỏi `has` trước. Viết `if (!engine)` là một cái chốt không bao
+    // giờ đóng, và người chơi nhận "máy chủ gặp lỗi" thay vì "chưa có bộ môn".
+    if (!registry.has(gameId)) return p.send({ t: 'error', code: 'NO_GAME', msg: `Chưa có bộ môn ${gameId}` });
     const engine = registry.get(gameId);
-    if (!engine) return p.send({ t: 'error', code: 'NO_GAME', msg: `Chưa có bộ môn ${gameId}` });
     this.leave(id);
     const code = this.freshCode();
     const clock = clockOf(engine, clockKey);
@@ -495,8 +498,11 @@ export class Rooms {
   quick(id: string, gameId: string, clockKey?: string): void {
     const p = this.players.get(id);
     if (!p) return;
+    // `registry.get` **ném** khi chưa đăng ký, không trả về undefined — nên
+    // phải hỏi `has` trước. Viết `if (!engine)` là một cái chốt không bao
+    // giờ đóng, và người chơi nhận "máy chủ gặp lỗi" thay vì "chưa có bộ môn".
+    if (!registry.has(gameId)) return p.send({ t: 'error', code: 'NO_GAME', msg: `Chưa có bộ môn ${gameId}` });
     const engine = registry.get(gameId);
-    if (!engine) return p.send({ t: 'error', code: 'NO_GAME', msg: `Chưa có bộ môn ${gameId}` });
     this.leave(id);
     const clock = clockOf(engine, clockKey);
     // Hàng chờ tách theo **bộ môn và mức thời gian**: người xếp hàng cờ
@@ -635,7 +641,7 @@ export class Rooms {
     const p = this.players.get(id);
     if (!p) return;
     const other = this.players.get(to);
-    if (!registry.get(gameId)) return p.send({ t: 'error', code: 'NO_GAME', msg: `Chưa có bộ môn ${gameId}` });
+    if (!registry.has(gameId)) return p.send({ t: 'error', code: 'NO_GAME', msg: `Chưa có bộ môn ${gameId}` });
     if (id === to) return p.send({ t: 'error', code: 'SELF', msg: 'Không tự rủ mình được' });
     if (!other?.connected) return p.send({ t: 'error', code: 'OFFLINE', msg: 'Người này đang không trực tuyến' });
     if (this.mayChallenge && !this.mayChallenge(id, to)) {
