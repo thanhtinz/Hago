@@ -340,12 +340,12 @@ function LevelSheet({
                 minHeight: 56,
                 padding: S.md,
                 borderRadius: R.md,
-                backgroundColor: level === lv ? A.goldSoft : A.panelLo,
+                backgroundColor: level === lv ? A.goldSoft : A.panel,
                 borderWidth: 1.2,
-                borderColor: level === lv ? A.gold : A.lineSoft,
+                borderColor: level === lv ? A.gold : A.line,
               }}
             >
-              <Icon name="robot" size={20} color={level === lv ? A.gold : A.inkFaint} />
+              <Icon name="robot" size={20} color={level === lv ? A.gold : A.inkSoft} />
               <View style={{ flex: 1 }}>
                 <Txt size={14} weight="bold" color={level === lv ? A.gold : A.ink}>
                   {LEVEL_NAME[lv]}

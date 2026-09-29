@@ -184,6 +184,13 @@ cờ đúng/sai: cú kéo trên web sinh ra một `click` ngay sau khi thả, v�
 chỉ đặt lại lúc bắt đầu cử chỉ sau thì giữ nguyên `true` qua mọi cú bấm —
 nút không bao giờ mở được nữa sau lần kéo đầu tiên.
 
+**Ô chưa chọn phải có mặt thật.** Thẻ, chip và hàng lựa chọn dùng
+`src/ui/Tabs.tsx`; ô chưa chọn nền `A.panel`, viền `A.line`, chữ `A.inkSoft`.
+Bản đầu để nền trong suốt với viền `A.lineSoft` và chữ `A.inkFaint`: trên nền
+gỗ tối cả ba gần như cùng một màu, ô chưa chọn tan vào nền, và người dùng chỉ
+thấy đúng một ô đang chọn trôi lơ lửng chứ không đọc ra đây là một hàng bấm
+được. Tương phản giữa hai trạng thái vẫn còn nguyên nhờ nền vàng và chữ đậm.
+
 ## 9. Điều hướng trong app
 
 Khôi phục phiên đăng nhập nằm ở **lớp ngoài cùng** (`app/_layout.tsx`), không

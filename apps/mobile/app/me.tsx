@@ -9,6 +9,7 @@ import { faceOf } from '../src/games/faces';
 import { CRESTS, Crest, Face, crestFor, type CrestId } from '../src/ui/Crest';
 import { canPickImage, pickSquareImage } from '../src/net/pickImage';
 import { Field } from '../src/ui/Field';
+import { Chip, Segmented } from '../src/ui/Tabs';
 import { Icon } from '../src/ui/Icon';
 import { Btn, Panel, Txt } from '../src/ui/parts';
 import { AppBackdrop, Rule } from '../src/ui/surface';
@@ -79,7 +80,7 @@ export default function MeScreen() {
       </View>
 
       <Hero me={me} p={p} />
-      <Tabs tab={tab} onTab={setTab} />
+      <Segmented items={TABS.map((t) => ({ id: t, name: TAB_NAME[t] }))} value={tab} onChange={setTab} label="Thẻ" />
 
       {tab === 'tong-quan' ? <Overview p={p} /> : null}
       {tab === 'lich-su' ? <History p={p} gameIds={(p?.stats ?? []).map((x) => x.gameId)} /> : null}
@@ -142,41 +143,6 @@ function Stat({ n, label }: { n: number | string; label: string }) {
       <Txt size={8.5} weight="semi" color={A.inkFaint} style={{ letterSpacing: 0.8 }} numberOfLines={1}>
         {label}
       </Txt>
-    </View>
-  );
-}
-
-function Tabs({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void }) {
-  return (
-    <View style={{ flexDirection: 'row', gap: S.sm }}>
-      {TABS.map((t) => {
-        const on = t === tab;
-        return (
-          <Pressable
-            key={t}
-            onPress={() => onTab(t)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: on }}
-            accessibilityLabel={`Thẻ ${TAB_NAME[t]}`}
-            style={{ flex: 1 }}
-          >
-            <View
-              style={{
-                paddingVertical: 9,
-                alignItems: 'center',
-                borderRadius: R.md,
-                backgroundColor: on ? A.goldSoft : 'transparent',
-                borderWidth: 1.2,
-                borderColor: on ? A.goldDeep : A.lineSoft,
-              }}
-            >
-              <Txt size={12.5} weight="semi" color={on ? A.gold : A.inkFaint}>
-                {TAB_NAME[t]}
-              </Txt>
-            </View>
-          </Pressable>
-        );
-      })}
     </View>
   );
 }
@@ -341,34 +307,13 @@ function History({ p, gameIds }: { p: Profile | null; gameIds: string[] }) {
 
 /** Dải chọn bộ môn. Chỉ hiện khi người chơi đã đánh từ hai bộ môn trở lên. */
 function Filter({ games, game, onGame }: { games: string[]; game: string | null; onGame: (g: string | null) => void }) {
-  const chip = (id: string | null, label: string) => {
-    const on = game === id;
-    return (
-      <Pressable
-        key={label}
-        onPress={() => onGame(id)}
-        accessibilityRole="button"
-        accessibilityLabel={`Lọc ${label}`}
-        accessibilityState={{ selected: on }}
-        style={{
-          paddingHorizontal: S.md,
-          paddingVertical: 7,
-          borderRadius: R.pill,
-          backgroundColor: on ? A.goldSoft : 'transparent',
-          borderWidth: 1.1,
-          borderColor: on ? A.goldDeep : A.lineSoft,
-        }}
-      >
-        <Txt size={11.5} weight="semi" color={on ? A.gold : A.inkFaint}>
-          {label}
-        </Txt>
-      </Pressable>
-    );
-  };
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.sm }}>
-      {chip(null, 'Tất cả')}
-      {games.map((g) => chip(g, faceOf(g)?.nameVi ?? g))}
+      <Chip label="Tất cả" a11y="Lọc tất cả" on={game === null} onPress={() => onGame(null)} />
+      {games.map((g) => {
+        const name = faceOf(g)?.nameVi ?? g;
+        return <Chip key={g} label={name} a11y={`Lọc ${name}`} on={game === g} onPress={() => onGame(g)} />;
+      })}
     </View>
   );
 }

@@ -8,6 +8,7 @@ import { ChatPanel } from './Chat';
 import { Face } from './Crest';
 import { Icon } from './Icon';
 import { Panel, Txt } from './parts';
+import { Chip } from './Tabs';
 import { A, R, S, glow, lift } from './theme';
 
 /**
@@ -251,14 +252,14 @@ function Sheet({
             </Txt>
           ) : (
             <View style={{ flexDirection: 'row', gap: 6 }}>
-              <Chip on={tab === 'chung'} label="Chung" onPress={() => setTab('chung')} />
+              <Chip label="Chung" on={tab === 'chung'} onPress={() => setTab('chung')} />
               <Chip
-                on={tab === 'rieng'}
                 label="Riêng"
+                on={tab === 'rieng'}
                 badge={Object.values(s.unread).reduce((n, x) => n + x, 0)}
                 onPress={() => setTab('rieng')}
               />
-              <Chip on={tab === 'he-thong'} label="Hệ thống" badge={s.unreadSystem} onPress={() => setTab('he-thong')} />
+              <Chip label="Hệ thống" on={tab === 'he-thong'} badge={s.unreadSystem} onPress={() => setTab('he-thong')} />
             </View>
           )}
 
@@ -312,38 +313,5 @@ function Sheet({
         </View>
       </Panel>
     </View>
-  );
-}
-
-function Chip({ on, label, badge = 0, onPress }: { on: boolean; label: string; badge?: number; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="tab"
-      accessibilityState={{ selected: on }}
-      accessibilityLabel={badge ? `${label}, ${badge} chưa đọc` : label}
-      style={{
-        paddingHorizontal: S.md,
-        paddingVertical: 7,
-        borderRadius: R.pill,
-        backgroundColor: on ? A.goldSoft : 'transparent',
-        borderWidth: 1.1,
-        borderColor: on ? A.goldDeep : A.lineSoft,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-      }}
-    >
-      <Txt size={11.5} weight="semi" color={on ? A.gold : A.inkFaint}>
-        {label}
-      </Txt>
-      {badge > 0 ? (
-        <View style={{ minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, backgroundColor: A.seal, alignItems: 'center', justifyContent: 'center' }}>
-          <Txt size={9} weight="bold" color="#FFF">
-            {badge > 9 ? '9+' : badge}
-          </Txt>
-        </View>
-      ) : null}
-    </Pressable>
   );
 }
