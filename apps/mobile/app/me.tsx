@@ -11,7 +11,8 @@ import { canPickImage, pickSquareImage } from '../src/net/pickImage';
 import { Field } from '../src/ui/Field';
 import { Chip, Segmented } from '../src/ui/Tabs';
 import { Icon } from '../src/ui/Icon';
-import { Btn, Panel, Txt } from '../src/ui/parts';
+import { Btn, Panel, Txt, press } from '../src/ui/parts';
+import { feedback } from '../src/ui/feedback';
 import { AppBackdrop, Rule } from '../src/ui/surface';
 import { A, R, S, lift } from '../src/ui/theme';
 
@@ -497,6 +498,7 @@ function Settings({
         />
       </Card>
 
+      <Feel />
       <Password hasPassword={hasPassword} onChanged={onChanged} />
       <Sessions
         onLogout={() => run(async () => {
@@ -558,6 +560,78 @@ function Settings({
         </View>
       </Panel>
     </>
+  );
+}
+
+/**
+ * Âm thanh và rung.
+ *
+ * Để **trên** phần bảo mật vì đây là thứ người ta muốn tắt ngay lập tức:
+ * mở app trong phòng họp, trên xe buýt, hay cạnh người đang ngủ. Một tuỳ
+ * chọn phải tìm ba màn mới thấy thì bằng không có.
+ */
+function Feel() {
+  const [sound, setSound] = useState(feedback.soundOn());
+  const [buzz, setBuzz] = useState(feedback.buzzOn());
+  return (
+    <Card title="Âm thanh và rung" sub="Tiếng đặt quân, ăn quân và kết ván">
+      <Toggle
+        label="Âm thanh"
+        sub="Âm tự tổng hợp, không tải thêm gì. Bản web và WebView có tiếng; bản điện thoại thật thì chưa."
+        on={sound}
+        onChange={(v) => {
+          feedback.setSound(v);
+          setSound(v);
+        }}
+      />
+      <Toggle
+        label="Rung"
+        sub="Chỉ có trên điện thoại thật."
+        on={buzz}
+        onChange={(v) => {
+          feedback.setBuzz(v);
+          setBuzz(v);
+        }}
+      />
+    </Card>
+  );
+}
+
+/** Công tắc hai trạng thái. Cả hàng bấm được, không chỉ mỗi cái nút. */
+function Toggle({ label, sub, on, onChange }: { label: string; sub?: string; on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{ checked: on }}
+      accessibilityLabel={label}
+      onPress={() => onChange(!on)}
+      style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: 10 }, press({ pressed })]}
+    >
+      <View style={{ flex: 1 }}>
+        <Txt size={13.5} weight="semi">
+          {label}
+        </Txt>
+        {sub ? (
+          <Txt size={11} color={A.inkFaint}>
+            {sub}
+          </Txt>
+        ) : null}
+      </View>
+      <View
+        style={{
+          width: 48,
+          height: 28,
+          borderRadius: 14,
+          padding: 3,
+          backgroundColor: on ? A.goldDeep : A.panelLo,
+          borderWidth: 1.2,
+          borderColor: on ? A.gold : A.line,
+          alignItems: on ? 'flex-end' : 'flex-start',
+        }}
+      >
+        <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: on ? A.goldLit : A.inkFaint }} />
+      </View>
+    </Pressable>
   );
 }
 

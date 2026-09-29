@@ -96,6 +96,28 @@ export function GanhBoard({ view, size, mySeat, picked, onPick, onMove, legalTar
           />
         </G>
 
+        {/* Vệt nước vừa đi: một nét phấn mờ từ ô cũ sang ô mới, cộng một
+            vòng nhạt ở ô xuất phát.
+
+            `view.last` có sẵn trong engine từ đầu mà bàn cờ chưa đọc lần
+            nào. Thiếu nó thì vào lại ván đang dở, hoặc chỉ liếc đi một
+            giây, là không còn biết đối thủ vừa nhấc quân nào — mà ở cờ
+            gánh, nước vừa đi chính là thứ quyết định mình có bị vây không. */}
+        {view.last ? (
+          <G opacity={0.55} testID="ganh-vet-nuoc-vua-di">
+            <Line
+              x1={cx(view.last.f)}
+              y1={cy(view.last.f)}
+              x2={cx(view.last.t)}
+              y2={cy(view.last.t)}
+              stroke={T.hint}
+              strokeWidth={step * 0.07}
+              strokeLinecap="round"
+            />
+            <Circle cx={cx(view.last.f)} cy={cy(view.last.f)} r={R * 0.52} stroke={T.hint} strokeWidth={1.6} fill="none" />
+          </G>
+        ) : null}
+
         {/* Ô bị ép đi vào: quầng đỏ son nhấp nháy bằng vòng kép. */}
         {[...forced].map((i: number) => (
           <G key={`f${i}`}>

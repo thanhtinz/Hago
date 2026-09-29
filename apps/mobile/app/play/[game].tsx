@@ -7,6 +7,7 @@ import { CaroTable } from '../../src/games/co-caro/Table';
 import { GanhTable } from '../../src/games/co-ganh/Table';
 import { QuanTable } from '../../src/games/o-an-quan/Table';
 import { faceOf } from '../../src/games/faces';
+import { load, save } from '../../src/net/store';
 import { Btn, Txt } from '../../src/ui/parts';
 import { AppBackdrop } from '../../src/ui/surface';
 import { S } from '../../src/ui/theme';
@@ -21,7 +22,21 @@ import { S } from '../../src/ui/theme';
 export default function PlayScreen() {
   const { game } = useLocalSearchParams<{ game: string }>();
   const router = useRouter();
-  const [level, setLevel] = useState<BotLevel>(2);
+  /**
+   * Mức máy **nhớ qua lần mở sau**.
+   *
+   * Trước đây nó reset về Vừa mỗi lần mở màn, nên người chơi quen mức Khó
+   * phải đổi lại mỗi ván — và đổi mức nằm sau một chạm vào nhãn ở góc, nên
+   * dễ quên, rồi đánh nửa ván mới nhận ra máy đang chơi dở hẳn.
+   */
+  const [level, setLevelRaw] = useState<BotLevel>(() => {
+    const v = load<number>('muc-may', 2);
+    return v === 1 || v === 2 || v === 3 ? (v as BotLevel) : 2;
+  });
+  const setLevel = (lv: BotLevel) => {
+    setLevelRaw(lv);
+    save('muc-may', lv);
+  };
   const home = () => backToLobby(router);
 
   if (game === 'co-caro') return <CaroTable level={level} onLevel={setLevel} onHome={home} />;

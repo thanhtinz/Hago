@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { usePathname } from 'expo-router';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { faceOf } from '../games/faces';
 import { live, useLive } from '../net/live';
+import { feedback } from './feedback';
 import { Icon } from './Icon';
 import { Btn, Txt } from './parts';
 import { Panel } from './surface';
@@ -29,6 +30,19 @@ export function ChallengeToast() {
   const path = usePathname();
   const inMatch = path.startsWith('/online') || path.startsWith('/play');
   const c = s.challenges.find((x) => x.dir === 'in');
+  // Một tiếng chuông nhỏ khi lời rủ vừa tới. Lời rủ hết hạn sau hai phút
+  // và người kia đang ngồi chờ; một tấm trượt xuống im lặng thì người đang
+  // nhìn chỗ khác không biết gì.
+  const rang = useRef<string | null>(null);
+  useEffect(() => {
+    if (!c) {
+      rang.current = null;
+      return;
+    }
+    if (rang.current === c.id) return;
+    rang.current = c.id;
+    feedback.bao();
+  }, [c?.id]);
   // Trang Bạn bè đã vẽ đầy đủ mọi lời rủ ngay trong dòng chảy của nó rồi.
   if (!c || inMatch || path.startsWith('/friends')) return null;
 

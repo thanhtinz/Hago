@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { makeRng, type BaseState, type BotLevel, type Engine, type Outcome, type Rng, type Seat } from '@co/core';
+import { useMatchFeedback } from '../ui/feedback';
 
 /**
  * Một ván đấu với máy ngay trên thiết bị.
@@ -124,6 +125,9 @@ export function useVsBot<S extends BaseState, A>(
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const outcome = engine.outcome(state);
+  // Tiếng và rung cho ván với máy. Cả ba bộ môn đi qua hook này nên đây là
+  // đúng một chỗ, không phải ba bản chép.
+  useMatchFeedback(state.ply, outcome ? (outcome.winner === null ? 'hoa' : outcome.winner === ME ? 'thang' : 'thua') : null);
   const t = engine.turn(state);
   const toMove = t.kind === 'seat' ? t.seat : null;
 

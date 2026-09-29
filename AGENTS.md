@@ -78,6 +78,10 @@ npm test        # tsc --build --force + toàn bộ test
 - Bàn cờ nào **là vật thật** (tờ giấy cờ caro trên bàn) thì giữ mép và bóng đổ.
   Bàn cờ nào **vẽ lên mặt nền** (cờ gánh, ô ăn quan) thì tuyệt đối không có mép.
 - **Soi ảnh chụp ở mức phóng to** trước khi báo xong. `tools/crop.mjs`.
+- Thứ không chụp ảnh được (âm thanh, rung) thì kiểm bằng cách khác: đặt bẫy
+  lên `AudioContext` trước khi trang chạy rồi đếm số dao động. Thứ chụp được
+  nhưng khó đếm (một vệt trong SVG) thì gắn `testID` và đếm thẳng nó — đếm
+  số thẻ `<line>` là đếm cả hoạ tiết nền.
 - **Vùng chạm 44 điểm, chữ từ 11 điểm trở lên.** Nút nào bố cục không cho
   cao 44 thì thêm `hitSlop={SLOP}` — trừ khi nó đứng sát nút khác trên cùng
   một hàng, vì hitSlop của hai nút cạnh nhau chồng lên nhau và hệ điều hành

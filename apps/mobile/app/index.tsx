@@ -3,7 +3,9 @@ import { Pressable, RefreshControl, ScrollView, TextInput, View, useWindowDimens
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { registry } from '@co/core';
+import { registry, type BotLevel } from '@co/core';
+import { load as remembered, recentRooms } from '../src/net/store';
+import { LEVEL_NAME } from '../src/ui/MatchShell';
 import '../src/catalog';
 import { FACES, faceOf, type GameFace } from '../src/games/faces';
 import { api, useAuth, type Profile } from '../src/net/api';
@@ -77,6 +79,12 @@ export default function Lobby() {
   const w = Math.min(width, 460);
   const scroller = useRef<ScrollView>(null);
   const gridY = useRef(0);
+  // Nói đúng mức máy đang nhớ, thay vì câu chung "ba mức khó": người chơi
+  // quen mức Khó cần biết ngay là bấm vào sẽ vào mức nào.
+  const botLevel = ((): BotLevel => {
+    const v = remembered<number>('muc-may', 2);
+    return v === 1 || v === 2 || v === 3 ? (v as BotLevel) : 2;
+  })();
 
   return (
     <View style={{ flex: 1 }}>
@@ -139,7 +147,7 @@ export default function Lobby() {
             size="lg"
             icon="robot"
             label="Đấu với máy"
-            sub="Cờ caro · ba mức khó"
+            sub={`Cờ caro · mức ${LEVEL_NAME[botLevel]}`}
             onPress={() => router.push('/play/co-caro')}
           />
 
@@ -352,6 +360,9 @@ function PickGameSheet({ mode, onClose, onPick }: { mode: 'quick' | 'create'; on
 function CodeSheet({ onClose, onGo }: { onClose: () => void; onGo: (code: string) => void }) {
   const [code, setCode] = useState('');
   const ok = code.trim().length === 5;
+  // Đọc một lần lúc mở tấm: danh sách chỉ đổi khi vào một phòng mới, mà
+  // lúc đó tấm này đã đóng rồi.
+  const recent = useRef(recentRooms()).current;
   return (
     <Sheet title="Vào bằng mã" sub="Năm ký tự bạn của bạn đọc cho" onClose={onClose}>
       <TextInput
@@ -375,8 +386,58 @@ function CodeSheet({ onClose, onGo }: { onClose: () => void; onGo: (code: string
         }}
       />
       <Btn label="Vào phòng" disabled={!ok} onPress={() => onGo(code.trim())} />
+
+      {/* Mã vừa vào gần đây. Phòng bị xoá khi cả hai người rời, nên phần
+          lớn mã cũ sẽ báo "không có phòng nào mang mã này" — vì thế hàng
+          này kèm thời điểm và **không** trình bày như phòng đang còn sống. */}
+      {recent.length ? (
+        <>
+          <Txt size={11} color={A.inkFaint} style={{ paddingTop: S.xs }}>
+            Mã vừa vào gần đây — phòng có thể đã đóng
+          </Txt>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.sm }}>
+            {recent.map((r) => (
+              <Pressable
+                key={r.code}
+                accessibilityRole="button"
+                accessibilityLabel={`Vào lại mã ${r.code}`}
+                onPress={() => onGo(r.code)}
+                style={({ pressed }) => [
+                  {
+                    paddingHorizontal: S.md,
+                    paddingVertical: 10,
+                    borderRadius: R.md,
+                    borderWidth: 1.2,
+                    borderColor: A.line,
+                    backgroundColor: A.panel,
+                  },
+                  press({ pressed }),
+                ]}
+              >
+                <Txt size={14} weight="bold" color={A.gold} style={{ letterSpacing: 3 }}>
+                  {r.code}
+                </Txt>
+                <Txt size={11} color={A.inkFaint}>
+                  {faceOf(r.gameId)?.nameVi ?? r.gameId} · {agoVi(r.at)}
+                </Txt>
+              </Pressable>
+            ))}
+          </View>
+        </>
+      ) : null}
     </Sheet>
   );
+}
+
+/** "3 phút trước", "hôm qua". Đủ để biết mã còn mới hay đã cũ. */
+function agoVi(at: number): string {
+  const m = Math.round((Date.now() - at) / 60_000);
+  if (m < 1) return 'vừa xong';
+  if (m < 60) return `${m} phút trước`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} giờ trước`;
+  const d = Math.round(h / 24);
+  return d === 1 ? 'hôm qua' : `${d} ngày trước`;
 }
 
 /**

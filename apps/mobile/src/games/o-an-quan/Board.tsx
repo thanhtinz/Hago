@@ -140,6 +140,15 @@ export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled
   }, []);
 
   const eaten = new Set(view.trail.filter((e) => e.t === 'capture').map((e) => (e as { cell: number }).cell));
+  /**
+   * Ô vừa được rải quân đầu tiên của nước vừa rồi.
+   *
+   * `trail[0]` luôn là `drop` của chính nước đó, nên nó chính là ô người
+   * kia vừa bốc. Không đánh dấu thì liếc đi một giây là mất dấu hoàn toàn:
+   * ô ăn quan rải quân đi khắp bàn, nhìn vào thế cờ sau không suy ngược
+   * ra được ai vừa bốc ô nào.
+   */
+  const startedAt = view.trail.find((e) => e.t === 'drop') as { cell: number } | undefined;
 
   return (
     <View style={{ width: W, height: H }}>
@@ -191,6 +200,20 @@ export function QuanBoard({ view, width, mySide, picked, onPick, onSow, disabled
           const shown = Math.min(cell.dan, isQuanCell ? 8 : 12);
           return (
             <G key={screen} clipPath={screen === 0 ? 'url(#clip-west)' : screen === 6 ? 'url(#clip-east)' : undefined}>
+              {startedAt?.cell === i ? (
+                <Ellipse
+                  testID="quan-o-vua-boc"
+                  cx={cx}
+                  cy={cy}
+                  rx={(isQuanCell ? quanW : cellW) * 0.44}
+                  ry={cellH * 0.4}
+                  stroke={T.hint}
+                  strokeWidth={2}
+                  strokeDasharray="5 4"
+                  fill="none"
+                  opacity={0.8}
+                />
+              ) : null}
               {eaten.has(i) ? (
                 <Ellipse
                   cx={cx}

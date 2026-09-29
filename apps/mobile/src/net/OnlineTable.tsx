@@ -16,6 +16,7 @@ import { GroundBackdrop } from '../games/o-an-quan/Ground';
 import { faceOf } from '../games/faces';
 import { Face } from '../ui/Crest';
 import { CHAT_SPACE } from '../ui/FloatingChat';
+import { useMatchFeedback } from '../ui/feedback';
 import { Icon } from '../ui/Icon';
 import { MatchShell } from '../ui/MatchShell';
 import { Btn, Panel, Txt, press } from '../ui/parts';
@@ -23,6 +24,7 @@ import { AppBackdrop } from '../ui/surface';
 import { A, R, S, lift } from '../ui/theme';
 import { api, type Friend } from './api';
 import { live, useIntentOnce, useLive, useMatch, useWatch, type Online } from './live';
+import { rememberRoom } from './store';
 import type { Intent } from './useOnline';
 
 /**
@@ -51,6 +53,19 @@ export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => 
   });
   const gameId = o.room?.gameId ?? (intent.kind === 'quick' || intent.kind === 'create' ? intent.gameId : '');
   const face = faceOf(gameId);
+  // Một chỗ duy nhất phát tiếng cho ván online. `useMatch()` dùng chung
+  // bởi nhiều component, nên đặt trong đó là mỗi component một lần kêu.
+  useMatchFeedback(
+    o.ply,
+    o.outcome ? (o.outcome.winner === null ? 'hoa' : o.outcome.winner === o.mySeat ? 'thang' : 'thua') : null,
+  );
+  // Nhớ mã phòng để lần sau mở tấm "vào mã" là thấy nó sẵn ở đó. Ghi khi
+  // **đã thật sự vào phòng**, không ghi lúc gõ mã: mã gõ sai thì không
+  // đáng nằm trong danh sách.
+  const code = o.room?.code;
+  useEffect(() => {
+    if (code) rememberRoom(code, o.room?.gameId ?? '', Date.now());
+  }, [code]);
 
   const leaveHome = () => {
     o.leave();
