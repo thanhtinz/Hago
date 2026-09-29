@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { User } from './db.js';
-import { Accounts, AuthError } from './accounts.js';
+import { Accounts, AuthError, MIN_RANKED } from './accounts.js';
 import { googleConfigured, verifyGoogleIdToken } from './google.js';
 import type { Chat } from './chat.js';
 import { Avatars, MAX_BYTES, UP, UploadError, isUpload, uploadName } from './uploads.js';
@@ -328,6 +328,25 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
       if (!body) throw new AuthError('EMPTY', 'Nội dung rỗng');
       ctx.notify(body, str(reqBody.to) || undefined);
       return json(res, 200, { ok: true }), true;
+    }
+
+    /**
+     * Bảng xếp hạng. Không cần đăng nhập để **xem** — nhưng đã đăng nhập
+     * thì trả kèm hạng của chính mình, vì đó là con số người ta mở bảng ra
+     * để xem, và nó thường nằm ngoài năm mươi hàng đầu.
+     */
+    if (p === '/api/leaderboard' && req.method === 'GET') {
+      const game = url.searchParams.get('game');
+      const gameId = game && game !== 'tong' ? game : null;
+      const rows = ctx.accounts.leaderboard(gameId, 50).map((r, i) => ({
+        rank: i + 1,
+        user: publicUser(r.user),
+        rating: r.rating,
+        played: r.played,
+        win: r.win,
+      }));
+      const mine = me ? ctx.accounts.rankOf(me.id, gameId) : null;
+      return json(res, 200, { rows, me: mine, minRanked: MIN_RANKED }), true;
     }
 
     // ---- bạn bè --------------------------------------------------------

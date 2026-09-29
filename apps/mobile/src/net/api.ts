@@ -223,8 +223,26 @@ export const auth = {
   },
 };
 
+export interface BoardRow {
+  rank: number;
+  user: PublicUser;
+  rating: number;
+  played: number;
+  win: number;
+}
+
+export interface Board {
+  rows: BoardRow[];
+  /** Hạng của chính mình, kể cả khi nằm ngoài danh sách. */
+  me: { rank: number; rating: number; played: number } | null;
+  /** Số ván tối thiểu để có tên trong bảng. */
+  minRanked: number;
+}
+
 export const api = {
   me: () => call<Profile>('/me'),
+  /** `game` bỏ trống là bảng tổng. */
+  board: (game?: string) => call<Board>(`/leaderboard${game ? `?game=${encodeURIComponent(game)}` : ''}`),
   /** Một trang lịch sử. `before` là `id` của hàng cuối trang trước. */
   history: (o: { before?: number; game?: string; limit?: number } = {}) => {
     const q = new URLSearchParams();

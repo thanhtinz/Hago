@@ -188,6 +188,7 @@ export default function Lobby() {
         insetBottom={insets.bottom}
         onHome={() => scroller.current?.scrollTo({ y: 0, animated: true })}
         onGrid={() => scroller.current?.scrollTo({ y: gridY.current, animated: true })}
+        onBoard={() => router.push('/bxh')}
         onMe={() => router.push(me ? '/me' : '/auth')}
       />
 
@@ -508,18 +509,24 @@ function BottomNav({
   insetBottom,
   onHome,
   onGrid,
+  onBoard,
   onMe,
 }: {
   width: number;
   insetBottom: number;
   onHome: () => void;
   onGrid: () => void;
+  onBoard: () => void;
   onMe: () => void;
 }) {
   const h = 56 + insetBottom;
+  // Bốn mục, vẫn dưới trần năm của một thanh dưới. Bảng xếp hạng nằm ở đây
+  // chứ không chen vào hàng chế độ: nó là một nơi để **đi tới**, không phải
+  // một việc để bấm.
   const items: { icon: IconName; label: string; onPress?: () => void; active?: boolean }[] = [
     { icon: 'home', label: 'Sảnh', onPress: onHome, active: true },
     { icon: 'grid', label: 'Bộ môn', onPress: onGrid },
+    { icon: 'crown', label: 'Xếp hạng', onPress: onBoard },
     { icon: 'user', label: 'Tôi', onPress: onMe },
   ];
   return (

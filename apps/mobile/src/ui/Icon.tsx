@@ -32,6 +32,7 @@ export type IconName =
   | 'undo'
   | 'chat'
   | 'copy'
+  | 'crown'
   | 'close';
 
 export function Icon({
@@ -81,6 +82,14 @@ function render(name: IconName, p: Record<string, unknown>, color: string) {
       return <Path d="M5 12.5 L10 17.5 L19 7" {...p} />;
     // Hai tờ giấy chồng lệch — hình quen của "sao chép" ở mọi nơi. Vẽ tờ
     // sau trước để tờ trước đè lên đúng thứ tự chiều sâu.
+    // Vương miện ba ngạnh, nét mảnh — dấu của bảng xếp hạng.
+    case 'crown':
+      return (
+        <>
+          <Path d="M4 17.5 L4 8 L8.5 11.5 L12 6 L15.5 11.5 L20 8 L20 17.5 Z" {...p} />
+          <Path d="M4 20.5 H20" {...p} />
+        </>
+      );
     case 'copy':
       return (
         <>

@@ -380,3 +380,62 @@ test('dọn phiên hết hạn, xem phiên đang mở, và đăng xuất nơi kh
   assert.equal(a.sweepSessions(Date.now() + 61 * 86_400_000), 1);
   assert.equal(a.sessions(s1.user.id).length, 0);
 });
+
+test('bảng xếp hạng đòi đủ ván mới có tên, và xếp đúng thứ tự', async () => {
+  const a = fresh();
+  const x = (await a.register('An', 'an@example.com', 'matkhaudai')).user;
+  const y = (await a.register('Bình', 'binh@example.com', 'matkhaudai')).user;
+  const z = (await a.register('Cường', 'cuong@example.com', 'matkhaudai')).user;
+
+  // x thắng y năm ván: cả hai đủ ngưỡng, x trên y.
+  for (let i = 0; i < 5; i++) {
+    a.recordMatch({ gameId: 'co-caro', code: `m${i}`, seats: [x.id, y.id], names: ['An', 'Bình'], winner: 0, reason: 'đủ năm', rated: true });
+  }
+  // z chỉ đánh một ván và thắng — Elo nhảy 40 điểm từ mốc, nhưng không đủ
+  // ngưỡng nên không được đứng trên người đã đánh năm ván.
+  a.recordMatch({ gameId: 'co-caro', code: 'z1', seats: [z.id, y.id], names: ['Cường', 'Bình'], winner: 0, reason: 'một ván', rated: true });
+
+  const board = a.leaderboard('co-caro');
+  assert.deepEqual(
+    board.map((r) => r.user.id),
+    [x.id, y.id],
+    'người đánh một ván không được có tên',
+  );
+  assert.ok(board[0]!.rating > board[1]!.rating);
+  assert.equal(board[0]!.played, 5);
+  assert.equal(board[0]!.win, 5);
+
+  assert.equal(a.rankOf(x.id, 'co-caro')!.rank, 1);
+  assert.equal(a.rankOf(y.id, 'co-caro')!.rank, 2);
+  assert.equal(a.rankOf(z.id, 'co-caro'), null, 'chưa đủ ván thì chưa có hạng');
+  assert.equal(a.rankOf(x.id, 'khong-co-bo-mon-nay'), null);
+});
+
+test('bảng tổng cộng phần điểm vượt mốc của mọi bộ môn', async () => {
+  const a = fresh();
+  const x = (await a.register('An', 'an@example.com', 'matkhaudai')).user;
+  const y = (await a.register('Bình', 'binh@example.com', 'matkhaudai')).user;
+  const z = (await a.register('Cường', 'cuong@example.com', 'matkhaudai')).user;
+
+  // x thắng ở **hai** bộ môn, mỗi người kia chỉ thua ở một.
+  for (let i = 0; i < 6; i++) {
+    a.recordMatch({ gameId: 'co-caro', code: `c${i}`, seats: [x.id, y.id], names: ['An', 'Bình'], winner: 0, reason: 'x thắng', rated: true });
+    a.recordMatch({ gameId: 'co-ganh', code: `g${i}`, seats: [x.id, z.id], names: ['An', 'Cường'], winner: 0, reason: 'x thắng', rated: true });
+  }
+
+  const board = a.leaderboard(null);
+  assert.equal(board.length, 3);
+  assert.equal(board[0]!.user.id, x.id, 'giỏi hai bộ môn thì đứng trên');
+  assert.equal(board[0]!.played, 12, 'ván của cả hai bộ môn cộng lại');
+
+  // Elo là trò chơi tổng bằng không, nên bảng tổng không được tự sinh điểm
+  // từ hư không.
+  const total = board.reduce((n, r) => n + r.rating, 0);
+  assert.ok(Math.abs(total) <= 2, `tổng điểm vượt mốc phải quanh 0, nhận ${total}`);
+
+  assert.equal(a.rankOf(x.id, null)!.rank, 1);
+  // y và z đối xứng hoàn toàn nên chúng **bằng điểm**, và bằng điểm thì
+  // cùng hạng — đó là hạng đúng, không phải một lỗi cần bẻ cho lệch.
+  assert.equal(a.rankOf(y.id, null)!.rank, 2);
+  assert.equal(a.rankOf(z.id, null)!.rank, 2);
+});

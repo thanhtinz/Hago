@@ -46,6 +46,14 @@ export function eloDelta(mine: number, theirs: number, score: number, played: nu
  */
 
 const SESSION_DAYS = 60;
+
+/**
+ * Bao nhiêu ván mới được vào bảng xếp hạng.
+ *
+ * Elo của người mới nhảy 40 điểm một ván (K=40 dưới 30 ván), nên không có
+ * ngưỡng thì thắng một ván là leo lên trên người đã đánh hai trăm ván.
+ */
+export const MIN_RANKED = 5;
 const DAY = 86_400_000;
 
 /**
@@ -397,6 +405,85 @@ export class Accounts {
   private played(userId: string, gameId: string): number {
     const r = this.statRow(userId, gameId);
     return r.win + r.draw + r.loss;
+  }
+
+  /**
+   * Bảng xếp hạng.
+   *
+   * **Ngưỡng năm ván** để có tên: không có ngưỡng thì người mới đăng ký
+   * thắng đúng một ván đã leo lên trên người đã đánh hai trăm ván, vì
+   * Elo của họ nhảy 40 điểm từ mốc 1200 trong khi K của người kia còn 16.
+   * Một bảng xếp hạng mà đứng đầu là người chơi một ván thì không ai tin
+   * nó lần thứ hai.
+   *
+   * `gameId` rỗng là bảng **tổng**: cộng phần điểm vượt mốc 1200 của mọi
+   * bộ môn đã đủ ngưỡng. Định nghĩa này có một lý do: nó thưởng cho việc
+   * giỏi ở nhiều bộ môn thay vì cày một bộ môn, mà đó đúng là điều một
+   * nền tảng mười ba bộ môn muốn khuyến khích. Cộng thẳng Elo thì người
+   * chơi ba bộ môn ở mức trung bình vẫn hơn người xuất sắc một bộ môn chỉ
+   * vì 1200 × 3 > 1400.
+   */
+  leaderboard(gameId: string | null, limit = 50): { user: User; rating: number; played: number; win: number }[] {
+    const rows = gameId
+      ? (this.db
+          .prepare(
+            `SELECT s.user_id, s.rating AS rating, s.win + s.draw + s.loss AS played, s.win AS win
+             FROM stats s WHERE s.game_id = ? AND s.win + s.draw + s.loss >= ?
+             ORDER BY rating DESC, played DESC LIMIT ?`,
+          )
+          .all(gameId, MIN_RANKED, limit) as unknown as { user_id: string; rating: number; played: number; win: number }[])
+      : (this.db
+          .prepare(
+            `SELECT s.user_id, SUM(s.rating - 1200) AS rating, SUM(s.win + s.draw + s.loss) AS played, SUM(s.win) AS win
+             FROM stats s WHERE s.win + s.draw + s.loss >= ?
+             GROUP BY s.user_id ORDER BY rating DESC, played DESC LIMIT ?`,
+          )
+          .all(MIN_RANKED, limit) as unknown as { user_id: string; rating: number; played: number; win: number }[]);
+    const out: { user: User; rating: number; played: number; win: number }[] = [];
+    if (!rows.length) return out;
+    // Một câu cho tất cả người dùng, không hỏi từng người một.
+    const ids = rows.map((r) => r.user_id);
+    const users = new Map<string, User>();
+    for (const u of this.db.prepare(`SELECT * FROM users WHERE id IN (${ids.map(() => '?').join(',')})`).all(...ids)) {
+      const row = u as unknown as Row;
+      users.set(row.id, toUser(row));
+    }
+    for (const r of rows) {
+      const u = users.get(r.user_id);
+      if (u) out.push({ user: u, rating: r.rating, played: r.played, win: r.win });
+    }
+    return out;
+  }
+
+  /**
+   * Hạng của một người, đếm từ 1. `null` nếu chưa đủ ngưỡng để có tên.
+   *
+   * Tách khỏi `leaderboard` vì hạng của mình phải hiện **kể cả khi mình
+   * đứng thứ ba trăm** — đó mới là con số người ta mở bảng ra để xem.
+   */
+  rankOf(userId: string, gameId: string | null): { rank: number; rating: number; played: number } | null {
+    if (gameId) {
+      const mine = this.db
+        .prepare('SELECT rating, win + draw + loss AS played FROM stats WHERE user_id = ? AND game_id = ?')
+        .get(userId, gameId) as unknown as { rating: number; played: number } | undefined;
+      if (!mine || mine.played < MIN_RANKED) return null;
+      const above = this.db
+        .prepare('SELECT COUNT(*) AS n FROM stats WHERE game_id = ? AND win + draw + loss >= ? AND rating > ?')
+        .get(gameId, MIN_RANKED, mine.rating) as unknown as { n: number };
+      return { rank: above.n + 1, rating: mine.rating, played: mine.played };
+    }
+    const mine = this.db
+      .prepare('SELECT SUM(rating - 1200) AS rating, SUM(win + draw + loss) AS played FROM stats WHERE user_id = ? AND win + draw + loss >= ?')
+      .get(userId, MIN_RANKED) as unknown as { rating: number | null; played: number | null };
+    if (mine?.rating === null || mine?.played === null || mine === undefined) return null;
+    const above = this.db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM (
+           SELECT user_id, SUM(rating - 1200) AS r FROM stats WHERE win + draw + loss >= ? GROUP BY user_id
+         ) WHERE r > ?`,
+      )
+      .get(MIN_RANKED, mine.rating) as unknown as { n: number };
+    return { rank: above.n + 1, rating: mine.rating, played: mine.played };
   }
 
   stats(userId: string): GameStat[] {
