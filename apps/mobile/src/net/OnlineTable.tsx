@@ -71,6 +71,11 @@ export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => 
       onHome={leaveHome}
       onDraw={() => o.send({ t: 'offer-draw' })}
       onResign={() => o.send({ t: 'resign' })}
+      rematch={o.rematch}
+      onRematch={o.askRematch}
+      drawOffer={o.drawOffer}
+      onAcceptDraw={() => o.send({ t: 'accept-draw' })}
+      onDeclineDraw={() => o.send({ t: 'decline-draw' })}
       ended={o.outcome}
       youWon={o.outcome?.winner === me}
       note={o.error}

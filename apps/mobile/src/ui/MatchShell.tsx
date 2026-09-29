@@ -5,6 +5,7 @@ import type { BotLevel, Outcome } from '@co/core';
 import type { Tally } from '../games/useVsBot';
 import { Icon } from './Icon';
 import { Btn, Clock, IconBtn, Panel, Tag, Txt } from './parts';
+import { Confirm } from './Sheet';
 import { AppBackdrop, Rule } from './surface';
 import { A, R, S, glow, lift } from './theme';
 
@@ -49,7 +50,26 @@ export interface MatchShellProps {
   onReset?: () => void;
   onDraw: () => void;
   onResign: () => void;
+  /**
+   * Lời cầu hoà đang treo là của ai.
+   *
+   * `'theirs'` thì khung tự dựng dải hỏi có đồng ý hoà không — đây là thứ
+   * trước kia thiếu hẳn: luật đã có `accept-draw`, máy chủ đã gửi sự kiện
+   * cầu hoà xuống, nhưng màn hình không có chỗ nào để bấm đồng ý, nên mọi
+   * lời cầu hoà trong ván với người thật đều rơi vào hư không.
+   */
+  drawOffer?: 'mine' | 'theirs' | null;
+  onAcceptDraw?: () => void;
+  onDeclineDraw?: () => void;
   ended: Outcome | null;
+  /**
+   * Đấu lại ván nữa với đúng đối thủ vừa rồi. Chỉ ván online có.
+   *
+   * Cần cả hai bên đồng ý nên nút phải nói rõ đang ở bước nào: mình vừa xin,
+   * đối thủ vừa xin, hay chưa ai xin.
+   */
+  rematch?: { mine: boolean; theirs: boolean };
+  onRematch?: (want: boolean) => void;
   /** True nếu người cầm máy là bên thắng. */
   youWon: boolean;
   top: SeatBarProps;
@@ -78,6 +98,8 @@ export function MatchShell(p: MatchShellProps) {
   const { width, height } = useWindowDimensions();
   const [picking, setPicking] = useState(false);
   const [midH, setMidH] = useState(0);
+  /** Việc đang chờ người chơi xác nhận lại. */
+  const [ask, setAsk] = useState<'resign' | 'draw' | null>(null);
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top + S.sm, paddingBottom: insets.bottom + S.sm }}>
@@ -138,6 +160,10 @@ export function MatchShell(p: MatchShellProps) {
         </View>
       ) : null}
 
+      {p.drawOffer === 'theirs' && !p.ended ? (
+        <DrawAsk onAccept={p.onAcceptDraw} onDecline={p.onDeclineDraw} />
+      ) : null}
+
       <View style={{ flexDirection: 'row', gap: S.sm, paddingHorizontal: S.lg, paddingTop: S.md }}>
         {p.onHint ? (
           <IconBtn name="bulb" label={`Gợi ý ${p.hintsLeft ?? 0}`} tone="gold" disabled={!p.canHint} onPress={p.onHint} />
@@ -146,8 +172,13 @@ export function MatchShell(p: MatchShellProps) {
           <IconBtn name="undo" label={`Lùi lại ${p.undosLeft ?? 0}`} disabled={!p.canUndo} onPress={p.onUndo} />
         ) : null}
         {p.onReset ? <IconBtn name="newmatch" label="Ván mới" onPress={p.onReset} /> : null}
-        <IconBtn name="scales" label="Cầu hoà" disabled={!!p.ended} onPress={p.onDraw} />
-        <IconBtn name="flag" label="Xin thua" tone="seal" disabled={!!p.ended} onPress={p.onResign} />
+        <IconBtn
+          name="scales"
+          label={p.drawOffer === 'mine' ? 'Đã cầu hoà' : 'Cầu hoà'}
+          disabled={!!p.ended || !!p.drawOffer}
+          onPress={() => setAsk('draw')}
+        />
+        <IconBtn name="flag" label="Xin thua" tone="seal" disabled={!!p.ended} onPress={() => setAsk('resign')} />
       </View>
 
       {p.ended ? (
@@ -157,6 +188,8 @@ export function MatchShell(p: MatchShellProps) {
           reason={p.ended.reason}
           onAgain={p.onReset}
           onHome={p.onHome}
+          rematch={p.rematch}
+          onRematch={p.onRematch}
         />
       ) : null}
 
@@ -171,6 +204,78 @@ export function MatchShell(p: MatchShellProps) {
           onClose={() => setPicking(false)}
         />
       ) : null}
+
+      {/* Xin thua và cầu hoà đều hỏi lại. Hai nút này nằm cạnh nhau ở đáy
+          màn, đúng tầm ngón cái, và một cái thì kết thúc ván ngay lập tức —
+          bấm nhầm một lần là mất trắng ván đang thắng. */}
+      {ask === 'resign' ? (
+        <Confirm
+          title="Chịu thua ván này?"
+          body="Ván tính là bạn thua và vào sổ thành tích. Không lùi lại được."
+          ok="Xin thua"
+          onOk={() => {
+            setAsk(null);
+            p.onResign();
+          }}
+          onClose={() => setAsk(null)}
+        />
+      ) : null}
+      {ask === 'draw' ? (
+        <Confirm
+          title="Gửi lời cầu hoà?"
+          body="Đối thủ có thể đồng ý hoặc từ chối. Mỗi bên chỉ cầu hoà được vài lần trong một ván."
+          ok="Cầu hoà"
+          tone="gold"
+          onOk={() => {
+            setAsk(null);
+            p.onDraw();
+          }}
+          onClose={() => setAsk(null)}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * Dải hỏi khi đối thủ cầu hoà.
+ *
+ * Để **trong dòng** chứ không dựng thành hộp thoại che màn: quyết định đồng
+ * ý hoà hay không phụ thuộc vào thế cờ đang bày ra, mà hộp thoại thì che
+ * mất đúng cái cần nhìn. Dải nằm ngay trên hàng nút, không tự tắt, và ván
+ * vẫn đi tiếp được trong lúc chưa trả lời.
+ */
+function DrawAsk({ onAccept, onDecline }: { onAccept?: () => void; onDecline?: () => void }) {
+  return (
+    <View style={{ paddingHorizontal: S.lg, paddingTop: S.sm }}>
+      <Panel radius={R.md} tone={2} seed={41} hairline={false} style={{ borderWidth: 1.4, borderColor: A.goldDeep }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm, padding: S.sm, paddingLeft: S.md }}>
+          <Icon name="scales" size={17} color={A.gold} />
+          <Txt size={12.5} weight="semi" color={A.ink} style={{ flex: 1 }}>
+            Đối thủ cầu hoà
+          </Txt>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Từ chối hoà"
+            onPress={onDecline}
+            style={{ minHeight: 34, justifyContent: 'center', paddingHorizontal: S.md, borderRadius: R.pill, borderWidth: 1.2, borderColor: A.line }}
+          >
+            <Txt size={12} weight="semi" color={A.inkSoft}>
+              Từ chối
+            </Txt>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Đồng ý hoà"
+            onPress={onAccept}
+            style={{ minHeight: 34, justifyContent: 'center', paddingHorizontal: S.md, borderRadius: R.pill, backgroundColor: A.goldDeep }}
+          >
+            <Txt size={12} weight="bold" color={A.onGold}>
+              Đồng ý
+            </Txt>
+          </Pressable>
+        </View>
+      </Panel>
     </View>
   );
 }
@@ -249,13 +354,17 @@ function Result({
   reason,
   onAgain,
   onHome,
+  rematch,
+  onRematch,
 }: {
   win: boolean;
   draw: boolean;
   reason: string;
-  /** Bỏ trống thì tấm kết quả chỉ có nút về sảnh — ván online không tự mở lại được. */
+  /** Bỏ trống thì tấm kết quả không có nút mở ván mới một mình — ván online phải hỏi đối thủ. */
   onAgain?: (() => void) | undefined;
   onHome: () => void;
+  rematch?: { mine: boolean; theirs: boolean } | undefined;
+  onRematch?: ((want: boolean) => void) | undefined;
 }) {
   const tint = draw ? A.info : win ? A.gold : A.sealLit;
   return (
@@ -278,10 +387,28 @@ function Result({
           <Txt size={13} color={A.inkSoft} center style={{ marginBottom: S.sm }}>
             {reason}
           </Txt>
+          {onRematch && rematch?.theirs && !rematch.mine ? (
+            <Txt size={12} weight="semi" color={A.gold} center style={{ marginBottom: S.xs }}>
+              Đối thủ muốn đánh thêm ván nữa
+            </Txt>
+          ) : null}
           <View style={{ flexDirection: 'row', gap: S.sm, alignSelf: 'stretch' }}>
             <Btn label="Về sảnh" tone="ghost" onPress={onHome} style={{ flex: 1 }} />
             {onAgain ? <Btn label="Ván mới" onPress={onAgain} style={{ flex: 1.4 }} /> : null}
+            {onRematch ? (
+              <Btn
+                label={rematch?.mine ? 'Đang chờ đối thủ' : rematch?.theirs ? 'Đồng ý đấu lại' : 'Đấu lại'}
+                tone={rematch?.mine ? 'wood' : 'gold'}
+                onPress={() => onRematch(!rematch?.mine)}
+                style={{ flex: 1.4 }}
+              />
+            ) : null}
           </View>
+          {onRematch && rematch?.mine ? (
+            <Txt size={11} color={A.inkFaint} center>
+              Bấm lần nữa để rút lời. Ván sau hai bên đổi quân.
+            </Txt>
+          ) : null}
         </View>
       </Panel>
     </View>

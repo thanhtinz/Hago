@@ -80,6 +80,15 @@ interface Room {
   /** Phòng riêng mở bằng mã thì không tính xếp hạng. */
   rated: boolean;
   seed: string;
+  /**
+   * Ghế nào đã xin đấu lại. Xoá mỗi lần dựng ván mới.
+   *
+   * Phải là **cả hai** mới dựng ván: một bên tự quyết thì bên kia đang xem
+   * lại thế cờ vừa thua bỗng thấy bàn cờ trắng tinh.
+   */
+  rematch: Set<Seat>;
+  /** Ván thứ mấy trong phòng, đếm từ 1. Trộn vào hạt giống cho khác ván trước. */
+  game: number;
 }
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -359,7 +368,9 @@ export class Rooms {
       // Phòng mở bằng mã là phòng riêng: mời ai vào là quyền của chủ phòng,
       // nên không thể tính điểm xếp hạng từ đó.
       rated: false,
-      seed: revealSeed(this.serverSeed, code, ''),
+      seed: revealSeed(this.serverSeed, code, '1'),
+      rematch: new Set(),
+      game: 1,
     };
     this.rooms.set(code, room);
     p.code = code;
@@ -419,7 +430,9 @@ export class Rooms {
         clocks: [engine.spec.defaultClock.initialMs, engine.spec.defaultClock.initialMs],
         turnSince: null,
         rated: true,
-        seed: revealSeed(this.serverSeed, code, ''),
+        seed: revealSeed(this.serverSeed, code, '1'),
+        rematch: new Set(),
+        game: 1,
       };
       this.rooms.set(code, room);
       other.code = code;
@@ -433,6 +446,52 @@ export class Rooms {
     p.send({ t: 'queued', gameId, waiting: q.length });
   }
 
+  /**
+   * Xin đấu lại, hoặc rút lại lời xin.
+   *
+   * Chỉ mở sau khi ván đã xong. Hai bên cùng xin thì ván mới dựng ngay tại
+   * chỗ: cùng phòng, cùng mã, **đổi bên**, đồng hồ đầy lại. Giữ nguyên
+   * `rated` của phòng — phòng riêng vẫn không tính điểm dù đánh bao nhiêu ván.
+   */
+  rematch(id: string, want: boolean): void {
+    const p = this.players.get(id);
+    if (!p?.code) return;
+    const room = this.rooms.get(p.code);
+    if (!room?.match || !room.match.outcome()) return;
+    const seat = room.players.indexOf(p);
+    if (seat < 0) return;
+    // Đối thủ đã rời phòng thì không còn ai để đấu lại. Nói thẳng, đừng để
+    // lời xin treo mãi trong một phòng chỉ còn một người.
+    if (room.players.some((x) => x === null)) {
+      return p.send({ t: 'error', code: 'NO_OPPONENT', msg: 'Đối thủ đã rời phòng' });
+    }
+    if (want) room.rematch.add(seat as Seat);
+    else room.rematch.delete(seat as Seat);
+    if (room.rematch.size === room.players.length) return this.restart(room);
+    this.broadcastRoom(room);
+  }
+
+  /** Dựng ván mới trong cùng một phòng, đổi bên. */
+  private restart(room: Room): void {
+    // Đổi bên. Ghế 0 luôn là bên đi trước ở mọi bộ môn, nên đảo mảng người
+    // chơi là đủ để lượt đi đầu đổi chủ — không có chỗ nào khác phải sửa.
+    room.players.reverse();
+    room.seated.reverse();
+    room.seatedNames.reverse();
+    room.rematch.clear();
+    room.game += 1;
+    room.match = null;
+    room.clocks = [room.clockSpec.initialMs, room.clockSpec.initialMs];
+    room.turnSince = null;
+    // Hạt giống phải khác ván trước, nếu không bộ môn nào có yếu tố ngẫu
+    // nhiên sẽ lặp lại y hệt ván vừa đánh.
+    room.seed = revealSeed(this.serverSeed, room.code, String(room.game));
+    // Mở lại cửa ghi thành tích: `finished` chặn ghi hai lần cho **một** ván,
+    // không phải cho cả phòng.
+    this.finished.delete(room.code);
+    this.startIfReady(room);
+  }
+
   leave(id: string): void {
     const p = this.players.get(id);
     if (!p) return;
@@ -444,6 +503,9 @@ export class Rooms {
     if (!room) return;
     const seat = room.players.indexOf(p);
     if (seat >= 0) room.players[seat] = null;
+    // Rời phòng là rút luôn lời xin đấu lại. Để lại thì người còn lại bấm
+    // "đấu lại" và ván mới dựng với một cái ghế trống.
+    room.rematch.clear();
     p.send({ t: 'left' });
     // Bỏ ván đang chạy thì bên kia thắng. Không có chuyện rời phòng giữa ván
     // rồi coi như chưa từng đánh.
@@ -529,7 +591,9 @@ export class Rooms {
       clocks: [engine.spec.defaultClock.initialMs, engine.spec.defaultClock.initialMs],
       turnSince: null,
       rated: false,
-      seed: revealSeed(this.serverSeed, code, ''),
+      seed: revealSeed(this.serverSeed, code, '1'),
+      rematch: new Set(),
+      game: 1,
     };
     this.rooms.set(code, room);
     from.code = code;
@@ -700,6 +764,8 @@ export class Rooms {
         yourSeat: seat,
         seats,
         started: room.match !== null,
+        rematch: [...room.rematch],
+        game: room.game,
       });
     }
   }

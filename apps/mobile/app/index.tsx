@@ -10,6 +10,7 @@ import { api, useAuth } from '../src/net/api';
 import { live, useLive } from '../src/net/live';
 import { Icon, type IconName } from '../src/ui/Icon';
 import { Btn, Txt } from '../src/ui/parts';
+import { Sheet } from '../src/ui/Sheet';
 import { Face } from '../src/ui/Crest';
 import { AppBackdrop, Panel, Rule, WoodFill } from '../src/ui/surface';
 import { A, R, S, glow, lift } from '../src/ui/theme';
@@ -306,33 +307,6 @@ function CodeSheet({ onClose, onGo }: { onClose: () => void; onGo: (code: string
       />
       <Btn label="Vào phòng" disabled={!ok} onPress={() => onGo(code.trim())} />
     </Sheet>
-  );
-}
-
-/** Tấm trượt từ dưới lên, dùng chung cho hai tấm ở trên. */
-function Sheet({ title, sub, onClose, children }: { title: string; sub: string; onClose: () => void; children: React.ReactNode }) {
-  const insets = useSafeAreaInsets();
-  return (
-    <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end' }}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Đóng"
-        onPress={onClose}
-        style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: '#000', opacity: 0.55 }}
-      />
-      <Panel radius={R.xl} tone={1} seed={71} style={lift(0.6, 30, -8)}>
-        <View style={{ gap: S.sm, padding: S.lg, paddingBottom: insets.bottom + S.lg }}>
-          <Txt size={18} weight="display">
-            {title}
-          </Txt>
-          <Txt size={11.5} color={A.inkFaint} style={{ paddingBottom: S.xs }}>
-            {sub}
-          </Txt>
-          {children}
-          <Btn label="Đóng" tone="ghost" onPress={onClose} />
-        </View>
-      </Panel>
-    </View>
   );
 }
 

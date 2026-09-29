@@ -510,3 +510,123 @@ test('chat trong phòng chỉ người ngồi trong phòng đó', () => {
   assert.equal(a.last('chat')!.m.body, 'nước hay đấy');
   assert.equal(c.last('chat'), undefined);
 });
+
+test('cầu hoà đi được cả hai chiều: bên kia đồng ý là ván hoà', () => {
+  const got: { winner: number | null; reason: string }[] = [];
+  const rooms = new Rooms({
+    serverSeed: 'test',
+    random: fixedCodes(),
+    onFinish: (e) => got.push({ winner: e.outcome.winner, reason: e.outcome.reason }),
+  });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+
+  rooms.act(a.id, 'd1', { t: 'offer-draw' });
+  // Lời cầu phải **đi tới màn hình bên kia**, không chỉ nằm trong state. Trước
+  // đây luật có `accept-draw` nhưng client không có đường nào biết là đang có
+  // lời cầu, nên mọi lời cầu hoà rơi vào hư không.
+  const evs = b.last('state')!.events as { t?: string; kind?: string; seat?: number }[];
+  assert.ok(
+    evs.some((e) => e.t === 'meta' && e.kind === 'draw-offer' && e.seat === 0),
+    'ghế 1 phải thấy sự kiện cầu hoà của ghế 0',
+  );
+
+  rooms.act(b.id, 'd2', { t: 'accept-draw' });
+  assert.equal(got.length, 1);
+  assert.equal(got[0]!.winner, null);
+  assert.equal(got[0]!.reason, 'hai bên thoả thuận hoà');
+});
+
+test('từ chối cầu hoà thì ván đi tiếp và lời cầu biến mất', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+
+  rooms.act(a.id, 'd1', { t: 'offer-draw' });
+  rooms.act(b.id, 'd2', { t: 'decline-draw' });
+  const evs = b.last('state')!.events as { kind?: string }[];
+  assert.ok(!evs.some((e) => e.kind === 'draw-offer'));
+  assert.equal(b.last('state')!.outcome, null, 'từ chối không kết thúc ván');
+  // Và ván vẫn đi được như thường.
+  rooms.act(a.id, 'm1', { t: 'game', a: { r: 7, c: 7 } });
+  assert.equal(a.view().cells.filter((c) => c >= 0).length, 1);
+});
+
+test('đấu lại: cần cả hai bên, và ván sau đổi bên', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+  const code = a.last('room')!.code;
+  assert.equal(a.last('room')!.yourSeat, 0);
+  assert.equal(a.last('room')!.game, 1);
+
+  // Chưa xong ván thì không xin đấu lại được.
+  rooms.rematch(a.id, true);
+  assert.deepEqual(a.last('room')!.rematch, []);
+
+  rooms.act(a.id, 'r', { t: 'resign' });
+  rooms.rematch(a.id, true);
+  assert.deepEqual(a.last('room')!.rematch, [0], 'một bên xin thì mới chỉ là xin');
+  assert.equal(a.last('room')!.started, true, 'ván cũ vẫn còn đó để xem lại');
+  assert.ok(b.last('state')!.outcome, 'bên kia chưa bị kéo vào ván mới');
+
+  rooms.rematch(b.id, true);
+  const after = a.last('room')!;
+  assert.equal(after.code, code, 'vẫn đúng phòng đó');
+  assert.equal(after.game, 2);
+  assert.equal(after.yourSeat, 1, 'đổi bên: người vừa đi trước thì ván sau đi sau');
+  assert.equal(b.last('room')!.yourSeat, 0);
+  assert.deepEqual(after.rematch, []);
+  assert.equal(a.last('state')!.outcome, null, 'ván mới chưa có kết quả');
+  assert.equal(a.view().cells.filter((c) => c >= 0).length, 0, 'bàn cờ sạch');
+});
+
+test('rút lại lời xin đấu lại, và không xin được khi đối thủ đã đi', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+  rooms.act(a.id, 'r', { t: 'resign' });
+
+  rooms.rematch(a.id, true);
+  rooms.rematch(a.id, false);
+  assert.deepEqual(a.last('room')!.rematch, []);
+  rooms.rematch(b.id, true);
+  assert.equal(a.last('room')!.game, 1, 'một mình b xin thì chưa dựng ván mới');
+
+  rooms.leave(b.id);
+  rooms.rematch(a.id, true);
+  assert.equal(a.last('error')!.code, 'NO_OPPONENT');
+});
+
+test('đấu lại vẫn vào sổ thành tích, mỗi ván một lần', () => {
+  const got: { winner: number | null; seats: (string | null)[] }[] = [];
+  const rooms = new Rooms({
+    serverSeed: 'test',
+    random: fixedCodes(),
+    onFinish: (e) => got.push({ winner: e.outcome.winner, seats: e.seats }),
+  });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+
+  rooms.act(a.id, 'r1', { t: 'resign' });
+  rooms.rematch(a.id, true);
+  rooms.rematch(b.id, true);
+  // Ván hai: a giờ ngồi ghế 1.
+  rooms.act(a.id, 'r2', { t: 'resign' });
+
+  assert.equal(got.length, 2, 'hai ván là hai hàng, không phải một');
+  assert.deepEqual(got[0]!.seats, ['a', 'b']);
+  assert.equal(got[0]!.winner, 1);
+  assert.deepEqual(got[1]!.seats, ['b', 'a'], 'ván sau ghế đã đổi');
+  assert.equal(got[1]!.winner, 0);
+});

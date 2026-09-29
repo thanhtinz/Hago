@@ -79,7 +79,10 @@ function open(t: string): void {
     room: (room) => {
       // Đổi phòng thì vứt `view` cũ: `room` và `state` là hai thông điệp rời
       // nhau, nên có khoảnh khắc phòng đã là bộ môn khác mà view vẫn là ván cũ.
-      if (state.room?.code !== room?.code) set({ st: null });
+      // Đấu lại cũng vậy: cùng mã phòng nhưng khác ván, và thế cờ cũ còn
+      // mang kết quả ván trước — để nguyên thì tấm "Bạn thua" đứng lại trên
+      // bàn cờ mới trong một nhịp.
+      if (state.room?.code !== room?.code || state.room?.game !== room?.game) set({ st: null });
       set({ room, ...(room ? { waiting: null } : {}) });
     },
     state: (st) => set({ st }),
@@ -161,6 +164,7 @@ export const live = {
   create: (gameId: string) => client?.create(gameId),
   join: (code: string) => client?.join(code),
   leave: () => client?.leave(),
+  rematch: (want: boolean) => client?.rematch(want),
   act: (action: unknown) => client?.act(action),
   challenge: (to: string, gameId: string) => client?.challenge(to, gameId),
   answer: (id: string, accept: boolean) => client?.answerChallenge(id, accept),
@@ -193,8 +197,35 @@ export interface Online {
   myTurn: boolean;
   waiting: number | null;
   error: string | null;
+  /**
+   * Lời cầu hoà đang treo là của ai, hoặc null.
+   *
+   * Đọc ra từ `events` của `view` — lớp meta phát `{kind:'draw-offer'}` mỗi
+   * lần dựng view, nên nó có mặt suốt thời gian lời cầu còn hiệu lực chứ
+   * không phải một sự kiện chớp qua một lần rồi mất.
+   */
+  drawOffer: 'mine' | 'theirs' | null;
+  /** Mình đã xin đấu lại chưa, và đối thủ đã xin chưa. */
+  rematch: { mine: boolean; theirs: boolean };
   send: (action: unknown) => void;
   leave: () => void;
+  askRematch: (want: boolean) => void;
+}
+
+/** Sự kiện của lớp meta, hình dạng đúng như `MetaEvent` trong core. */
+interface MetaEventLike {
+  t?: string;
+  kind?: string;
+  seat?: number;
+}
+
+function drawOfferOf(events: unknown[] | undefined, mySeat: Seat | null): 'mine' | 'theirs' | null {
+  if (!events || mySeat === null) return null;
+  for (const e of events) {
+    const m = e as MetaEventLike;
+    if (m?.t === 'meta' && m.kind === 'draw-offer') return m.seat === mySeat ? 'mine' : 'theirs';
+  }
+  return null;
 }
 
 export function useMatch(): Online {
@@ -222,8 +253,14 @@ export function useMatch(): Online {
     myTurn,
     waiting: s.waiting,
     error: s.error,
+    drawOffer: drawOfferOf(s.st?.events, mySeat),
+    rematch: {
+      mine: mySeat !== null && !!s.room?.rematch?.includes(mySeat),
+      theirs: !!s.room?.rematch?.some((x) => x !== mySeat),
+    },
     send,
     leave: () => live.leave(),
+    askRematch: (want: boolean) => live.rematch(want),
   };
 }
 

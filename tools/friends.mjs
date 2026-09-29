@@ -102,6 +102,9 @@ await shot(B, '42-ty-thi-ghe-1');
 console.log('Nhắn tin riêng');
 await A.getByLabel('Xin thua').click();
 await A.waitForTimeout(700);
+// Hộp xác nhận: nút đỏ trong hộp mang đúng chữ "Xin thua".
+await A.getByText('Xin thua', { exact: true }).last().click();
+await A.waitForTimeout(900);
 await A.getByText('Về sảnh').click();
 await A.waitForTimeout(1200);
 await A.getByLabel('Bạn bè').click();

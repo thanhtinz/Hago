@@ -115,6 +115,9 @@ console.log(`  vào được bàn cờ gánh: ${ganhOk}`);
 console.log('Trang cá nhân ghi nhận ván vừa đánh');
 await A.getByLabel('Xin thua').click();
 await A.waitForTimeout(600);
+// Xin thua hỏi lại trước khi kết thúc ván — bấm nút đỏ trong hộp xác nhận.
+await A.getByText('Xin thua', { exact: true }).last().click();
+await A.waitForTimeout(900);
 await A.getByText('Về sảnh').click();
 await A.waitForTimeout(1500);
 await shot(A, '25b-sau-khi-ve-sanh');

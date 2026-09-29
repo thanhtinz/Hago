@@ -17,6 +17,10 @@ export interface RoomInfo {
   yourSeat: Seat | null;
   seats: SeatInfo[];
   started: boolean;
+  /** Ghế nào đã xin đấu lại. */
+  rematch: Seat[];
+  /** Ván thứ mấy trong phòng. */
+  game: number;
 }
 
 export interface StateMsg {
@@ -180,6 +184,9 @@ export class GameClient {
   }
   leave(): void {
     this.raw({ t: 'leave' });
+  }
+  rematch(want: boolean): void {
+    this.raw({ t: 'rematch', want });
   }
   challenge(to: string, gameId: string): void {
     this.raw({ t: 'challenge', to, gameId });

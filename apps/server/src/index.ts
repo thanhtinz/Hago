@@ -115,6 +115,8 @@ wss.on('connection', (ws: WebSocket) => {
         return rooms.quick(id, msg.gameId);
       case 'leave':
         return rooms.leave(id);
+      case 'rematch':
+        return rooms.rematch(id, msg.want);
       case 'act':
         return rooms.act(id, msg.nonce, msg.action);
       case 'challenge':

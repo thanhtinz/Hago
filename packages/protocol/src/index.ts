@@ -44,6 +44,13 @@ export type ClientMsg =
   | { t: 'quick'; gameId: string }
   | { t: 'leave' }
   /**
+   * Xin đấu lại ván nữa với đúng người vừa đánh, trong đúng phòng đó.
+   *
+   * Hai bên cùng xin thì máy chủ dựng ván mới ngay tại chỗ và **đổi bên** —
+   * ai vừa đi trước thì ván sau đi sau. Gửi `want:false` là rút lại.
+   */
+  | { t: 'rematch'; want: boolean }
+  /**
    * Một nước đi. `action` là hành động đã bọc meta (`{t:'game',a}` hoặc
    * `resign`/`offer-draw`/…). `nonce` để gửi lại không bị tính hai lần.
    */
@@ -76,6 +83,10 @@ export type ServerMsg =
       yourSeat: Seat | null;
       seats: SeatInfo[];
       started: boolean;
+      /** Ghế nào đã xin đấu lại. Chỉ có nghĩa khi ván vừa kết thúc. */
+      rematch: Seat[];
+      /** Ván thứ mấy trong phòng này, đếm từ 1. */
+      game: number;
     }
   | {
       t: 'state';

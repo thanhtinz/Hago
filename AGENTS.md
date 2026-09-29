@@ -60,6 +60,10 @@ npm test        # tsc --build --force + toàn bộ test
   không `npm test` sẽ chạy trên bản dịch cũ.
 - CI chạy cả hai việc trên GitHub Actions: `luat` (kiểu + test) và `giao-dien`
   (build web thật, bấm như người dùng, thoát khác 0 nếu có lỗi console).
+- Bài kiểm giao diện dùng chung `tools/lib.mjs` (mở trình duyệt, đăng ký, chụp
+  ảnh, kết bài). Đừng chép lại — bảy bản chép thì sửa một chỗ vẫn sai sáu chỗ.
+- **Tên ảnh chụp là khoá toàn cục.** Hai harness đặt trùng số thì bài chạy sau
+  ghi đè bài chạy trước và cả hai vẫn báo xanh.
 
 ## 5. Giao diện
 
@@ -74,6 +78,12 @@ npm test        # tsc --build --force + toàn bộ test
 - Bàn cờ nào **là vật thật** (tờ giấy cờ caro trên bàn) thì giữ mép và bóng đổ.
   Bàn cờ nào **vẽ lên mặt nền** (cờ gánh, ô ăn quan) thì tuyệt đối không có mép.
 - **Soi ảnh chụp ở mức phóng to** trước khi báo xong. `tools/crop.mjs`.
+- Hộp thoại dùng `Sheet` và `Confirm` ở `src/ui/Sheet.tsx`, không dựng tay.
+  Ba bản chép trước đây lệch nhau độ mờ nền, bo góc, và chỉ một trong ba chừa
+  vùng an toàn dưới đáy.
+- **Việc không lùi lại được thì phải hỏi lại**: xin thua, xoá bạn, xoá tài
+  khoản. Nút đồng ý mang màu của việc sắp làm (đỏ son cho mất mát) và nằm bên
+  phải; tay quen bấm góc phải nên màu là thứ duy nhất kịp chặn lại.
 
 ## 6. Máy chủ
 
@@ -83,6 +93,10 @@ npm test        # tsc --build --force + toàn bộ test
   nữa, kiểm luật trước là mỗi lần client mất mạng retry đều nhận `ILLEGAL`.
 - `flag` và `abandon` chỉ máy chủ phát được. Nhận từ client là mở đường cho ai
   cũng tự tuyên bố đối thủ hết giờ.
+- **Luật có một nước thì giao diện phải có chỗ bấm nước đó.** Lớp meta có
+  `accept-draw` từ ngày đầu và máy chủ vẫn phát sự kiện cầu hoà xuống, nhưng
+  màn chơi không đọc `events`, nên suốt thời gian đó mọi lời cầu hoà trong
+  ván với người thật rơi vào hư không mà không báo lỗi ở đâu cả.
 
 ## 7. Tài khoản và dữ liệu lâu dài
 
