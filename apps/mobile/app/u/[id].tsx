@@ -31,6 +31,8 @@ export default function UserScreen() {
     user: PublicUser;
     stats: GameStat[];
     history: { rows: MatchRow[]; more: boolean; total: number };
+    /** Chuỗi thắng / hoà / thua gần nhất. Máy chủ gửi kèm từ đầu. */
+    streak: { kind: 'win' | 'draw' | 'loss'; n: number } | null;
     friend: boolean;
     blocked: boolean;
   } | null>(null);
@@ -97,6 +99,22 @@ export default function UserScreen() {
                   {online ? 'Đang trực tuyến' : 'Ngoại tuyến'} · tham gia{' '}
                   {new Date(data.user.createdAt).toLocaleDateString('vi-VN')}
                 </Txt>
+                {data.user.bio ? (
+                  <Txt size={12.5} color={A.inkSoft} center style={{ paddingTop: S.xs }}>
+                    {data.user.bio}
+                  </Txt>
+                ) : null}
+                {/* Chuỗi thắng máy chủ đã gửi kèm từ đầu mà màn này bỏ rơi.
+                    Đây đúng là thứ người ta muốn biết trước khi rủ ai đó
+                    một ván. */}
+                {data.streak && data.streak.n > 1 ? (
+                  <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', paddingTop: S.xs }}>
+                    <Icon name="bolt" size={13} color={data.streak.kind === 'win' ? A.gold : A.inkFaint} />
+                    <Txt size={12} weight="semi" color={data.streak.kind === 'win' ? A.gold : A.inkSoft}>
+                      {data.streak.n} ván {data.streak.kind === 'win' ? 'thắng' : data.streak.kind === 'draw' ? 'hoà' : 'thua'} liên tiếp
+                    </Txt>
+                  </View>
+                ) : null}
 
                 {mine ? null : data.blocked ? (
                   <Txt size={11.5} color={A.sealLit} style={{ paddingTop: S.sm }}>

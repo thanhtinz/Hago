@@ -102,7 +102,7 @@ async function readBytes(req: IncomingMessage, max: number): Promise<Buffer> {
 }
 
 /** Người chơi công khai: **không bao giờ** kèm email hay bất cứ gì riêng tư. */
-export const publicUser = (u: User) => ({ id: u.id, name: u.name, avatar: u.avatar, createdAt: u.createdAt });
+export const publicUser = (u: User) => ({ id: u.id, name: u.name, avatar: u.avatar, createdAt: u.createdAt, bio: u.bio });
 
 /**
  * Trả `true` nếu đã xử lý xong; `false` để nhường cho tầng khác (trang /health).
@@ -225,6 +225,7 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
       return (
         json(res, 200, {
           user: u,
+          hasPassword: ctx.accounts.hasPassword(u.id),
           stats: ctx.accounts.stats(u.id),
           history: ctx.accounts.history(u.id, { limit: 20 }),
           streak: ctx.accounts.streak(u.id),
@@ -278,6 +279,32 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
       const u = ctx.accounts.rename(need().id, str(body.name));
       ctx.onRename?.(u);
       return json(res, 200, { user: u }), true;
+    }
+    if (p === '/api/me/bio' && req.method === 'POST') {
+      return json(res, 200, { user: ctx.accounts.setBio(need().id, str(body.bio)) }), true;
+    }
+    if (p === '/api/me/password' && req.method === 'POST') {
+      const u = need();
+      await ctx.accounts.changePassword(u.id, str(body.old), str(body.next));
+      // Đổi mật khẩu xong thì **đá mọi phiên khác ra**, giữ lại phiên đang
+      // dùng. Đổi mật khẩu vì nghi bị lộ mà cái máy kia vẫn đăng nhập được
+      // thì việc đổi chẳng để làm gì.
+      const gone = token ? ctx.accounts.logoutOthers(u.id, token) : 0;
+      return json(res, 200, { ok: true, loggedOut: gone }), true;
+    }
+    /** Các phiên đang mở. Token **không bao giờ** trả ra ngoài. */
+    if (p === '/api/me/sessions' && req.method === 'GET') {
+      const u = need();
+      const rows = ctx.accounts.sessions(u.id).map((x) => ({ ...x, current: !!token && token.endsWith(x.id) }));
+      return json(res, 200, { sessions: rows }), true;
+    }
+    if (p === '/api/me/sessions' && req.method === 'DELETE') {
+      const u = need();
+      if (!token) throw new AuthError('NO_AUTH', 'Phải đăng nhập');
+      return json(res, 200, { loggedOut: ctx.accounts.logoutOthers(u.id, token) }), true;
+    }
+    if (p === '/api/me/export' && req.method === 'GET') {
+      return json(res, 200, ctx.accounts.exportAll(need().id)), true;
     }
 
     // ---- hồ sơ người khác ---------------------------------------------

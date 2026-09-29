@@ -54,6 +54,9 @@ const SESSION_DAYS = 60;
  * ngưỡng thì thắng một ván là leo lên trên người đã đánh hai trăm ván.
  */
 export const MIN_RANKED = 5;
+
+/** Đổi tên một lần mỗi ngày. */
+const RENAME_EVERY = 24 * 60 * 60 * 1000;
 const DAY = 86_400_000;
 
 /**
@@ -123,6 +126,8 @@ interface Row {
   pass_hash: string | null;
   avatar: string | null;
   created_at: number;
+  bio: string | null;
+  renamed_at: number | null;
 }
 
 const toUser = (r: Row): User => ({
@@ -132,6 +137,7 @@ const toUser = (r: Row): User => ({
   googleId: r.google_id,
   avatar: r.avatar,
   createdAt: r.created_at,
+  bio: r.bio ?? null,
 });
 
 /** Tên hiển thị: 2–24 ký tự, không có ký tự điều khiển, không khoảng trắng thừa. */
@@ -226,12 +232,92 @@ export class Accounts {
     return r ? toUser(r) : null;
   }
 
-  rename(id: string, nameRaw: string): User {
+  /**
+   * Đổi tên hiển thị.
+   *
+   * Hai chốt chặn, cả hai đều có lý do cụ thể:
+   *
+   * - **Không trùng tên người khác.** Danh sách bạn, bảng xếp hạng và lịch
+   *   sử trận đều nhận nhau bằng tên; hai người cùng tên thì rủ nhầm, kết
+   *   bạn nhầm, và tin nhắn gửi nhầm.
+   * - **Một lần mỗi ngày.** Đổi tên xoành xoạch là cách né danh tiếng xấu
+   *   mà vẫn giữ nguyên bạn bè, điểm và lịch sử.
+   */
+  rename(id: string, nameRaw: string, now = Date.now()): User {
     const name = cleanName(nameRaw);
-    this.db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, id);
+    const cur = this.user(id);
+    if (!cur) throw new AuthError('NO_USER', 'Không có tài khoản này');
+    if (cur.name === name) return cur;
+
+    const taken = this.db.prepare('SELECT id FROM users WHERE name = ? AND id <> ?').get(name, id);
+    if (taken) throw new AuthError('NAME_TAKEN', 'Tên này đã có người dùng');
+
+    const row = this.db.prepare('SELECT renamed_at FROM users WHERE id = ?').get(id) as unknown as { renamed_at: number | null };
+    const last = row?.renamed_at ?? 0;
+    if (now - last < RENAME_EVERY) {
+      const hours = Math.ceil((RENAME_EVERY - (now - last)) / 3_600_000);
+      throw new AuthError('TOO_SOON', `Mỗi ngày chỉ đổi tên được một lần. Thử lại sau ${hours} giờ.`);
+    }
+    this.db.prepare('UPDATE users SET name = ?, renamed_at = ? WHERE id = ?').run(name, now, id);
     const u = this.user(id);
     if (!u) throw new AuthError('NO_USER', 'Không có tài khoản này');
     return u;
+  }
+
+  /** Một dòng tự giới thiệu. Rỗng thì xoá hẳn, không lưu chuỗi trắng. */
+  setBio(id: string, raw: string): User {
+    const bio = raw.replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, 140);
+    this.db.prepare('UPDATE users SET bio = ? WHERE id = ?').run(bio || null, id);
+    const u = this.user(id);
+    if (!u) throw new AuthError('NO_USER', 'Không có tài khoản này');
+    return u;
+  }
+
+  /**
+   * Đổi mật khẩu.
+   *
+   * Đòi mật khẩu cũ kể cả khi đã đăng nhập: một cái máy để quên ở quán cà
+   * phê không được biến thành quyền chiếm tài khoản vĩnh viễn.
+   *
+   * Tài khoản đăng nhập bằng Google chưa có mật khẩu nào thì đây là lần
+   * **đặt** mật khẩu đầu tiên, và lần đó không đòi mật khẩu cũ.
+   */
+  async changePassword(id: string, oldPw: string, newPw: string): Promise<void> {
+    const row = this.db.prepare('SELECT pass_hash FROM users WHERE id = ?').get(id) as unknown as { pass_hash: string | null } | undefined;
+    if (!row) throw new AuthError('NO_USER', 'Không có tài khoản này');
+    if (row.pass_hash) {
+      const ok = await verifyPassword(oldPw, row.pass_hash);
+      if (!ok) throw new AuthError('BAD_PASSWORD', 'Mật khẩu hiện tại không đúng');
+    }
+    checkPassword(newPw);
+    this.db.prepare('UPDATE users SET pass_hash = ? WHERE id = ?').run(await hashPassword(newPw), id);
+  }
+
+  /** Người này đã đặt mật khẩu chưa. Tài khoản Google thuần thì chưa. */
+  hasPassword(id: string): boolean {
+    const row = this.db.prepare('SELECT pass_hash FROM users WHERE id = ?').get(id) as unknown as { pass_hash: string | null } | undefined;
+    return !!row?.pass_hash;
+  }
+
+  /**
+   * Toàn bộ dữ liệu của một người, để tải về.
+   *
+   * Không phải một tính năng trang trí: người dùng có quyền cầm dữ liệu
+   * của mình đi, và một nền tảng không cho họ làm thế thì cũng không có gì
+   * để nói khi họ hỏi mình đang giữ những gì.
+   */
+  exportAll(id: string): unknown {
+    const u = this.user(id);
+    if (!u) throw new AuthError('NO_USER', 'Không có tài khoản này');
+    return {
+      taiKhoan: u,
+      thanhTich: this.stats(id),
+      lichSuTran: this.history(id, { limit: 10_000 }).rows,
+      banBe: this.friends(id).map((f) => ({ ten: f.user.name, trangThai: f.status, denTuHo: f.incoming })),
+      daChan: this.blocked(id).map((x) => x.name),
+      phienDangMo: this.sessions(id),
+      xuatLuc: new Date().toISOString(),
+    };
   }
 
   /** Tìm người chơi theo tên, để gửi lời mời kết bạn. */

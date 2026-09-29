@@ -66,12 +66,19 @@ export async function shot(page, name) {
   console.log(`  ✓ ${name}`);
 }
 
-/** Kết bài: in lỗi nếu có, và thoát khác 0 để CI bắt được. */
-export function finish(checks) {
-  let bad = errors.length > 0;
-  if (errors.length) {
+/**
+ * Kết bài: in lỗi nếu có, và thoát khác 0 để CI bắt được.
+ *
+ * `ignore` để bỏ qua những lỗi mà chính bài kiểm **cố ý gây ra** — ví dụ
+ * bài đổi mật khẩu phải gõ sai một lần (400) và phải làm chết một phiên
+ * (401). Không có nó thì bài kiểm đúng lại báo trượt.
+ */
+export function finish(checks, ignore = () => false) {
+  const real = errors.filter((e) => !ignore(e));
+  let bad = real.length > 0;
+  if (real.length) {
     console.error('\nLỗi trên trang:');
-    for (const e of errors) console.error('  ' + e);
+    for (const e of real) console.error('  ' + e);
   }
   for (const [ok, why] of checks) {
     if (ok) continue;

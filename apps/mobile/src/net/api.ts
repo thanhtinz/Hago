@@ -15,6 +15,8 @@ export interface Me {
   /** Mã con dấu (`do-xe`), hoặc `up:<tên tệp>` khi là ảnh tải lên. */
   avatar: string | null;
   createdAt: number;
+  /** Một dòng tự giới thiệu, hoặc null. */
+  bio: string | null;
 }
 
 /** Đường dẫn ảnh đại diện nếu là ảnh tải lên, null nếu là con dấu. */
@@ -27,6 +29,8 @@ export interface PublicUser {
   name: string;
   avatar: string | null;
   createdAt: number;
+  /** Một dòng tự giới thiệu, hoặc null. */
+  bio: string | null;
 }
 
 export interface GameStat {
@@ -60,6 +64,8 @@ export interface HistoryPage {
 
 export interface Profile {
   user: Me;
+  /** Tài khoản Google thuần thì chưa có mật khẩu nào. */
+  hasPassword: boolean;
   stats: GameStat[];
   history: HistoryPage;
   streak: { kind: 'win' | 'draw' | 'loss'; n: number } | null;
@@ -200,6 +206,15 @@ export const auth = {
     const r = await post<{ user: Me }>('/me/name', { name });
     set({ me: r.user });
   },
+  bio: async (bio: string) => {
+    const r = await post<{ user: Me }>('/me/bio', { bio });
+    set({ me: r.user });
+  },
+  /** Đổi mật khẩu. Máy chủ đá mọi phiên khác ra và trả về số phiên đã đá. */
+  password: (old: string, next: string) => post<{ loggedOut: number }>('/me/password', { old, next }),
+  sessions: () => call<{ sessions: { id: string; createdAt: number; expiresAt: number; current: boolean }[] }>('/me/sessions'),
+  logoutOthers: () => call<{ loggedOut: number }>('/me/sessions', { method: 'DELETE', body: JSON.stringify({}) }),
+  exportAll: () => call<Record<string, unknown>>('/me/export'),
   avatar: async (avatar: string) => {
     const r = await post<{ user: Me }>('/me/avatar', { avatar });
     set({ me: r.user });

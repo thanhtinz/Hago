@@ -84,14 +84,14 @@ export default function MeScreen() {
 
       {tab === 'tong-quan' ? <Overview p={p} /> : null}
       {tab === 'lich-su' ? <History p={p} gameIds={(p?.stats ?? []).map((x) => x.gameId)} /> : null}
-      {tab === 'cai-dat' ? <Settings me={me} onChanged={load} /> : null}
+      {tab === 'cai-dat' ? <Settings me={me} hasPassword={p?.hasPassword ?? true} onChanged={load} /> : null}
     </Shell>
   );
 }
 
 // ---- khối đầu trang --------------------------------------------------
 
-function Hero({ me, p }: { me: { id: string; name: string; email: string | null; avatar: string | null; createdAt: number }; p: Profile | null }) {
+function Hero({ me, p }: { me: { id: string; name: string; email: string | null; avatar: string | null; createdAt: number; bio: string | null }; p: Profile | null }) {
   const played = (p?.stats ?? []).reduce((n, s) => n + s.win + s.draw + s.loss, 0);
   const wins = (p?.stats ?? []).reduce((n, s) => n + s.win, 0);
   // Điểm đại diện là điểm ở bộ môn đánh nhiều nhất, không phải điểm cao nhất:
@@ -110,6 +110,11 @@ function Hero({ me, p }: { me: { id: string; name: string; email: string | null;
         <Txt size={11} color={A.inkFaint}>
           {me.email} · tham gia {new Date(me.createdAt).toLocaleDateString('vi-VN')}
         </Txt>
+        {me.bio ? (
+          <Txt size={12.5} color={A.inkSoft} center style={{ paddingTop: 2 }}>
+            {me.bio}
+          </Txt>
+        ) : null}
 
         <View style={{ flexDirection: 'row', paddingTop: S.md, alignSelf: 'stretch' }}>
           <Stat n={played} label="VÁN" />
@@ -391,9 +396,18 @@ function MatchLine({ m, showGame = true }: { m: MatchRow; showGame?: boolean }) 
 
 // ---- cài đặt ----------------------------------------------------------
 
-function Settings({ me, onChanged }: { me: { id: string; name: string; avatar: string | null }; onChanged: () => void }) {
+function Settings({
+  me,
+  hasPassword,
+  onChanged,
+}: {
+  me: { id: string; name: string; avatar: string | null; bio: string | null };
+  hasPassword: boolean;
+  onChanged: () => void;
+}) {
   const router = useRouter();
   const [name, setName] = useState(me.name);
+  const [bio, setBio] = useState(me.bio ?? '');
   const [confirm, setConfirm] = useState('');
   const [danger, setDanger] = useState(false);
   const { busy, error, run } = useAction();
@@ -468,12 +482,42 @@ function Settings({ me, onChanged }: { me: { id: string; name: string; avatar: s
         />
       </Card>
 
-      <Card title="Phiên">
-        <Btn tone="wood" label="Đăng xuất" onPress={() => run(async () => {
+      <Card title="Giới thiệu" sub="Một dòng hiện trên hồ sơ, tối đa 140 ký tự">
+        <Field label="Giới thiệu" value={bio} onChange={(t) => setBio(t.slice(0, 140))} placeholder="Thích cờ gánh và cà phê đá" />
+        <Txt size={11} color={A.inkFaint} style={{ paddingBottom: S.xs }}>
+          Còn {140 - bio.length} ký tự
+        </Txt>
+        <Btn
+          label="Lưu giới thiệu"
+          disabled={busy || bio.trim() === (me.bio ?? '')}
+          onPress={() => run(async () => {
+            await auth.bio(bio);
+            onChanged();
+          })}
+        />
+      </Card>
+
+      <Password hasPassword={hasPassword} onChanged={onChanged} />
+      <Sessions
+        onLogout={() => run(async () => {
           await auth.logout();
           backToLobby(router);
-        })} />
+        })}
+      />
+
+      <Card title="Dữ liệu của bạn" sub="Tải về toàn bộ hồ sơ, thành tích, lịch sử trận và danh sách bạn">
+        <Btn
+          tone="wood"
+          label="Tải dữ liệu về"
+          disabled={busy}
+          onPress={() => run(async () => {
+            const data = await auth.exportAll();
+            download(`co-viet-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 2));
+          })}
+        />
       </Card>
+
+
 
       {/* Khối nguy hiểm để cuối, viền đỏ son, và mở ra bằng một nhịp bấm riêng.
           Không để nút xoá nằm ngay cạnh nút đăng xuất. */}
@@ -515,6 +559,164 @@ function Settings({ me, onChanged }: { me: { id: string; name: string; avatar: s
       </Panel>
     </>
   );
+}
+
+/**
+ * Đổi mật khẩu.
+ *
+ * Đòi mật khẩu cũ kể cả khi đang đăng nhập: một cái máy để quên ở quán cà
+ * phê không được biến thành quyền chiếm tài khoản vĩnh viễn. Tài khoản
+ * Google chưa có mật khẩu nào thì đây là lần **đặt** đầu tiên, và lần đó
+ * không có mật khẩu cũ để mà hỏi.
+ */
+function Password({ hasPassword, onChanged }: { hasPassword: boolean; onChanged: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [old, setOld] = useState('');
+  const [next, setNext] = useState('');
+  const [again, setAgain] = useState('');
+  const [done, setDone] = useState<string | null>(null);
+  const { busy, error, run } = useAction();
+  const mismatch = again.length > 0 && next !== again;
+  const ok = next.length >= 8 && next === again && (!hasPassword || old.length > 0);
+
+  return (
+    <Card
+      title={hasPassword ? 'Mật khẩu' : 'Đặt mật khẩu'}
+      sub={
+        hasPassword
+          ? 'Đổi mật khẩu sẽ đăng xuất mọi thiết bị khác'
+          : 'Bạn đang đăng nhập bằng Google. Đặt thêm mật khẩu để vào được cả khi không dùng Google.'
+      }
+    >
+      {done ? (
+        <Txt size={12.5} color={A.jade} style={{ paddingBottom: S.xs }}>
+          {done}
+        </Txt>
+      ) : null}
+      {open ? (
+        <>
+          {hasPassword ? <Field label="Mật khẩu hiện tại" value={old} onChange={setOld} secure /> : null}
+          <Field label="Mật khẩu mới" value={next} onChange={setNext} secure />
+          <Field label="Gõ lại mật khẩu mới" value={again} onChange={setAgain} secure />
+          {mismatch ? (
+            <Txt size={12} color={A.sealLit}>
+              Hai lần gõ chưa khớp nhau
+            </Txt>
+          ) : null}
+          {next.length > 0 && next.length < 8 ? (
+            <Txt size={12} color={A.inkFaint}>
+              Mật khẩu phải từ 8 ký tự trở lên
+            </Txt>
+          ) : null}
+          {error ? (
+            <Txt size={12.5} color={A.sealLit}>
+              {error}
+            </Txt>
+          ) : null}
+          <View style={{ flexDirection: 'row', gap: S.sm }}>
+            <Btn tone="ghost" label="Huỷ" style={{ flex: 1 }} onPress={() => setOpen(false)} />
+            <Btn
+              label={hasPassword ? 'Đổi mật khẩu' : 'Đặt mật khẩu'}
+              style={{ flex: 1.3 }}
+              disabled={busy || !ok}
+              onPress={() => run(async () => {
+                const r = await auth.password(old, next);
+                setOpen(false);
+                setOld('');
+                setNext('');
+                setAgain('');
+                setDone(r.loggedOut > 0 ? `Đã đổi mật khẩu, và đăng xuất ${r.loggedOut} thiết bị khác.` : 'Đã đổi mật khẩu.');
+                onChanged();
+              })}
+            />
+          </View>
+        </>
+      ) : (
+        <Btn tone="wood" label={hasPassword ? 'Đổi mật khẩu' : 'Đặt mật khẩu'} onPress={() => setOpen(true)} />
+      )}
+    </Card>
+  );
+}
+
+/**
+ * Các phiên đăng nhập đang mở.
+ *
+ * Token **không bao giờ** hiện ra — chỉ sáu ký tự cuối, đủ để nhận mặt,
+ * không đủ để dùng. Một trang "quản lý thiết bị" mà in cả chìa khoá ra thì
+ * nó là trang phát chìa khoá.
+ */
+function Sessions({ onLogout }: { onLogout: () => void }) {
+  const [rows, setRows] = useState<{ id: string; createdAt: number; current: boolean }[] | null>(null);
+  const { busy, error, run } = useAction();
+  const load = useCallback(() => {
+    void auth.sessions().then((r) => setRows(r.sessions)).catch(() => setRows([]));
+  }, []);
+  useEffect(load, [load]);
+  const others = (rows ?? []).filter((r) => !r.current).length;
+
+  return (
+    <Card title="Thiết bị đang đăng nhập" sub="Mỗi lần đăng nhập là một phiên, tự hết hạn sau 60 ngày">
+      {(rows ?? []).map((r) => (
+        <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingVertical: 6 }}>
+          <Icon name={r.current ? 'check' : 'lock'} size={15} color={r.current ? A.jade : A.inkFaint} />
+          <Txt size={12.5} color={r.current ? A.ink : A.inkSoft} style={{ flex: 1 }}>
+            {r.current ? 'Thiết bị này' : `Phiên ···${r.id}`}
+          </Txt>
+          <Txt size={11} color={A.inkFaint}>
+            {new Date(r.createdAt).toLocaleDateString('vi-VN')}
+          </Txt>
+        </View>
+      ))}
+      {rows === null ? (
+        <Txt size={12} color={A.inkFaint}>
+          Đang xem…
+        </Txt>
+      ) : null}
+      {error ? (
+        <Txt size={12.5} color={A.sealLit}>
+          {error}
+        </Txt>
+      ) : null}
+      {others > 0 ? (
+        <Btn
+          tone="wood"
+          label={`Đăng xuất ${others} thiết bị khác`}
+          disabled={busy}
+          onPress={() => run(async () => {
+            await auth.logoutOthers();
+            load();
+          })}
+        />
+      ) : null}
+      {/* Đăng xuất **thiết bị này** nằm chung một chỗ với danh sách thiết
+          bị, không tách thành một thẻ "Phiên" riêng: hai thẻ nói cùng một
+          chuyện thì người đọc phải so hai chỗ mới hiểu cái nào làm gì. */}
+      <Btn tone="ghost" label="Đăng xuất thiết bị này" onPress={onLogout} />
+    </Card>
+  );
+}
+
+/**
+ * Lưu một tệp về máy.
+ *
+ * Chỉ chạy trên web — trên di động cần một gói chia sẻ tệp riêng, và cái
+ * đó chưa cài. Nút vẫn hiện, và nếu không lưu được thì `useAction` bắt lỗi
+ * rồi nói ra, chứ không im lặng như không có chuyện gì.
+ */
+function download(name: string, text: string): void {
+  const doc = (globalThis as { document?: Document }).document;
+  const URLc = (globalThis as { URL?: typeof URL }).URL;
+  if (!doc || !URLc?.createObjectURL) throw new Error('Trên bản này chỉ tải được dữ liệu từ trình duyệt');
+  const url = URLc.createObjectURL(new Blob([text], { type: 'application/json' }));
+  const a = doc.createElement('a');
+  a.href = url;
+  a.download = name;
+  // Phải gắn vào tài liệu thì `click()` mới mở được hộp lưu tệp — thẻ rời
+  // không nằm trong cây thì trình duyệt bỏ qua, và không báo lỗi gì.
+  doc.body.appendChild(a);
+  a.click();
+  a.remove();
+  URLc.revokeObjectURL(url);
 }
 
 // ---- khung dùng chung -------------------------------------------------

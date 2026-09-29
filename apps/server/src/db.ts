@@ -30,6 +30,8 @@ export interface User {
   googleId: string | null;
   avatar: string | null;
   createdAt: number;
+  /** Một dòng tự giới thiệu, hoặc null. */
+  bio: string | null;
 }
 
 export interface UserRow extends User {
@@ -44,7 +46,13 @@ CREATE TABLE IF NOT EXISTS users (
   google_id  TEXT UNIQUE,
   pass_hash  TEXT,
   avatar     TEXT,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  -- Một dòng tự giới thiệu. Ngắn cố ý: chỗ này là hồ sơ người chơi cờ,
+  -- không phải trang blog.
+  bio        TEXT,
+  -- Lần đổi tên gần nhất, để chặn đổi tên liên tục. Đổi tên xoành xoạch là
+  -- cách né danh tiếng xấu mà vẫn giữ nguyên bạn bè và lịch sử.
+  renamed_at INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
@@ -152,7 +160,28 @@ export function openDb(file = process.env.DB_FILE ?? 'data/co.db'): DatabaseSync
   db.exec('PRAGMA journal_mode = WAL');
   db.exec('PRAGMA foreign_keys = ON');
   db.exec(SCHEMA);
+  migrate(db);
   return db;
+}
+
+/**
+ * Thêm cột vào bảng đã có dữ liệu.
+ *
+ * `CREATE TABLE IF NOT EXISTS` chỉ chạy lần đầu, nên thêm cột vào câu lệnh
+ * ở trên **không** đụng tới tệp `.db` đã tồn tại — máy chủ đang chạy thật
+ * sẽ báo "no such column" ở đúng câu truy vấn mới. Chạy từng `ALTER` một
+ * và bỏ qua lỗi "đã có cột này" là cách di trú rẻ nhất mà vẫn đúng cho một
+ * kho SQLite một tiến trình.
+ */
+function migrate(db: DatabaseSync): void {
+  const add = ['ALTER TABLE users ADD COLUMN bio TEXT', 'ALTER TABLE users ADD COLUMN renamed_at INTEGER'];
+  for (const sql of add) {
+    try {
+      db.exec(sql);
+    } catch {
+      // Đã có cột rồi. Đây là đường chạy bình thường ở lần mở thứ hai trở đi.
+    }
+  }
 }
 
 /** Cặp bạn bè luôn lưu theo thứ tự chuỗi, để một cặp chỉ có một hàng. */

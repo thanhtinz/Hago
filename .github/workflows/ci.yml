@@ -101,6 +101,9 @@ jobs:
       - name: Bảng xếp hạng đọc đúng điểm từ năm ván đánh thật
         run: node tools/bxh.mjs
 
+      - name: Đổi mật khẩu, quản lý thiết bị, giới thiệu
+        run: node tools/taikhoan.mjs
+
       # Ảnh chụp được giữ lại để soi tay. Nhiều lỗi giao diện của dự án này
       # chỉ lộ ra khi phóng to ảnh chụp, không lộ ra ở bất kỳ bài test nào.
       - uses: actions/upload-artifact@v4

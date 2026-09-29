@@ -105,7 +105,16 @@ function Bubble({
 }) {
   const right = W - SIZE - MARGIN;
   const low = height - insets.bottom - SIZE - 96;
-  const pos = useRef(new Animated.ValueXY({ x: right, y: low * 0.62 })).current;
+  /**
+   * Chỗ đậu mặc định: **sát đáy**, ngay trên thanh điều hướng.
+   *
+   * Trước đây nó đậu ở khoảng giữa chiều cao màn, mà giữa màn là nơi mọi
+   * màn hình đặt nội dung: nó che mất ngày tháng trong danh sách thiết bị,
+   * che nút "Mời" trong màn chờ, che một quân cờ trên bàn. Đáy phải là chỗ
+   * quen của một nút nổi, và cũng là chỗ ngón cái với tới dễ nhất. Kéo đi
+   * chỗ khác vẫn được.
+   */
+  const pos = useRef(new Animated.ValueXY({ x: right, y: low })).current;
   /**
    * Thời điểm vừa thả tay sau một cú kéo.
    *

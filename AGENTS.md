@@ -94,6 +94,8 @@ npm test        # tsc --build --force + toàn bộ test
   giờ bắt được lỗi này**.
 - **Nút chat nổi trên mọi màn.** Màn nào có nút dán sát mép phải thì chừa
   `CHAT_SPACE` — nằm dưới nút nổi thì bấm không được mà nhìn thì vẫn thấy.
+  Đã dính ba lần ở ba màn khác nhau, và cả ba lần chỉ lộ ra khi bài kiểm
+  Playwright báo "subtree intercepts pointer events", không lộ ra khi nhìn ảnh.
 - **Việc có hạn giờ phải nổi lên ở mọi màn.** Lời rủ đấu hết hạn sau hai
   phút; để nó thành một chấm đỏ mà người dùng phải đoán ra rồi đi tìm đúng
   màn thì phần lớn lời rủ chết già.
@@ -134,6 +136,11 @@ npm test        # tsc --build --force + toàn bộ test
   ván với người thật rơi vào hư không mà không báo lỗi ở đâu cả.
 
 ## 7. Tài khoản và dữ liệu lâu dài
+
+- **Thêm cột thì phải thêm vào `migrate()` trong `db.ts`.** `CREATE TABLE IF
+  NOT EXISTS` chỉ chạy lần đầu, nên sửa câu lệnh tạo bảng **không** đụng tới
+  tệp `.db` đã có — máy chủ đang chạy thật sẽ báo "no such column" ở đúng
+  câu truy vấn mới, còn test với `:memory:` thì xanh.
 
 - Kho là **SQLite qua `node:sqlite`** (`apps/server/src/db.ts`), không thêm
   dịch vụ nào. Nó sẽ hết cửa khi cần chạy nhiều tiến trình máy chủ; mọi câu

@@ -5,6 +5,7 @@ import type { BotLevel, Outcome } from '@co/core';
 import type { Tally } from '../games/useVsBot';
 import { Icon } from './Icon';
 import { Btn, Clock, IconBtn, Panel, Tag, Txt, press } from './parts';
+import { CHAT_SPACE } from './FloatingChat';
 import { Confirm } from './Sheet';
 import { AppBackdrop, Rule } from './surface';
 import { A, R, S, glow, lift } from './theme';
@@ -177,7 +178,11 @@ export function MatchShell(p: MatchShellProps) {
         <DrawAsk onAccept={p.onAcceptDraw} onDecline={p.onDeclineDraw} />
       ) : null}
 
-      <View style={{ flexDirection: 'row', gap: S.sm, paddingHorizontal: S.lg, paddingTop: S.md }}>
+      {/* Chừa gutter bên phải cho nút chat nổi. Nút nổi đậu ở góc dưới bên
+          phải — chỗ quen của một nút nổi, và chỗ ngón cái với tới dễ nhất —
+          nên hai hàng cuối của màn chơi phải nhường đúng chừng ấy chỗ. Không
+          nhường thì nút cuối hàng nằm dưới nó: nhìn thì thấy, bấm thì không. */}
+      <View style={{ flexDirection: 'row', gap: S.sm, paddingLeft: S.lg, paddingRight: CHAT_SPACE, paddingTop: S.md }}>
         {p.onHint ? (
           <IconBtn name="bulb" label={`Gợi ý ${p.hintsLeft ?? 0}`} tone="gold" disabled={!p.canHint} onPress={p.onHint} />
         ) : null}
@@ -272,7 +277,7 @@ export function MatchShell(p: MatchShellProps) {
  */
 function DrawAsk({ onAccept, onDecline }: { onAccept?: () => void; onDecline?: () => void }) {
   return (
-    <View style={{ paddingHorizontal: S.lg, paddingTop: S.sm }}>
+    <View style={{ paddingLeft: S.lg, paddingRight: CHAT_SPACE, paddingTop: S.sm }}>
       <Panel radius={R.md} tone={2} seed={41} hairline={false} style={{ borderWidth: 1.4, borderColor: A.goldDeep }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm, padding: S.sm, paddingLeft: S.md }}>
           <Icon name="scales" size={17} color={A.gold} />

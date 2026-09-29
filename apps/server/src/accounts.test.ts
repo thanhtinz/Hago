@@ -439,3 +439,75 @@ test('bảng tổng cộng phần điểm vượt mốc của mọi bộ môn', 
   assert.equal(a.rankOf(y.id, null)!.rank, 2);
   assert.equal(a.rankOf(z.id, null)!.rank, 2);
 });
+
+test('đổi mật khẩu đòi mật khẩu cũ, và mật khẩu mới dùng được ngay', async () => {
+  const a = fresh();
+  const s = await a.register('An', 'an@example.com', 'matkhaudai');
+
+  await fails(() => a.changePassword(s.user.id, 'sai-be-bet', 'matkhaumoi'), 'BAD_PASSWORD');
+  await fails(() => a.changePassword(s.user.id, 'matkhaudai', '1234567'), 'WEAK_PASSWORD');
+
+  await a.changePassword(s.user.id, 'matkhaudai', 'matkhaumoihon');
+  await fails(() => a.login('an@example.com', 'matkhaudai'), 'BAD_LOGIN');
+  assert.equal((await a.login('an@example.com', 'matkhaumoihon')).user.id, s.user.id);
+});
+
+test('tài khoản Google đặt mật khẩu lần đầu không phải gõ mật khẩu cũ', async () => {
+  const a = fresh();
+  const g = a.upsertGoogle('sub-123', 'g@example.com', 'Người Google', null);
+  assert.equal(a.hasPassword(g.user.id), false);
+  await a.changePassword(g.user.id, '', 'matkhaudat-lan-dau');
+  assert.equal(a.hasPassword(g.user.id), true);
+  assert.ok(await a.login('g@example.com', 'matkhaudat-lan-dau'));
+});
+
+test('đổi tên: không trùng người khác, và một lần mỗi ngày', async () => {
+  const a = fresh();
+  const x = (await a.register('An', 'an@example.com', 'matkhaudai')).user;
+  await a.register('Bình', 'binh@example.com', 'matkhaudai');
+
+  // Trùng tên người khác thì danh sách bạn và bảng xếp hạng không phân biệt
+  // nổi hai người.
+  await fails(() => a.rename(x.id, 'Bình'), 'NAME_TAKEN');
+
+  const t0 = 1_700_000_000_000;
+  assert.equal(a.rename(x.id, 'An Mới', t0).name, 'An Mới');
+  await fails(() => a.rename(x.id, 'An Mới Nữa', t0 + 3_600_000), 'TOO_SOON');
+  assert.equal(a.rename(x.id, 'An Mới Nữa', t0 + 25 * 3_600_000).name, 'An Mới Nữa');
+  // Đổi thành đúng tên đang có thì không tính là một lần đổi.
+  assert.equal(a.rename(x.id, 'An Mới Nữa', t0 + 25 * 3_600_000).name, 'An Mới Nữa');
+});
+
+test('tiểu sử cắt đúng độ dài và bỏ ký tự điều khiển', async () => {
+  const a = fresh();
+  const x = (await a.register('An', 'an@example.com', 'matkhaudai')).user;
+  assert.equal(a.setBio(x.id, '  Thích cờ gánh  ').bio, 'Thích cờ gánh');
+  assert.equal(a.setBio(x.id, 'x'.repeat(200)).bio!.length, 140);
+  assert.equal(a.setBio(x.id, '   ').bio, null, 'chuỗi trắng thì xoá hẳn');
+});
+
+test('xuất dữ liệu mang đủ hồ sơ, thành tích, lịch sử và bạn bè', async () => {
+  const a = fresh();
+  const x = (await a.register('An', 'an@example.com', 'matkhaudai')).user;
+  const y = (await a.register('Bình', 'binh@example.com', 'matkhaudai')).user;
+  a.requestFriend(x.id, y.id);
+  a.acceptFriend(y.id, x.id);
+  a.recordMatch({ gameId: 'co-caro', code: 'm1', seats: [x.id, y.id], names: ['An', 'Bình'], winner: 0, reason: 'thắng', rated: true });
+
+  const out = a.exportAll(x.id) as {
+    taiKhoan: { name: string };
+    thanhTich: unknown[];
+    lichSuTran: unknown[];
+    banBe: { ten: string }[];
+    phienDangMo: unknown[];
+  };
+  assert.equal(out.taiKhoan.name, 'An');
+  assert.equal(out.thanhTich.length, 1);
+  assert.equal(out.lichSuTran.length, 1);
+  assert.deepEqual(out.banBe.map((b) => b.ten), ['Bình']);
+  assert.equal(out.phienDangMo.length, 1);
+  // Bản xuất **không được** mang mật khẩu hay token phiên ra ngoài.
+  const text = JSON.stringify(out);
+  assert.ok(!text.includes('scrypt$'), 'không được lộ bản băm mật khẩu');
+  assert.ok(!text.includes('pass'), 'không được có trường mật khẩu nào');
+});
