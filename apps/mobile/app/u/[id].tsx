@@ -105,12 +105,15 @@ export default function UserScreen() {
                 ) : (
                   <View style={{ flexDirection: 'row', gap: S.sm, paddingTop: S.md, alignSelf: 'stretch' }}>
                     {data.friend ? (
-                      <Btn
-                        label="Tỷ thí"
-                        style={{ flex: 1 }}
-                        disabled={!online}
-                        onPress={() => live.challenge(data.user.id, 'co-caro')}
-                      />
+                      <>
+                        <Btn tone="wood" label="Nhắn tin" style={{ flex: 1 }} onPress={() => router.push(`/chat/${data.user.id}`)} />
+                        <Btn
+                          label="Tỷ thí"
+                          style={{ flex: 1 }}
+                          disabled={!online}
+                          onPress={() => live.challenge(data.user.id, 'co-caro')}
+                        />
+                      </>
                     ) : (
                       <Btn
                         tone="wood"

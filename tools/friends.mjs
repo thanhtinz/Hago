@@ -99,15 +99,48 @@ console.log(`  cả hai vào bàn: A=${aInMatch} B=${bInMatch}`);
 await shot(A, '41-ty-thi-ghe-0');
 await shot(B, '42-ty-thi-ghe-1');
 
-console.log('Chặn: cắt luôn quan hệ bạn');
+console.log('Nhắn tin riêng');
 await A.getByLabel('Xin thua').click();
 await A.waitForTimeout(700);
 await A.getByText('Về sảnh').click();
 await A.waitForTimeout(1200);
 await A.getByLabel('Bạn bè').click();
 await A.waitForTimeout(1500);
-await A.getByLabel('Chặn').first().click();
+await A.getByLabel('Nhắn tin').first().click();
 await A.waitForTimeout(1500);
+await A.getByLabel('Ô nhắn tin').fill('Ván vừa rồi hay đấy');
+await A.getByText('Gửi').click();
+await A.waitForTimeout(1200);
+await shot(A, '44-nhan-tin');
+
+// B đang ở màn khác: phải thấy chấm chưa đọc mà không cần tải lại trang.
+await B.getByText('Về sảnh').click();
+await B.waitForTimeout(1200);
+await B.getByLabel('Bạn bè').click();
+await B.waitForTimeout(1800);
+const unread = (await B.getByLabel(/Nhắn tin, \d+ tin chưa đọc/).count()) > 0;
+console.log(`  B thấy chấm chưa đọc: ${unread}`);
+await shot(B, '45-chua-doc');
+
+await B.getByLabel(/Nhắn tin/).first().click();
+await B.waitForTimeout(1500);
+const gotMsg = (await B.getByText('Ván vừa rồi hay đấy').count()) > 0;
+console.log(`  B đọc được tin: ${gotMsg}`);
+await B.getByLabel('Ô nhắn tin').fill('Ừ, mai đánh tiếp');
+await B.getByText('Gửi').click();
+await B.waitForTimeout(1200);
+// A vẫn đang mở đúng cuộc trò chuyện đó: tin phải tới ngay, không cần tải lại.
+const live2 = (await A.getByText('Ừ, mai đánh tiếp').count()) > 0;
+console.log(`  A nhận tin ngay trên màn đang mở: ${live2}`);
+await shot(A, '46-nhan-tin-hai-chieu');
+await A.getByLabel('Quay lại').click();
+await A.waitForTimeout(1200);
+
+console.log('Chặn: cắt luôn quan hệ bạn');
+await A.getByLabel('Thêm lựa chọn').first().click();
+await A.waitForTimeout(600);
+await A.getByText('Chặn người này').click();
+await A.waitForTimeout(1600);
 const blocked = (await A.getByText('Đã chặn').count()) > 0;
 const noFriends = (await A.getByText('Chưa có ai. Tìm theo tên ở ô trên để gửi lời mời.').count()) > 0;
 console.log(`  vào mục đã chặn: ${blocked} · không còn là bạn: ${noFriends}`);
@@ -123,5 +156,8 @@ if (!hasInvite) fail('B không thấy lời mời kết bạn.');
 if (!onlineShown) fail('Không hiện được trạng thái trực tuyến.');
 if (!gotChallenge) fail('B không nhận được lời rủ đấu khi đang ở màn bạn bè.');
 if (!aInMatch || !bInMatch) fail('Nhận lời rủ nhưng không phải cả hai đều vào bàn.');
+if (!unread) fail('Không hiện được số tin chưa đọc khi đang ở màn khác.');
+if (!gotMsg) fail('B không đọc được tin A gửi.');
+if (!live2) fail('Tin không tới ngay trên cuộc trò chuyện đang mở.');
 if (!blocked || !noFriends) fail('Chặn không cắt được quan hệ bạn.');
 console.log('\nKết bạn, trực tuyến, tỷ thí và chặn đều đúng.');

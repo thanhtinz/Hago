@@ -1,4 +1,4 @@
-import type { ClientMsg, SeatInfo, ServerMsg } from '@co/protocol';
+import type { ChatLine, ClientMsg, SeatInfo, ServerMsg } from '@co/protocol';
 import type { Outcome, Seat, Turn } from '@co/core';
 
 /**
@@ -47,6 +47,9 @@ export interface ClientEvents {
   challenge: (c: ChallengeMsg) => void;
   challengeGone: (id: string, why: 'declined' | 'cancelled' | 'expired' | 'accepted') => void;
   presence: (online: string[]) => void;
+  chat: (m: ChatLine) => void;
+  chatPage: (channel: string, rows: ChatLine[], more: boolean, reset: boolean) => void;
+  chatUnread: (dms: Record<string, number>) => void;
 }
 
 /**
@@ -139,6 +142,12 @@ export class GameClient {
           return this.on.challengeGone?.(m.id, m.why);
         case 'presence':
           return this.on.presence?.(m.online);
+        case 'chat':
+          return this.on.chat?.(m.m);
+        case 'chat-page':
+          return this.on.chatPage?.(m.channel, m.rows, m.more, m.reset);
+        case 'chat-unread':
+          return this.on.chatUnread?.(m.dms);
         case 'error':
           return this.on.error?.(m.code, m.msg);
       }
@@ -183,6 +192,18 @@ export class GameClient {
   }
   watch(ids: string[]): void {
     this.raw({ t: 'watch', ids });
+  }
+  openChat(channel: string): void {
+    this.raw({ t: 'chat-open', channel });
+  }
+  sendChat(channel: string, body: string): void {
+    this.raw({ t: 'chat-send', channel, body });
+  }
+  moreChat(channel: string, before: number): void {
+    this.raw({ t: 'chat-more', channel, before });
+  }
+  readChat(channel: string, lastId: number): void {
+    this.raw({ t: 'chat-read', channel, lastId });
   }
 
   /**

@@ -10,6 +10,7 @@ import {
   type Seat,
 } from '@co/core';
 import type { SeatInfo, ServerMsg } from '@co/protocol';
+import { Chat, LOBBY, dm, dmPair, roomChannel } from './chat.js';
 
 /**
  * Quản lý phòng — phần lõi của máy chủ, **không biết gì về WebSocket**.
@@ -31,6 +32,8 @@ export interface Player {
   connected: boolean;
   /** Những người mà người này muốn biết trạng thái trực tuyến. */
   watching: Set<string>;
+  /** Kênh nhắn tin đang mở. Một người mở một kênh tại một thời điểm. */
+  channel: string | null;
   send: (m: ServerMsg) => void;
 }
 
@@ -89,6 +92,10 @@ export interface RoomsOptions {
    * quả thế này". Cắm thẳng lớp tài khoản vào đây là biến mọi bài test phòng
    * thành bài test có ổ đĩa.
    */
+  /** Kho tin nhắn. Bỏ trống thì mọi lệnh nhắn tin bị bỏ qua. */
+  chat?: Chat;
+  /** Hai người này có bị chặn nhau không. Dùng để chặn đường nhắn tin. */
+  isBlocked?: (a: string, b: string) => boolean;
   /**
    * Hai người này có được rủ nhau không. Bỏ trống là ai cũng rủ được ai.
    *
@@ -119,6 +126,8 @@ export class Rooms {
   private readonly random: () => number;
   private readonly onFinish: RoomsOptions['onFinish'];
   private readonly mayChallenge: RoomsOptions['mayChallenge'];
+  private readonly chat: Chat | undefined;
+  private readonly isBlocked: RoomsOptions['isBlocked'];
   private readonly challenges = new Map<string, Challenge>();
   private nextChallenge = 1;
   /** Ván đã báo kết thúc rồi, để không cộng thành tích hai lần. */
@@ -129,10 +138,105 @@ export class Rooms {
     this.random = o.random ?? Math.random;
     this.onFinish = o.onFinish;
     this.mayChallenge = o.mayChallenge;
+    this.chat = o.chat;
+    this.isBlocked = o.isBlocked;
   }
 
+  // ---- nhắn tin --------------------------------------------------------
+
+  /**
+   * Ai được vào kênh này.
+   *
+   * Không kiểm thì bất kỳ ai gõ đúng `rieng:<id1>|<id2>` là đọc được cuộc
+   * trò chuyện của hai người lạ — id người dùng không phải bí mật, chúng
+   * nằm ngay trong đường dẫn hồ sơ.
+   */
+  private mayJoin(id: string, channel: string): boolean {
+    if (channel === LOBBY) return true;
+    const pair = dmPair(channel);
+    if (pair) return pair.includes(id) && !this.isBlocked?.(pair[0], pair[1]);
+    if (channel.startsWith('phong:')) {
+      const room = this.rooms.get(channel.slice('phong:'.length));
+      return !!room && room.seated.includes(id);
+    }
+    return false;
+  }
+
+  openChat(id: string, channel: string): void {
+    const p = this.players.get(id);
+    if (!p || !this.chat) return;
+    if (!this.mayJoin(id, channel)) return p.send({ t: 'error', code: 'NO_CHANNEL', msg: 'Không vào được cuộc trò chuyện này' });
+    p.channel = channel;
+    const page = this.chat.page(channel);
+    p.send({ t: 'chat-page', channel, rows: page.rows, more: page.more, reset: true });
+    const last = page.rows[page.rows.length - 1];
+    if (last) this.chat.markRead(id, channel, last.id);
+    this.pushUnread(p);
+  }
+
+  moreChat(id: string, channel: string, before: number): void {
+    const p = this.players.get(id);
+    if (!p || !this.chat || !this.mayJoin(id, channel)) return;
+    const page = this.chat.page(channel, { before });
+    p.send({ t: 'chat-page', channel, rows: page.rows, more: page.more, reset: false });
+  }
+
+  sendChat(id: string, channel: string, body: string): void {
+    const p = this.players.get(id);
+    if (!p || !this.chat) return;
+    if (!this.mayJoin(id, channel)) return p.send({ t: 'error', code: 'NO_CHANNEL', msg: 'Không gửi được vào đây' });
+    let m;
+    try {
+      m = this.chat.post(channel, id, p.name, body);
+    } catch {
+      return;
+    }
+    this.deliver(channel, m);
+  }
+
+  markRead(id: string, channel: string, lastId: number): void {
+    const p = this.players.get(id);
+    if (!p || !this.chat) return;
+    this.chat.markRead(id, channel, lastId);
+    this.pushUnread(p);
+  }
+
+  /** Thông báo của hệ thống: không có người gửi, và đi tới mọi người. */
+  systemMessage(channel: string, body: string): void {
+    if (!this.chat) return;
+    this.deliver(channel, this.chat.post(channel, null, 'Hệ thống', body));
+  }
+
+  /**
+   * Đẩy một tin tới đúng những người đang mở kênh đó.
+   *
+   * Người không mở kênh vẫn được cập nhật **số chưa đọc** — nếu không thì
+   * chấm đỏ chỉ xuất hiện sau khi tải lại trang.
+   */
+  private deliver(channel: string, m: ReturnType<Chat['post']>): void {
+    const pair = dmPair(channel);
+    for (const p of this.players.values()) {
+      if (!p.connected) continue;
+      if (p.channel === channel) {
+        p.send({ t: 'chat', m });
+        if (m.fromId !== p.id) this.chat?.markRead(p.id, channel, m.id);
+      } else if (pair?.includes(p.id) || (channel === LOBBY && p.id !== m.fromId)) {
+        this.pushUnread(p);
+      }
+    }
+  }
+
+  private pushUnread(p: Player): void {
+    if (!this.chat) return;
+    p.send({ t: 'chat-unread', dms: this.chat.unreadDms(p.id) });
+  }
+
+  /** Kênh nhắn tin của một phòng, để màn chơi mở đúng chỗ. */
+  static roomChannel = roomChannel;
+  static dmChannel = dm;
+
   connect(id: string, name: string, send: (m: ServerMsg) => void): Player {
-    const p: Player = { id, name, code: null, connected: true, watching: new Set(), send };
+    const p: Player = { id, name, code: null, connected: true, watching: new Set(), channel: null, send };
     this.players.set(id, p);
     send({ t: 'welcome', youId: id });
     this.announce(id);

@@ -9,6 +9,16 @@ import type { Outcome, Seat, Turn } from '@co/core';
  * thì chỉ cần một bản sửa đổi là ghi đè cả bàn cờ.
  */
 
+export interface ChatLine {
+  id: number;
+  channel: string;
+  /** null là thông báo của hệ thống. */
+  fromId: string | null;
+  fromName: string;
+  body: string;
+  at: number;
+}
+
 export interface SeatInfo {
   seat: Seat;
   name: string;
@@ -44,7 +54,16 @@ export type ClientMsg =
   /** Rút lại lời rủ mình vừa gửi. */
   | { t: 'challenge-cancel'; id: string }
   /** Hỏi xem trong số này ai đang trực tuyến. */
-  | { t: 'watch'; ids: string[] };
+  | { t: 'watch'; ids: string[] }
+  /**
+   * Mở một kênh nhắn tin: nhận lịch sử và **từ đó nhận tin mới theo thời
+   * gian thực**. Mở kênh khác thì kênh cũ tự đóng.
+   */
+  | { t: 'chat-open'; channel: string }
+  | { t: 'chat-send'; channel: string; body: string }
+  /** Xin thêm một trang tin cũ hơn. */
+  | { t: 'chat-more'; channel: string; before: number }
+  | { t: 'chat-read'; channel: string; lastId: number };
 
 export type ServerMsg =
   | { t: 'welcome'; youId: string }
@@ -81,6 +100,12 @@ export type ServerMsg =
   | { t: 'challenge-gone'; id: string; why: 'declined' | 'cancelled' | 'expired' | 'accepted' }
   /** Ai trong danh sách đang theo dõi vừa đổi trạng thái trực tuyến. */
   | { t: 'presence'; online: string[] }
+  /** Một tin mới trong kênh đang mở. */
+  | { t: 'chat'; m: ChatLine }
+  /** Một trang lịch sử, cũ nhất trước. `reset` là trang đầu khi mở kênh. */
+  | { t: 'chat-page'; channel: string; rows: ChatLine[]; more: boolean; reset: boolean }
+  /** Số tin chưa đọc theo từng người, để chấm đỏ trong danh sách bạn. */
+  | { t: 'chat-unread'; dms: Record<string, number> }
   | { t: 'error'; code: string; msg: string };
 
 export const PORT = Number(process.env.PORT ?? 8787);

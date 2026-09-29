@@ -156,6 +156,17 @@ và giữ mỗi cái cuối là im lặng đánh rơi cái đầu.
 **Chỉ bạn bè mới rủ nhau được**, và `Rooms` không tự biết điều đó — nó không
 đọc cơ sở dữ liệu. Câu hỏi đó trả lời qua `mayChallenge` ở `index.ts`.
 
+**Tên kênh nhắn tin quyết định ai đọc được** (`apps/server/src/chat.ts`):
+`chung`, `rieng:<a>|<b>` (hai id **sắp xếp**, nếu không thì A nhắn vào `A|B`
+còn B nhắn vào `B|A` và hai người nhìn hai cuộc trò chuyện khác nhau),
+`phong:<mã>`, `he-thong`. Máy chủ **luôn kiểm lại quyền vào kênh**: id người
+dùng nằm ngay trong đường dẫn hồ sơ, không phải bí mật, nên không kiểm là ai
+gõ đúng tên kênh cũng đọc được cuộc trò chuyện của hai người lạ.
+
+Chưa đọc lưu bằng **một mốc `last_id` mỗi người mỗi kênh**, không phải một cờ
+trên từng tin: chưa đọc = đếm tin có id lớn hơn mốc, một câu truy vấn. Mốc chỉ
+tiến, không lùi — tin cũ tới muộn không được làm tin đã đọc thành chưa đọc.
+
 ## 9. Điều hướng trong app
 
 Khôi phục phiên đăng nhập nằm ở **lớp ngoài cùng** (`app/_layout.tsx`), không

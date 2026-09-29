@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import type { Outcome, Seat, Turn } from '@co/core';
-import type { SeatInfo } from '@co/protocol';
+import type { ChatLine, SeatInfo } from '@co/protocol';
 import { token, useAuth } from './api';
 import { GameClient, type Phase, type RoomInfo, type StateMsg } from './client';
 
@@ -36,6 +36,10 @@ export interface LiveState {
   online: Set<string>;
   /** Lời rủ vừa được nhận lời — màn hình dùng nó để chuyển sang bàn cờ. */
   justMatched: string | null;
+  /** Kênh nhắn tin đang mở, và nội dung của nó. */
+  chat: { channel: string | null; rows: ChatLine[]; more: boolean };
+  /** Số tin chưa đọc theo từng người. */
+  unread: Record<string, number>;
 }
 
 const EMPTY: LiveState = {
@@ -47,6 +51,8 @@ const EMPTY: LiveState = {
   challenges: [],
   online: new Set(),
   justMatched: null,
+  chat: { channel: null, rows: [], more: false },
+  unread: {},
 };
 
 let state: LiveState = EMPTY;
@@ -83,6 +89,19 @@ function open(t: string): void {
         ...(why === 'accepted' ? { justMatched: id } : {}),
       }),
     presence: (ids) => set({ online: new Set(ids) }),
+    chat: (m) => {
+      // Tin của kênh khác vẫn tới khi hai màn chat chồng nhau lúc chuyển —
+      // bỏ qua, nếu không nó chen vào cuộc trò chuyện đang mở.
+      if (m.channel !== state.chat.channel) return;
+      set({ chat: { ...state.chat, rows: [...state.chat.rows, m] } });
+    },
+    chatPage: (channel, rows, more, reset) => {
+      if (reset) return set({ chat: { channel, rows, more } });
+      if (channel !== state.chat.channel) return;
+      // Trang cũ hơn nối vào **đầu** danh sách: cuộn lên là đi ngược thời gian.
+      set({ chat: { channel, rows: [...rows, ...state.chat.rows], more } });
+    },
+    chatUnread: (dms) => set({ unread: dms }),
   });
   client.connect();
   if (watchList.length) client.watch(watchList);
@@ -143,6 +162,17 @@ export const live = {
   challenge: (to: string, gameId: string) => client?.challenge(to, gameId),
   answer: (id: string, accept: boolean) => client?.answerChallenge(id, accept),
   cancel: (id: string) => client?.cancelChallenge(id),
+  openChat: (channel: string) => {
+    // Xoá nội dung cũ ngay, không đợi trang đầu về: thấy cuộc trò chuyện của
+    // người trước trong một nhịp rồi mới đổi là cú nhảy khó chịu, và tệ hơn
+    // là một thoáng đọc được nội dung không thuộc về màn này.
+    set({ chat: { channel, rows: [], more: false } });
+    client?.openChat(channel);
+  },
+  closeChat: () => set({ chat: { channel: null, rows: [], more: false } }),
+  sendChat: (channel: string, body: string) => client?.sendChat(channel, body),
+  moreChat: (channel: string, before: number) => client?.moreChat(channel, before),
+  readChat: (channel: string, lastId: number) => client?.readChat(channel, lastId),
   clearMatched: () => set({ justMatched: null }),
   clearError: () => set({ error: null }),
 };

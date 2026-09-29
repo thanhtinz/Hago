@@ -133,6 +133,15 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 CREATE INDEX IF NOT EXISTS messages_channel ON messages(channel, id);
 CREATE INDEX IF NOT EXISTS messages_to ON messages(to_id, id);
+
+-- Đã đọc tới đâu, cho mỗi người mỗi kênh. Một hàng thay cho một cờ "đã đọc"
+-- trên từng tin: chưa đọc = đếm tin có id lớn hơn mốc này, một câu truy vấn.
+CREATE TABLE IF NOT EXISTS reads (
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  channel    TEXT NOT NULL,
+  last_id    INTEGER NOT NULL,
+  PRIMARY KEY (user_id, channel)
+);
 `;
 
 export function openDb(file = process.env.DB_FILE ?? 'data/co.db'): DatabaseSync {

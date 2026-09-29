@@ -34,6 +34,7 @@ export default function FriendsScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pick, setPick] = useState<PublicUser | null>(null);
+  const [menu, setMenu] = useState<PublicUser | null>(null);
   const s = useLive();
 
   const load = useCallback(() => {
@@ -163,14 +164,11 @@ export default function FriendsScreen() {
             .sort((x, y) => Number(s.online.has(y.user.id)) - Number(s.online.has(x.user.id)))
             .map((f) => (
               <Row key={f.user.id} u={f.user} online={s.online.has(f.user.id)} onOpen={() => router.push(`/u/${f.user.id}`)}>
-                <Mini
-                  label="Tỷ thí"
-                  tone="gold"
-                  disabled={!s.online.has(f.user.id)}
-                  onPress={() => setPick(f.user)}
-                />
-                <Mini label="Xoá" disabled={busy} onPress={() => act(() => api.remove(f.user.id))} />
-                <Mini label="Chặn" tone="seal" disabled={busy} onPress={() => act(() => api.block(f.user.id))} />
+                <Mini label="Nhắn tin" badge={s.unread[f.user.id] ?? 0} onPress={() => router.push(`/chat/${f.user.id}`)} />
+                <Mini label="Tỷ thí" tone="gold" disabled={!s.online.has(f.user.id)} onPress={() => setPick(f.user)} />
+                {/* Xoá bạn và chặn nằm sau một nhịp bấm nữa. Để một nút đỏ
+                    ngay cạnh nút bấm hằng ngày là mời người ta bấm nhầm. */}
+                <More onPress={() => setMenu(f.user)} />
               </Row>
             ))
         ) : (
@@ -198,6 +196,38 @@ export default function FriendsScreen() {
             </Row>
           ))}
         </Card>
+      ) : null}
+
+      {menu ? (
+        <Sheet title={menu.name} sub="Chọn một việc" onClose={() => setMenu(null)}>
+          <Btn
+            tone="wood"
+            label="Xem hồ sơ"
+            onPress={() => {
+              const id = menu.id;
+              setMenu(null);
+              router.push(`/u/${id}`);
+            }}
+          />
+          <Btn
+            tone="ghost"
+            label="Xoá khỏi danh sách bạn"
+            onPress={() => {
+              const id = menu.id;
+              setMenu(null);
+              act(() => api.remove(id));
+            }}
+          />
+          <Btn
+            tone="ghost"
+            label="Chặn người này"
+            onPress={() => {
+              const id = menu.id;
+              setMenu(null);
+              act(() => api.block(id));
+            }}
+          />
+        </Sheet>
       ) : null}
 
       {pick ? (
@@ -274,7 +304,7 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingVertical: S.sm }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: S.sm }}>
       <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`Hồ sơ ${u.name}`} disabled={!onOpen}>
         <View>
           <Face avatar={u.avatar} id={u.id} size={38} ring={false} />
@@ -315,11 +345,14 @@ function Mini({
   tone,
   disabled,
   onPress,
+  badge = 0,
 }: {
   label: string;
   tone?: 'gold' | 'seal';
   disabled?: boolean;
   onPress: () => void;
+  /** Số tin chưa đọc. Hiện thành chấm đỏ có số ở góc nút. */
+  badge?: number;
 }) {
   const fg = disabled ? A.inkFaint : tone === 'gold' ? A.gold : tone === 'seal' ? A.sealLit : A.inkSoft;
   return (
@@ -327,9 +360,9 @@ function Mini({
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={badge ? `${label}, ${badge} tin chưa đọc` : label}
       style={{
-        paddingHorizontal: 10,
+        paddingHorizontal: 9,
         paddingVertical: 7,
         borderRadius: R.pill,
         borderWidth: 1.1,
@@ -337,15 +370,54 @@ function Mini({
         opacity: disabled ? 0.55 : 1,
       }}
     >
-      <Txt size={11} weight="semi" color={fg}>
+      <Txt size={11} weight="semi" color={badge ? A.gold : fg}>
         {label}
+      </Txt>
+      {badge > 0 ? (
+        <View
+          style={{
+            position: 'absolute',
+            top: -5,
+            right: -5,
+            minWidth: 17,
+            height: 17,
+            borderRadius: 9,
+            paddingHorizontal: 4,
+            backgroundColor: A.seal,
+            borderWidth: 1.4,
+            borderColor: A.panel,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Txt size={9.5} weight="bold" color="#FFF">
+            {badge > 9 ? '9+' : badge}
+          </Txt>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+/** Nút ba chấm: mở danh sách việc ít dùng hoặc không hoàn lại được. */
+function More({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Thêm lựa chọn"
+      hitSlop={8}
+      style={{ paddingHorizontal: 8, paddingVertical: 7 }}
+    >
+      <Txt size={15} weight="bold" color={A.inkSoft}>
+        ···
       </Txt>
     </Pressable>
   );
 }
 
-/** Rủ ai đó thì phải nói rủ đánh bộ môn nào. */
-function PickGame({ name, onClose, onPick }: { name: string; onClose: () => void; onPick: (g: string) => void }) {
+/** Tấm trượt từ dưới lên, dùng chung cho mấy tấm ở màn này. */
+function Sheet({ title, sub, onClose, children }: { title: string; sub?: string; onClose: () => void; children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
     <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end' }}>
@@ -358,11 +430,26 @@ function PickGame({ name, onClose, onPick }: { name: string; onClose: () => void
       <Panel radius={R.xl} tone={1} seed={67}>
         <View style={{ gap: S.sm, padding: S.lg, paddingBottom: insets.bottom + S.lg }}>
           <Txt size={17} weight="display">
-            Rủ {name} bộ môn nào?
+            {title}
           </Txt>
-          <Txt size={11} color={A.inkFaint} style={{ paddingBottom: S.xs }}>
-            Phòng riêng, không tính xếp hạng
-          </Txt>
+          {sub ? (
+            <Txt size={11} color={A.inkFaint} style={{ paddingBottom: S.xs }}>
+              {sub}
+            </Txt>
+          ) : null}
+          {children}
+          <Btn tone="ghost" label="Đóng" onPress={onClose} />
+        </View>
+      </Panel>
+    </View>
+  );
+}
+
+/** Rủ ai đó thì phải nói rủ đánh bộ môn nào. */
+function PickGame({ name, onClose, onPick }: { name: string; onClose: () => void; onPick: (g: string) => void }) {
+  return (
+    <Sheet title={`Rủ ${name} bộ môn nào?`} sub="Phòng riêng, không tính xếp hạng" onClose={onClose}>
+      <>
           {GAMES.map((g) => (
             <Pressable key={g} onPress={() => onPick(g)} accessibilityRole="button" accessibilityLabel={`Rủ ${faceOf(g)?.nameVi ?? g}`}>
               <Panel radius={R.md} tone={0} seed={g.length * 9}>
@@ -376,10 +463,8 @@ function PickGame({ name, onClose, onPick }: { name: string; onClose: () => void
               </Panel>
             </Pressable>
           ))}
-          <Btn tone="ghost" label="Đóng" onPress={onClose} />
-        </View>
-      </Panel>
-    </View>
+      </>
+    </Sheet>
   );
 }
 

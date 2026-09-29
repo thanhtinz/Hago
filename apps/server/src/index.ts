@@ -4,6 +4,7 @@ import { registry } from '@co/core';
 import './catalog.js';
 import { PORT, type ClientMsg } from '@co/protocol';
 import { Accounts } from './accounts.js';
+import { Chat } from './chat.js';
 import { openDb } from './db.js';
 import { handleApi } from './http.js';
 import { Avatars } from './uploads.js';
@@ -21,6 +22,7 @@ import { Rooms } from './rooms.js';
 const db = openDb();
 const accounts = new Accounts(db);
 const avatars = new Avatars();
+const chat = new Chat(db);
 
 /**
  * Chỉ **ván ghép cặp** mới vào sổ thành tích.
@@ -33,6 +35,8 @@ const rooms = new Rooms({
   // Chỉ bạn bè mới rủ nhau được. `Rooms` không đọc cơ sở dữ liệu nên câu hỏi
   // đó trả lời ở đây, nơi đã có sẵn lớp tài khoản.
   mayChallenge: (from, to) => accounts.areFriends(from, to) && !accounts.isBlockedEither(from, to),
+  chat,
+  isBlocked: (a, b) => accounts.isBlockedEither(a, b),
   onFinish: ({ gameId, code, rated, seats, names, outcome }) => {
     accounts.recordMatch({
       gameId,
@@ -115,6 +119,14 @@ wss.on('connection', (ws: WebSocket) => {
         return rooms.cancelChallenge(id, msg.id);
       case 'watch':
         return rooms.watch(id, msg.ids);
+      case 'chat-open':
+        return rooms.openChat(id, msg.channel);
+      case 'chat-send':
+        return rooms.sendChat(id, msg.channel, msg.body);
+      case 'chat-more':
+        return rooms.moreChat(id, msg.channel, msg.before);
+      case 'chat-read':
+        return rooms.markRead(id, msg.channel, msg.lastId);
       default:
         return send({ t: 'error', code: 'UNKNOWN', msg: 'Không hiểu thông điệp' });
     }
