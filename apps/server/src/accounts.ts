@@ -345,14 +345,40 @@ export class Accounts {
       .map((r) => ({ gameId: r.game_id, win: r.win, draw: r.draw, loss: r.loss, rating: r.rating, best: r.best }));
   }
 
-  /** Lịch sử trận, mới nhất trước, đã xoay về góc nhìn của người đang xem. */
-  history(userId: string, limit = 20): MatchRow[] {
-    const rows = this.db
+  /**
+   * Lịch sử trận, mới nhất trước, đã xoay về góc nhìn của người đang xem.
+   *
+   * Phân trang theo **con trỏ `before`**, không theo số trang. Danh sách này
+   * mọc thêm ở đầu mỗi khi người ta đánh xong một ván, nên `OFFSET 20` sẽ trả
+   * lại một hàng đã thấy ở trang trước — lỗi kinh điển của phân trang theo số
+   * trang trên dữ liệu đang chạy. `id` tăng đều nên `id < before` thì luôn
+   * đúng, dù có bao nhiêu ván chen vào giữa hai lần bấm.
+   */
+  history(userId: string, opts: { limit?: number; before?: number; gameId?: string } = {}): { rows: MatchRow[]; more: boolean; total: number } {
+    const limit = Math.min(Math.max(1, opts.limit ?? 20), 100);
+    const where: string[] = ['(a_id = ? OR b_id = ?)'];
+    const args: (string | number)[] = [userId, userId];
+    if (opts.gameId) {
+      where.push('game_id = ?');
+      args.push(opts.gameId);
+    }
+    const filter = where.join(' AND ');
+
+    const total = (this.db.prepare(`SELECT COUNT(*) AS n FROM matches WHERE ${filter}`).get(...args) as unknown as { n: number }).n;
+
+    const page = [...args];
+    let cursor = '';
+    if (opts.before !== undefined) {
+      cursor = ' AND id < ?';
+      page.push(opts.before);
+    }
+    // Lấy dư một hàng để biết còn trang sau hay không, thay vì đếm lần nữa.
+    const raw = this.db
       .prepare(
         `SELECT id, game_id, a_id, b_id, a_name, b_name, winner, reason, rated, delta_a, delta_b, created_at
-         FROM matches WHERE a_id = ? OR b_id = ? ORDER BY id DESC LIMIT ?`,
+         FROM matches WHERE ${filter}${cursor} ORDER BY id DESC LIMIT ?`,
       )
-      .all(userId, userId, limit) as unknown as {
+      .all(...page, limit + 1) as unknown as {
       id: number;
       game_id: string;
       a_id: string | null;
@@ -366,7 +392,9 @@ export class Accounts {
       delta_b: number;
       created_at: number;
     }[];
-    return rows.map((r) => {
+
+    const more = raw.length > limit;
+    const rows = raw.slice(0, limit).map((r) => {
       const mine = r.a_id === userId ? 0 : 1;
       return {
         id: r.id,
@@ -380,6 +408,7 @@ export class Accounts {
         at: r.created_at,
       };
     });
+    return { rows, more, total };
   }
 
   /**
@@ -389,7 +418,7 @@ export class Accounts {
    * ván giữa hai ván thắng vẫn được ghi chuỗi 2 — con số đó không mô tả gì.
    */
   streak(userId: string): { kind: 'win' | 'draw' | 'loss'; n: number } | null {
-    const h = this.history(userId, 50);
+    const h = this.history(userId, { limit: 50 }).rows;
     const first = h[0];
     if (!first) return null;
     let n = 0;

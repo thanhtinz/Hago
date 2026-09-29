@@ -50,10 +50,18 @@ export interface MatchRow {
   at: number;
 }
 
+export interface HistoryPage {
+  rows: MatchRow[];
+  /** Còn trang sau hay không. Máy chủ lấy dư một hàng để biết, không đếm lại. */
+  more: boolean;
+  /** Tổng số ván khớp bộ lọc — không phải số hàng của trang này. */
+  total: number;
+}
+
 export interface Profile {
   user: Me;
   stats: GameStat[];
-  history: MatchRow[];
+  history: HistoryPage;
   streak: { kind: 'win' | 'draw' | 'loss'; n: number } | null;
   friends: number;
   requests: number;
@@ -217,6 +225,15 @@ export const auth = {
 
 export const api = {
   me: () => call<Profile>('/me'),
+  /** Một trang lịch sử. `before` là `id` của hàng cuối trang trước. */
+  history: (o: { before?: number; game?: string; limit?: number } = {}) => {
+    const q = new URLSearchParams();
+    if (o.before) q.set('before', String(o.before));
+    if (o.game) q.set('game', o.game);
+    if (o.limit) q.set('limit', String(o.limit));
+    const s = q.toString();
+    return call<HistoryPage>(`/me/history${s ? `?${s}` : ''}`);
+  },
   user: (id: string) => call<{ user: PublicUser; stats: GameStat[]; friend: boolean; blocked: boolean }>(`/users/${id}`),
   search: (q: string) => call<{ users: PublicUser[] }>(`/users?q=${encodeURIComponent(q)}`),
   friends: () => call<{ friends: Friend[]; blocked: PublicUser[] }>('/friends'),

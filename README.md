@@ -50,6 +50,7 @@ tools/
   screenshot.mjs        chụp màn hình app thật để kiểm chứng giao diện
   two-players.mjs       hai cửa sổ trình duyệt đánh nhau qua máy chủ thật
   avatar.mjs            tải ảnh đại diện lên rồi kiểm cả đường phát lại
+  history.mjs           dựng 26 ván rồi kiểm phân trang và lọc lịch sử
 docs/
   ARCHITECTURE.md       hợp đồng ràng buộc — đọc cái này trước
   architecture-review.md biên bản thẩm định kiến trúc
@@ -61,7 +62,7 @@ docs/
 ```bash
 npm install
 npm run build      # biên dịch packages/
-npm test           # 89 test: hợp đồng engine + luật ba game + bot + máy chủ
+npm test           # 92 test: hợp đồng engine + luật ba game + bot + máy chủ
 
 npm run web        # đóng gói app cho web để xem thử
 npm run serve      # mở ở http://localhost:8080

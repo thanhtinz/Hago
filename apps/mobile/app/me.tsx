@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { backToLobby } from '../src/nav';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
-import { api, auth, useAction, useAuth, type GameStat, type MatchRow, type Profile } from '../src/net/api';
+import { api, auth, useAction, useAuth, type GameStat, type HistoryPage, type MatchRow, type Profile } from '../src/net/api';
 import { faceOf } from '../src/games/faces';
 import { CRESTS, Crest, Face, crestFor, type CrestId } from '../src/ui/Crest';
 import { canPickImage, pickSquareImage } from '../src/net/pickImage';
@@ -82,7 +82,7 @@ export default function MeScreen() {
       <Tabs tab={tab} onTab={setTab} />
 
       {tab === 'tong-quan' ? <Overview p={p} /> : null}
-      {tab === 'lich-su' ? <History p={p} /> : null}
+      {tab === 'lich-su' ? <History p={p} gameIds={(p?.stats ?? []).map((x) => x.gameId)} /> : null}
       {tab === 'cai-dat' ? <Settings me={me} onChanged={load} /> : null}
     </Shell>
   );
@@ -253,16 +253,153 @@ function GameRow({ s }: { s: GameStat }) {
 
 // ---- lịch sử ----------------------------------------------------------
 
-function History({ p }: { p: Profile | null }) {
+/**
+ * Lịch sử trận: lọc theo bộ môn, gom theo ngày, tải thêm từng trang.
+ *
+ * Gom theo ngày thay vì một danh sách phẳng vì câu hỏi người ta thật sự hỏi
+ * là "hôm qua mình đánh thế nào", không phải "ván thứ 37 là ván nào". Mỗi hàng
+ * giữ giờ phút chính xác; tiêu đề ngày lo phần còn lại.
+ */
+function History({ p, gameIds }: { p: Profile | null; gameIds: string[] }) {
+  const [game, setGame] = useState<string | null>(null);
+  const [page, setPage] = useState<HistoryPage | null>(null);
+  const [rows, setRows] = useState<MatchRow[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  // Đổi bộ lọc là bắt đầu lại từ trang đầu. Giữ lại hàng cũ thì danh sách
+  // trộn hai bộ môn với nhau và con trỏ `before` trỏ vào một hàng đã bị lọc.
+  useEffect(() => {
+    let alive = true;
+    setBusy(true);
+    setRows([]);
+    void api
+      .history(game ? { game } : {})
+      .then((r) => {
+        if (!alive) return;
+        setPage(r);
+        setRows(r.rows);
+      })
+      .catch(() => alive && setPage(null))
+      .finally(() => alive && setBusy(false));
+    return () => {
+      alive = false;
+    };
+  }, [game]);
+
+  const more = useCallback(() => {
+    const last = rows[rows.length - 1];
+    if (!last || busy) return;
+    setBusy(true);
+    void api
+      .history({ before: last.id, ...(game ? { game } : {}) })
+      .then((r) => {
+        setPage(r);
+        setRows((cur) => [...cur, ...r.rows]);
+      })
+      .catch(() => {})
+      .finally(() => setBusy(false));
+  }, [rows, game, busy]);
+
   if (!p) return <Loading />;
-  if (!p.history.length) return <Empty title="Chưa có ván nào" body="Ván với người thật sẽ hiện ở đây, mới nhất trước." />;
+  if (!p.history.total && !gameIds.length) {
+    return <Empty title="Chưa có ván nào" body="Ván với người thật sẽ hiện ở đây, mới nhất trước." />;
+  }
+
+  const days = groupByDay(rows);
+
   return (
-    <Card title="Trận gần đây" sub={`${p.history.length} ván mới nhất`}>
-      {p.history.map((m) => (
-        <MatchLine key={m.id} m={m} />
-      ))}
-    </Card>
+    <>
+      {gameIds.length > 1 ? <Filter games={gameIds} game={game} onGame={setGame} /> : null}
+      <Card title="Trận gần đây" sub={`${rows.length} trên ${page?.total ?? 0} ván${game ? ` · ${faceOf(game)?.nameVi ?? game}` : ''}`}>
+        {!rows.length && !busy ? (
+          <Txt size={12} color={A.inkFaint} style={{ paddingVertical: S.sm }}>
+            Chưa có ván nào ở bộ môn này.
+          </Txt>
+        ) : null}
+        {days.map(([label, list]) => (
+          <View key={label}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingTop: S.md, paddingBottom: 2 }}>
+              <Txt size={10} weight="semi" color={A.gold} style={{ letterSpacing: 1 }}>
+                {label.toUpperCase()}
+              </Txt>
+              <View style={{ flex: 1, height: 1, backgroundColor: A.lineSoft }} />
+            </View>
+            {list.map((m) => (
+              <MatchLine key={m.id} m={m} showGame={!game} />
+            ))}
+          </View>
+        ))}
+        {page?.more ? (
+          <View style={{ paddingTop: S.md }}>
+            <Btn tone="ghost" label={busy ? 'Đang tải…' : 'Xem thêm'} disabled={busy} onPress={more} />
+          </View>
+        ) : null}
+      </Card>
+    </>
   );
+}
+
+/** Dải chọn bộ môn. Chỉ hiện khi người chơi đã đánh từ hai bộ môn trở lên. */
+function Filter({ games, game, onGame }: { games: string[]; game: string | null; onGame: (g: string | null) => void }) {
+  const chip = (id: string | null, label: string) => {
+    const on = game === id;
+    return (
+      <Pressable
+        key={label}
+        onPress={() => onGame(id)}
+        accessibilityRole="button"
+        accessibilityLabel={`Lọc ${label}`}
+        accessibilityState={{ selected: on }}
+        style={{
+          paddingHorizontal: S.md,
+          paddingVertical: 7,
+          borderRadius: R.pill,
+          backgroundColor: on ? A.goldSoft : 'transparent',
+          borderWidth: 1.1,
+          borderColor: on ? A.goldDeep : A.lineSoft,
+        }}
+      >
+        <Txt size={11.5} weight="semi" color={on ? A.gold : A.inkFaint}>
+          {label}
+        </Txt>
+      </Pressable>
+    );
+  };
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.sm }}>
+      {chip(null, 'Tất cả')}
+      {games.map((g) => chip(g, faceOf(g)?.nameVi ?? g))}
+    </View>
+  );
+}
+
+/** Gom các ván theo ngày, giữ nguyên thứ tự mới nhất trước. */
+function groupByDay(rows: MatchRow[]): [string, MatchRow[]][] {
+  const out: [string, MatchRow[]][] = [];
+  for (const m of rows) {
+    const label = dayLabel(m.at);
+    const last = out[out.length - 1];
+    if (last && last[0] === label) last[1].push(m);
+    else out.push([label, [m]]);
+  }
+  return out;
+}
+
+function sameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function dayLabel(t: number): string {
+  const d = new Date(t);
+  const now = new Date();
+  if (sameDay(d, now)) return 'Hôm nay';
+  const y = new Date(now);
+  y.setDate(y.getDate() - 1);
+  if (sameDay(d, y)) return 'Hôm qua';
+  // Cùng năm thì bỏ năm đi: "12 tháng 9" đọc nhanh hơn "12/9/2026".
+  return d.getFullYear() === now.getFullYear()
+    ? d.toLocaleDateString('vi-VN', { day: 'numeric', month: 'long' })
+    : d.toLocaleDateString('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 const TONE = {
@@ -271,22 +408,31 @@ const TONE = {
   loss: { c: A.sealLit, t: 'THUA' },
 } as const;
 
-function MatchLine({ m }: { m: MatchRow }) {
+/**
+ * `showGame` tắt khi đang lọc đúng một bộ môn: tiêu đề thẻ đã ghi tên bộ môn
+ * rồi, lặp lại ở cả hai mươi hàng là hai mươi lần nói cùng một điều.
+ */
+function MatchLine({ m, showGame = true }: { m: MatchRow; showGame?: boolean }) {
   const tone = TONE[m.result];
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingVertical: 9 }}>
-      <Svg width={10} height={10}>
-        <Circle cx={5} cy={5} r={4} fill={tone.c} />
+      {/* Giờ phút chính xác, không phải "3 giờ trước". Tiêu đề ngày đã lo phần
+          "hôm nào"; cái người ta cần ở đây là mốc để đối chiếu với trí nhớ. */}
+      <Txt size={11} color={A.inkFaint} style={{ minWidth: 38 }}>
+        {new Date(m.at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+      </Txt>
+      <Svg width={8} height={8}>
+        <Circle cx={4} cy={4} r={3.5} fill={tone.c} />
       </Svg>
       <View style={{ flex: 1 }}>
         <Txt size={13} weight="semi" numberOfLines={1}>
           {m.opponent}
         </Txt>
         <Txt size={10} color={A.inkFaint} numberOfLines={1}>
-          {faceOf(m.gameId)?.nameVi ?? m.gameId} · {m.reason}
+          {showGame ? `${faceOf(m.gameId)?.nameVi ?? m.gameId} · ${m.reason}` : m.reason}
         </Txt>
       </View>
-      <View style={{ alignItems: 'flex-end' }}>
+      <View style={{ alignItems: 'flex-end', minWidth: 54 }}>
         <Txt size={10.5} weight="bold" color={tone.c} style={{ letterSpacing: 0.6 }}>
           {tone.t}
         </Txt>
@@ -294,22 +440,8 @@ function MatchLine({ m }: { m: MatchRow }) {
           {m.rated ? (m.delta > 0 ? `+${m.delta}` : String(m.delta)) : 'không tính'}
         </Txt>
       </View>
-      <Txt size={10} color={A.inkFaint} style={{ minWidth: 48, textAlign: 'right' }}>
-        {ago(m.at)}
-      </Txt>
     </View>
   );
-}
-
-/** Khoảng cách thời gian đọc được: "3 phút", "hôm qua", "12/9". */
-function ago(t: number): string {
-  const s = Math.max(0, Math.floor((Date.now() - t) / 1000));
-  if (s < 60) return 'vừa xong';
-  if (s < 3600) return `${Math.floor(s / 60)} phút`;
-  if (s < 86400) return `${Math.floor(s / 3600)} giờ`;
-  if (s < 172800) return 'hôm qua';
-  if (s < 2592000) return `${Math.floor(s / 86400)} ngày`;
-  return new Date(t).toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' });
 }
 
 // ---- cài đặt ----------------------------------------------------------

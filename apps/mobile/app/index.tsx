@@ -6,7 +6,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { registry } from '@co/core';
 import '../src/catalog';
 import { FACES, type GameFace } from '../src/games/faces';
-import { useAuth, useRestoreOnce } from '../src/net/api';
+import { useAuth } from '../src/net/api';
 import { Icon, type IconName } from '../src/ui/Icon';
 import { Btn, Txt } from '../src/ui/parts';
 import { Face } from '../src/ui/Crest';
@@ -31,7 +31,6 @@ export default function Lobby() {
   const router = useRouter();
   /** Chế độ online đang chọn bộ môn, hoặc 'join' đang nhập mã. */
   const [sheet, setSheet] = useState<'quick' | 'create' | 'join' | null>(null);
-  useRestoreOnce();
   const { me } = useAuth();
   /** Ba chế độ online đều cần danh tính, nên chưa đăng nhập là đưa sang màn đăng nhập. */
   const online = (go: () => void) => (me ? go() : router.push('/auth'));

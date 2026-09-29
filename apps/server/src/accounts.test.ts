@@ -218,8 +218,8 @@ test('phòng riêng vào lịch sử nhưng không đụng tới điểm', () =>
   play(a, x.id, y.id, 'co-caro', 0, false);
   assert.equal(a.stats(x.id)[0]!.rating, 1200, 'phòng riêng không tính điểm');
   assert.equal(a.stats(x.id)[0]!.win, 1, 'nhưng vẫn cộng vào thắng thua');
-  assert.equal(a.history(x.id).length, 1, 'và vẫn hiện trong lịch sử');
-  assert.equal(a.history(x.id)[0]!.rated, false);
+  assert.equal(a.history(x.id).rows.length, 1, 'và vẫn hiện trong lịch sử');
+  assert.equal(a.history(x.id).rows[0]!.rated, false);
 });
 
 test('lịch sử xoay đúng theo góc nhìn từng người', () => {
@@ -228,13 +228,64 @@ test('lịch sử xoay đúng theo góc nhìn từng người', () => {
   const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
   play(a, x.id, y.id, 'co-caro', 0);
 
-  const hx = a.history(x.id)[0]!;
-  const hy = a.history(y.id)[0]!;
+  const hx = a.history(x.id).rows[0]!;
+  const hy = a.history(y.id).rows[0]!;
   assert.equal(hx.result, 'win');
   assert.equal(hx.opponent, 'Bình');
   assert.equal(hy.result, 'loss');
   assert.equal(hy.opponent, 'An');
   assert.equal(hx.delta, -hy.delta, 'điểm một bên được đúng bằng bên kia mất');
+});
+
+test('phân trang bằng con trỏ: không lặp hàng, không sót hàng', () => {
+  const a = fresh();
+  const x = a.register('An', 'an@example.com', 'matkhaudai').user;
+  const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
+  for (let i = 0; i < 7; i++) play(a, x.id, y.id, i < 4 ? 'co-caro' : 'co-ganh', i % 2);
+
+  const p1 = a.history(x.id, { limit: 3 });
+  assert.equal(p1.rows.length, 3);
+  assert.equal(p1.more, true);
+  assert.equal(p1.total, 7, 'tổng là tổng thật, không phải số hàng của trang');
+
+  const p2 = a.history(x.id, { limit: 3, before: p1.rows[2]!.id });
+  const p3 = a.history(x.id, { limit: 3, before: p2.rows[2]!.id });
+  assert.equal(p3.rows.length, 1);
+  assert.equal(p3.more, false, 'trang cuối phải biết là hết');
+
+  const ids = [...p1.rows, ...p2.rows, ...p3.rows].map((r) => r.id);
+  assert.equal(new Set(ids).size, 7, 'không hàng nào lặp lại giữa các trang');
+  assert.deepEqual([...ids].sort((m, n) => n - m), ids, 'thứ tự mới nhất trước xuyên suốt các trang');
+});
+
+test('ván mới chen vào giữa hai lần bấm không làm lặp hàng', () => {
+  const a = fresh();
+  const x = a.register('An', 'an@example.com', 'matkhaudai').user;
+  const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
+  for (let i = 0; i < 5; i++) play(a, x.id, y.id, 'co-caro', 0);
+
+  const p1 = a.history(x.id, { limit: 2 });
+  // Đây chính là chỗ phân trang theo OFFSET sẽ sai: thêm một ván ở đầu rồi
+  // xin trang sau là nhận lại đúng một hàng vừa thấy.
+  play(a, x.id, y.id, 'co-caro', 1);
+  const p2 = a.history(x.id, { limit: 2, before: p1.rows[1]!.id });
+
+  const ids = [...p1.rows, ...p2.rows].map((r) => r.id);
+  assert.equal(new Set(ids).size, ids.length, 'không hàng nào lặp lại');
+});
+
+test('lọc lịch sử theo bộ môn', () => {
+  const a = fresh();
+  const x = a.register('An', 'an@example.com', 'matkhaudai').user;
+  const y = a.register('Bình', 'binh@example.com', 'matkhaudai').user;
+  for (let i = 0; i < 4; i++) play(a, x.id, y.id, 'co-caro', 0);
+  for (let i = 0; i < 2; i++) play(a, x.id, y.id, 'co-ganh', 0);
+
+  const g = a.history(x.id, { gameId: 'co-ganh' });
+  assert.equal(g.total, 2, 'tổng cũng phải theo bộ lọc, không phải tổng tất cả');
+  assert.equal(g.rows.length, 2);
+  assert.ok(g.rows.every((r) => r.gameId === 'co-ganh'));
+  assert.equal(a.history(x.id).total, 6);
 });
 
 test('chuỗi tính từ ván gần nhất, và hoà cắt chuỗi', () => {
@@ -261,7 +312,7 @@ test('xoá tài khoản không xoá lịch sử của đối thủ', () => {
 
   a.deleteUser(x.id);
   assert.equal(a.user(x.id), null);
-  const h = a.history(y.id);
+  const h = a.history(y.id).rows;
   assert.equal(h.length, 1, 'ván vẫn còn trong lịch sử của người còn lại');
   assert.equal(h[0]!.opponent, 'An', 'tên chép sẵn nên vẫn đọc được');
   assert.equal(h[0]!.opponentId, null, 'nhưng không còn hồ sơ để mở');

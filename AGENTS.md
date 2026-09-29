@@ -139,7 +139,17 @@ Chọn ảnh mới chạy trên web. Bản gói cho iOS/Android cần `expo-imag
 chưa cài thì nút nói thẳng là chỉ chạy trên web, không mở một hộp thoại không
 bao giờ hiện ra.
 
+**Lịch sử trận phân trang theo con trỏ `before`, không theo số trang.** Danh
+sách mọc thêm ở đầu mỗi khi đánh xong một ván, nên `OFFSET 20` sẽ trả lại một
+hàng đã thấy ở trang trước. Có test dựng đúng tình huống đó: lấy trang một,
+đánh thêm một ván, rồi lấy trang hai.
+
 ## 9. Điều hướng trong app
+
+Khôi phục phiên đăng nhập nằm ở **lớp ngoài cùng** (`app/_layout.tsx`), không
+ở sảnh. Để trong sảnh thì mở thẳng `/me`, `/online/...`, hay chỉ bấm F5 khi
+đang ở trang cá nhân, sẽ không bao giờ chạy tới nó — màn hình trắng trơn,
+không báo lỗi gì để lần theo.
 
 Về sảnh thì dùng `backToLobby(router)` (`src/nav.ts`), **không** dùng
 `router.replace('/')`. `replace` từ một màn được `push` lên trên sảnh chỉ thay

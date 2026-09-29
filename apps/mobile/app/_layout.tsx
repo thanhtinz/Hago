@@ -4,16 +4,28 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useRestoreOnce } from '../src/net/api';
 import { A } from '../src/ui/theme';
 
 /**
  * Khung ngoài cùng.
  *
- * Hai việc: nạp chữ, và trải mặt gỗ cho toàn app. Nền gỗ nằm ở đây chứ không
- * ở từng màn, nên cuộn màn này sang màn kia thì mặt bàn không đổi — cảm giác
- * là đi trong cùng một căn phòng, không phải nhảy giữa mấy trang rời.
+ * Ba việc: nạp chữ, khôi phục phiên đăng nhập, và trải mặt gỗ cho toàn app.
+ * Nền gỗ nằm ở đây chứ không ở từng màn, nên cuộn màn này sang màn kia thì
+ * mặt bàn không đổi — cảm giác là đi trong cùng một căn phòng, không phải
+ * nhảy giữa mấy trang rời.
  */
 export default function RootLayout() {
+  /**
+   * Khôi phục phiên ở **lớp ngoài cùng**, không ở sảnh.
+   *
+   * Để trong sảnh thì mở thẳng một đường dẫn khác — `/me`, `/online/...`, hay
+   * chỉ là bấm F5 khi đang ở trang cá nhân — sẽ không bao giờ chạy tới nó.
+   * Hậu quả: `loading` treo mãi ở true và màn hình trắng trơn, không báo lỗi
+   * gì để lần theo.
+   */
+  useRestoreOnce();
+
   const [ready] = useFonts({
     Playfair: require('../assets/fonts/PlayfairDisplay-Bold.ttf'),
     PlayfairHeavy: require('../assets/fonts/PlayfairDisplay-ExtraBold.ttf'),

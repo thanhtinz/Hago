@@ -159,13 +159,30 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
         json(res, 200, {
           user: u,
           stats: ctx.accounts.stats(u.id),
-          history: ctx.accounts.history(u.id, 20),
+          history: ctx.accounts.history(u.id, { limit: 20 }),
           streak: ctx.accounts.streak(u.id),
           friends: ctx.accounts.friends(u.id).filter((f) => f.status === 'accepted').length,
           requests: ctx.accounts.friends(u.id).filter((f) => f.incoming).length,
         }),
         true
       );
+    }
+    /**
+     * Một trang lịch sử. `before` là `id` của hàng cuối trang trước.
+     *
+     * Lọc theo bộ môn đi cùng đường này chứ không lọc ở client: người đánh
+     * nghìn ván thì tải hết về rồi lọc trong app là tải nghìn hàng để hiện hai
+     * mươi.
+     */
+    if (p === '/api/me/history' && req.method === 'GET') {
+      const u = need();
+      const before = Number(url.searchParams.get('before'));
+      const page = ctx.accounts.history(u.id, {
+        limit: Number(url.searchParams.get('limit')) || 20,
+        ...(Number.isFinite(before) && before > 0 ? { before } : {}),
+        ...(url.searchParams.get('game') ? { gameId: url.searchParams.get('game')! } : {}),
+      });
+      return json(res, 200, page), true;
     }
     if (p === '/api/me/avatar' && req.method === 'POST') {
       const me0 = need();
@@ -206,7 +223,7 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
         json(res, 200, {
           user: publicUser(u),
           stats: ctx.accounts.stats(u.id),
-          history: ctx.accounts.history(u.id, 10),
+          history: ctx.accounts.history(u.id, { limit: 10 }),
           streak: ctx.accounts.streak(u.id),
           friend: viewer ? ctx.accounts.areFriends(viewer, u.id) : false,
           blocked: viewer ? ctx.accounts.isBlockedEither(viewer, u.id) : false,
