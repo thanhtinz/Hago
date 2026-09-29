@@ -21,6 +21,10 @@ export interface RoomInfo {
   rematch: Seat[];
   /** Ván thứ mấy trong phòng. */
   game: number;
+  /** Khoá mức thời gian, hoặc chuỗi rỗng nếu là mặc định của bộ môn. */
+  clock: string;
+  /** Phòng có khoá mật khẩu không. */
+  locked: boolean;
 }
 
 export interface StateMsg {
@@ -62,6 +66,8 @@ export interface ClientEvents {
   lobby: (online: number, rooms: number, queued: number) => void;
   /** Số việc đang chờ chính mình. */
   alerts: (friendRequests: number) => void;
+  /** Nối dây xong. `inRoom` là máy chủ đã nối lại ghế cũ hay chưa. */
+  welcome: (inRoom: boolean) => void;
 }
 
 /**
@@ -135,7 +141,9 @@ export class GameClient {
       }
       switch (m.t) {
         case 'welcome':
-          return; // id đã biết từ hồ sơ đăng nhập, không cần nhớ thêm
+          // id đã biết từ hồ sơ đăng nhập; thứ duy nhất cần ở đây là máy
+          // chủ có nối lại ghế cũ cho mình không.
+          return this.on.welcome?.(m.inRoom);
         case 'room':
           // Có phòng nghĩa là đã hết xếp hàng. Không tắt cờ `queued` ở đây thì
           // dải "đang tìm đối thủ" treo lại suốt ván sau khi ghép xong.
@@ -187,14 +195,14 @@ export class GameClient {
     else this.pending.push(m);
   }
 
-  create(gameId: string, config?: unknown): void {
-    this.raw({ t: 'create', gameId, ...(config === undefined ? {} : { config }) });
+  create(gameId: string, o: { clock?: string; pass?: string } = {}): void {
+    this.raw({ t: 'create', gameId, ...(o.clock ? { clock: o.clock } : {}), ...(o.pass ? { pass: o.pass } : {}) });
   }
-  join(code: string): void {
-    this.raw({ t: 'join', code: code.trim().toUpperCase() });
+  join(code: string, pass?: string): void {
+    this.raw({ t: 'join', code: code.trim().toUpperCase(), ...(pass ? { pass } : {}) });
   }
-  quick(gameId: string): void {
-    this.raw({ t: 'quick', gameId });
+  quick(gameId: string, clock?: string): void {
+    this.raw({ t: 'quick', gameId, ...(clock ? { clock } : {}) });
   }
   leave(): void {
     this.raw({ t: 'leave' });

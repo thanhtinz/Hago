@@ -9,7 +9,7 @@ import {
   type Outcome,
   type Seat,
 } from '@co/core';
-import type { SeatInfo, ServerMsg } from '@co/protocol';
+import { CLOCKS, type SeatInfo, type ServerMsg } from '@co/protocol';
 import { Chat, LOBBY, SYSTEM, dm, dmPair, isSystem, roomChannel, systemFor } from './chat.js';
 
 /**
@@ -98,6 +98,28 @@ interface Room {
   game: number;
   /** Số giây đã phát lần trước, để chỉ gửi khi con số thật sự đổi. */
   lastClock: number[];
+  /** Khoá mức thời gian, hoặc chuỗi rỗng nếu dùng mặc định của bộ môn. */
+  clockKey: string;
+  /**
+   * Mật khẩu phòng, hoặc null.
+   *
+   * Không có nó thì mã phòng năm ký tự là toàn bộ lớp bảo vệ, và không gian
+   * mã chỉ có 32 mũ 5 — đoán mò vài nghìn lần là chen được vào một ván
+   * riêng của hai người lạ.
+   */
+  pass: string | null;
+}
+
+/**
+ * Đồng hồ của một phòng.
+ *
+ * Khoá lạ thì rơi về mặc định của engine, không phải báo lỗi: một client
+ * cũ gửi lên một khoá đã bỏ thì vẫn phải chơi được.
+ */
+function clockOf(engine: AnyEngine, key: string | undefined): { spec: ClockSpec; key: string } {
+  const c = key ? CLOCKS[key] : undefined;
+  if (!c || key === undefined) return { spec: engine.spec.defaultClock, key: '' };
+  return { spec: { initialMs: c.initialMs, incrementMs: c.incrementMs, graceMs: c.graceMs }, key };
 }
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -286,7 +308,7 @@ export class Rooms {
   connect(id: string, name: string, send: (m: ServerMsg) => void): Player {
     const p: Player = { id, name, code: null, connected: true, offSince: null, watching: new Set(), channel: null, send };
     this.players.set(id, p);
-    send({ t: 'welcome', youId: id });
+    send({ t: 'welcome', youId: id, inRoom: false });
     this.announce(id);
     this.pushAlerts(id);
     return p;
@@ -389,7 +411,9 @@ export class Rooms {
     p.connected = true;
     p.offSince = null;
     p.send = send;
-    send({ t: 'welcome', youId: id });
+    // Ghế cũ còn đó hay không — client phải biết **trước khi** nó gửi lại
+    // ý định trong đường dẫn, nếu không F5 giữa ván là bỏ trận.
+    send({ t: 'welcome', youId: id, inRoom: p.code !== null && this.rooms.has(p.code) });
     this.announce(id);
     this.pushAlerts(id);
     if (p.code) {
@@ -402,24 +426,27 @@ export class Rooms {
     return p;
   }
 
-  create(id: string, gameId: string, config: unknown): void {
+  create(id: string, gameId: string, config: unknown, clockKey?: string, pass?: string): void {
     const p = this.players.get(id);
     if (!p) return;
     const engine = registry.get(gameId);
     if (!engine) return p.send({ t: 'error', code: 'NO_GAME', msg: `Chưa có bộ môn ${gameId}` });
     this.leave(id);
     const code = this.freshCode();
+    const clock = clockOf(engine, clockKey);
     const room: Room = {
       code,
       gameId,
       config: config ?? {},
       engine,
-      clockSpec: engine.spec.defaultClock,
+      clockSpec: clock.spec,
+      clockKey: clock.key,
+      pass: pass?.trim() ? pass.trim().slice(0, 32) : null,
       players: [p, null],
       seated: [p.id, undefined],
       seatedNames: [p.name, undefined],
       match: null,
-      clocks: [engine.spec.defaultClock.initialMs, engine.spec.defaultClock.initialMs],
+      clocks: [clock.spec.initialMs, clock.spec.initialMs],
       turnSince: null,
       // Phòng mở bằng mã là phòng riêng: mời ai vào là quyền của chủ phòng,
       // nên không thể tính điểm xếp hạng từ đó.
@@ -435,13 +462,18 @@ export class Rooms {
     this.pushLobby();
   }
 
-  join(id: string, code: string): void {
+  join(id: string, code: string, pass?: string): void {
     const p = this.players.get(id);
     if (!p) return;
     const room = this.rooms.get(code.toUpperCase());
     if (!room) return p.send({ t: 'error', code: 'NO_ROOM', msg: 'Không có phòng nào mang mã này' });
     if (room.players.every((x) => x !== null)) {
       return p.send({ t: 'error', code: 'ROOM_FULL', msg: 'Phòng đã đủ người' });
+    }
+    // Người được mời thẳng từ trong phòng thì không phải gõ mật khẩu — chủ
+    // phòng đã tự tay chọn họ rồi.
+    if (room.pass !== null && room.pass !== pass?.trim() && !room.seated.includes(p.id)) {
+      return p.send({ t: 'error', code: 'BAD_PASS', msg: 'Phòng này có mật khẩu, và mật khẩu chưa đúng' });
     }
     this.leave(id);
     const seat = room.players.findIndex((x) => x === null);
@@ -460,17 +492,21 @@ export class Rooms {
    * hạng thật, mà điểm thì phải có người chơi trước đã. Ghép theo thứ tự
    * trước, đo phân bố, rồi mới thêm điều kiện.
    */
-  quick(id: string, gameId: string): void {
+  quick(id: string, gameId: string, clockKey?: string): void {
     const p = this.players.get(id);
     if (!p) return;
     const engine = registry.get(gameId);
     if (!engine) return p.send({ t: 'error', code: 'NO_GAME', msg: `Chưa có bộ môn ${gameId}` });
     this.leave(id);
-    const q = this.queues.get(gameId) ?? [];
+    const clock = clockOf(engine, clockKey);
+    // Hàng chờ tách theo **bộ môn và mức thời gian**: người xếp hàng cờ
+    // chớp mà bị ghép vào ván hai mươi phút thì mức thời gian vô nghĩa.
+    const qKey = `${gameId}|${clock.key}`;
+    const q = this.queues.get(qKey) ?? [];
     const otherId = q.find((x) => x !== id && this.players.get(x)?.connected);
     if (otherId) {
       this.queues.set(
-        gameId,
+        qKey,
         q.filter((x) => x !== otherId),
       );
       const other = this.players.get(otherId)!;
@@ -480,12 +516,14 @@ export class Rooms {
         gameId,
         config: {},
         engine,
-        clockSpec: engine.spec.defaultClock,
+        clockSpec: clock.spec,
+        clockKey: clock.key,
+        pass: null,
         players: [other, p],
         seated: [other.id, p.id],
         seatedNames: [other.name, p.name],
         match: null,
-        clocks: [engine.spec.defaultClock.initialMs, engine.spec.defaultClock.initialMs],
+        clocks: [clock.spec.initialMs, clock.spec.initialMs],
         turnSince: null,
         rated: true,
         seed: revealSeed(this.serverSeed, code, '1'),
@@ -502,7 +540,7 @@ export class Rooms {
       return;
     }
     q.push(id);
-    this.queues.set(gameId, q);
+    this.queues.set(qKey, q);
     // Báo lại cho **cả hàng**: người vào trước cũng cần thấy hàng vừa dài ra.
     for (const other of q) {
       this.players.get(other)?.send({ t: 'queued', gameId, waiting: q.length });
@@ -681,7 +719,10 @@ export class Rooms {
       }
       from.send({ t: 'challenge-gone', id: cid, why: 'accepted' });
       to.send({ t: 'challenge-gone', id: cid, why: 'accepted' });
-      this.join(c.to, c.code);
+      // Máy chủ tự mở khoá hộ: chủ phòng đã tự tay chọn người này, bắt họ
+      // gõ thêm mật khẩu là bắt chủ phòng đọc mật khẩu cho đúng người mình
+      // vừa mời.
+      this.join(c.to, c.code, room.pass ?? undefined);
       return;
     }
 
@@ -700,6 +741,8 @@ export class Rooms {
       config: {},
       engine,
       clockSpec: engine.spec.defaultClock,
+      clockKey: '',
+      pass: null,
       players: [from, to],
       seated: [from.id, to.id],
       seatedNames: [from.name, to.name],
@@ -916,6 +959,8 @@ export class Rooms {
         started: room.match !== null,
         rematch: [...room.rematch],
         game: room.game,
+        clock: room.clockKey,
+        locked: room.pass !== null,
       });
     }
   }

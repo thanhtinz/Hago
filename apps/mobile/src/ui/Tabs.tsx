@@ -93,7 +93,10 @@ export function Chip({
     <Pressable
       onPress={onPress}
       accessibilityRole={role}
-      accessibilityState={role === 'tab' ? { selected: on } : undefined}
+      // Trạng thái chọn khai **luôn**, không chỉ khi role là tab: một chip
+      // lọc cũng là một công tắc, và trình đọc màn hình không đoán được nó
+      // đang bật hay tắt từ màu nền.
+      accessibilityState={{ selected: on }}
       accessibilityLabel={badge ? `${a11y ?? label}, ${badge} chưa đọc` : (a11y ?? label)}
       style={({ pressed }) => [
         {

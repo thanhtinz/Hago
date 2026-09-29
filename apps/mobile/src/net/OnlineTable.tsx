@@ -14,12 +14,14 @@ import { ganhTheme as GT } from '../games/co-ganh/theme';
 import { QuanBoard } from '../games/o-an-quan/Board';
 import { GroundBackdrop } from '../games/o-an-quan/Ground';
 import { faceOf } from '../games/faces';
+import { CLOCKS, clockLabel } from '@co/protocol';
 import { Face } from '../ui/Crest';
 import { CHAT_SPACE } from '../ui/FloatingChat';
 import { useMatchFeedback } from '../ui/feedback';
 import { Icon } from '../ui/Icon';
 import { MatchShell } from '../ui/MatchShell';
 import { Btn, Panel, Txt, press } from '../ui/parts';
+import { Field } from '../ui/Field';
 import { AppBackdrop } from '../ui/surface';
 import { A, R, S, lift } from '../ui/theme';
 import { api, type Friend } from './api';
@@ -47,9 +49,12 @@ export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => 
   // Gửi ý định **một lần**, ngay khi dây đã nối. Gửi trong lúc chưa nối thì
   // nó nằm hàng đợi; gửi lại mỗi lần render thì vào hàng chờ hai ba lần.
   useIntentOnce(() => {
-    if (intent.kind === 'quick') live.quick(intent.gameId);
-    else if (intent.kind === 'create') live.create(intent.gameId);
-    else if (intent.kind === 'join') live.join(intent.code);
+    // Vứt thế cờ đang giữ trước khi xin một phòng mới: nếu không, một lần
+    // vào mã bị từ chối sẽ vẫn vẽ ván cũ.
+    if (intent.kind !== 'none') live.forget();
+    if (intent.kind === 'quick') live.quick(intent.gameId, intent.clock);
+    else if (intent.kind === 'create') live.create(intent.gameId, { ...(intent.clock ? { clock: intent.clock } : {}), ...(intent.pass ? { pass: intent.pass } : {}) });
+    else if (intent.kind === 'join') live.join(intent.code, intent.pass);
   });
   const gameId = o.room?.gameId ?? (intent.kind === 'quick' || intent.kind === 'create' ? intent.gameId : '');
   const face = faceOf(gameId);
@@ -86,7 +91,7 @@ export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => 
   return (
     <MatchShell
       title={face?.nameVi ?? 'Ván cờ'}
-      headerRight={<CodePill code={o.room?.code ?? ''} rated={!!o.room?.rated} />}
+      headerRight={<CodePill code={o.room?.code ?? ''} rated={!!o.room?.rated} clock={o.room?.clock ?? ''} />}
       banner={<Banner o={o} />}
       onHome={leaveHome}
       homeConfirms
@@ -207,7 +212,7 @@ function Board({ gameId, o, onAim }: { gameId: string; o: Online; onAim: (t: str
 }
 
 /** Mã phòng luôn hiện: đó là thứ người chơi phải đọc cho bạn mình. */
-function CodePill({ code, rated }: { code: string; rated: boolean }) {
+function CodePill({ code, rated, clock }: { code: string; rated: boolean; clock: string }) {
   return (
     <View
       style={{
@@ -224,8 +229,11 @@ function CodePill({ code, rated }: { code: string; rated: boolean }) {
       <Txt size={13} weight="bold" color={A.gold} style={{ letterSpacing: 2 }}>
         {code}
       </Txt>
+      {/* Mức thời gian là thứ đáng nói hơn "xếp hạng hay không": người
+          chơi biết mình vừa bấm ghép cặp hay mở phòng, nhưng ba phút hay
+          hai mươi phút thì phải nhìn mới nhớ. */}
       <Txt size={11} weight="semi" color={A.inkFaint} style={{ letterSpacing: 0.5 }}>
-        {rated ? 'XẾP HẠNG' : 'PHÒNG RIÊNG'}
+        {clock ? (CLOCKS[clock]?.nameVi ?? 'Theo bộ môn') : rated ? 'Xếp hạng' : 'Phòng riêng'}
       </Txt>
     </View>
   );
@@ -278,8 +286,10 @@ const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, 
 /** Màn chờ: chưa đủ hai người nên chưa có ván. */
 function Waiting({ o, intent, onHome }: { o: Online; intent: Intent; onHome: () => void }) {
   const { width, height } = useWindowDimensions();
+  const [pass, setPass] = useState('');
   const code = o.room?.code;
   const waited = useElapsed(o.phase !== 'connecting' && !o.outcome);
+  const clockKey = o.room?.clock ?? (intent.kind === 'quick' || intent.kind === 'create' ? (intent.clock ?? '') : '');
   const title =
     o.phase === 'lost'
       ? 'Mất kết nối'
@@ -296,6 +306,16 @@ function Waiting({ o, intent, onHome }: { o: Online; intent: Intent; onHome: () 
         {title}
       </Txt>
       {code ? <CodeCard code={code} /> : null}
+
+      {/* Mức thời gian hiện **ngay từ lúc còn đang chờ**, lấy từ ý định nếu
+          chưa có phòng: người vừa chọn cờ chớp cần thấy mình đang xếp hàng
+          cờ chớp, không phải đợi tới khi vào bàn mới biết. */}
+      {clockKey ? (
+        <Txt size={12.5} weight="semi" color={A.inkSoft}>
+          {clockLabel(clockKey)}
+          {o.room?.locked ? ' · phòng có khoá' : ''}
+        </Txt>
+      ) : null}
       {/* Con số thật, nói thẳng. Hàng chờ ghép ngay khi có người thứ hai
           nên nó gần như luôn bằng 1 — in "1 người đang chờ" trong khi người
           đó chính là mình thì vô nghĩa. */}
@@ -313,6 +333,22 @@ function Waiting({ o, intent, onHome }: { o: Online; intent: Intent; onHome: () 
         <Txt size={12.5} color={A.sealLit} center>
           {o.error}
         </Txt>
+      ) : null}
+
+      {/* Phòng hoá ra có khoá: cho gõ mật khẩu ngay tại đây thay vì bắt
+          quay về sảnh, mở lại tấm nhập mã, và gõ lại cả mã lẫn mật khẩu. */}
+      {intent.kind === 'join' && o.error?.includes('mật khẩu') ? (
+        <View style={{ alignSelf: 'stretch', gap: S.sm }}>
+          <Field label="Mật khẩu phòng" value={pass} onChange={setPass} placeholder="Hỏi người mở phòng" />
+          <Btn
+            label="Thử lại"
+            disabled={!pass.trim()}
+            onPress={() => {
+              live.clearError();
+              live.join(intent.code, pass.trim());
+            }}
+          />
+        </View>
       ) : null}
       {code ? <InviteFriends /> : null}
       <Btn label="Về sảnh" tone="ghost" onPress={onHome} />

@@ -115,6 +115,9 @@ jobs:
       - name: Biên bản nước đi, và xem lại ván đã đánh
         run: node tools/bienban.mjs
 
+      - name: Mức thời gian, và phòng có mật khẩu
+        run: node tools/dongho.mjs
+
       # Ảnh chụp được giữ lại để soi tay. Nhiều lỗi giao diện của dự án này
       # chỉ lộ ra khi phóng to ảnh chụp, không lộ ra ở bất kỳ bài test nào.
       - uses: actions/upload-artifact@v4

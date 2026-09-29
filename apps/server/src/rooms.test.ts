@@ -809,3 +809,75 @@ test('nhịp thở của sảnh đổi khi có người vào ra và khi phòng m
   rooms.disconnect(b.id);
   assert.equal(a.last('lobby')!.online, 1);
 });
+
+test('mức thời gian: hàng chờ tách theo mức, và phòng dùng đúng đồng hồ', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  const c = client(rooms, 'c', 'Cường');
+
+  // a xếp hàng cờ chớp, b xếp hàng cờ dài: **không được** ghép với nhau.
+  rooms.quick(a.id, 'co-caro', 'chop');
+  rooms.quick(b.id, 'co-caro', 'dai');
+  assert.equal(a.last('room'), undefined, 'hai mức khác nhau thì không ghép');
+  assert.equal(rooms.stats().queued, 2);
+
+  // c xếp hàng cờ chớp: ghép với a.
+  rooms.quick(c.id, 'co-caro', 'chop');
+  const room = a.last('room')!;
+  assert.ok(room, 'cùng mức thì ghép ngay');
+  assert.equal(room.clock, 'chop');
+  // Ba phút, đúng như bảng mức thời gian.
+  assert.equal(a.last('state')!.seats[0]!.ms, 3 * 60_000);
+});
+
+test('mức lạ thì rơi về đồng hồ mặc định của bộ môn, không báo lỗi', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  // Client cũ gửi lên một khoá đã bỏ thì vẫn phải chơi được.
+  rooms.create(a.id, 'co-caro', {}, 'muc-khong-ton-tai');
+  assert.equal(a.last('room')!.clock, '');
+  rooms.join(b.id, a.last('room')!.code);
+  assert.equal(a.last('state')!.seats[0]!.ms, 5 * 60_000, 'đồng hồ mặc định của cờ caro');
+});
+
+test('phòng có mật khẩu: sai thì không vào, đúng thì vào', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes(), mayChallenge: () => true });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  const c = client(rooms, 'c', 'Cường');
+
+  rooms.create(a.id, 'co-caro', {}, 'nhanh', 'mo-cua');
+  const room = a.last('room')!;
+  assert.equal(room.locked, true);
+  assert.equal(room.clock, 'nhanh');
+
+  rooms.join(b.id, room.code);
+  assert.equal(b.last('error')!.code, 'BAD_PASS', 'không có mật khẩu thì không vào');
+  rooms.join(b.id, room.code, 'sai-be-bet');
+  assert.equal(b.last('error')!.code, 'BAD_PASS');
+  assert.equal(b.last('room'), undefined);
+
+  rooms.join(b.id, room.code, 'mo-cua');
+  assert.equal(b.last('room')!.code, room.code);
+  assert.equal(b.last('room')!.yourSeat, 1);
+
+  // Người thứ ba vẫn bị chặn bởi phòng đầy, không phải bởi mật khẩu.
+  rooms.join(c.id, room.code, 'mo-cua');
+  assert.equal(c.last('error')!.code, 'ROOM_FULL');
+});
+
+test('người được mời thẳng không phải gõ mật khẩu', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes(), mayChallenge: () => true });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+
+  rooms.create(a.id, 'co-caro', {}, 'chop', 'mo-cua');
+  rooms.invite(a.id, b.id);
+  rooms.answerChallenge(b.id, b.last('challenge')!.id, true);
+  // Chủ phòng đã tự tay chọn người này rồi; bắt gõ thêm mật khẩu là bắt
+  // chủ phòng đọc mật khẩu cho đúng người mình vừa mời.
+  assert.equal(b.last('room')!.code, a.last('room')!.code);
+  assert.equal(b.last('room')!.started, true);
+});

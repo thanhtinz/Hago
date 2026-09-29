@@ -39,17 +39,30 @@ export function parseClientMsg(raw: unknown): ClientMsg | null {
   switch (m.t) {
     case 'hello':
       return str(m.token, 512) ? { t: 'hello', token: m.token } : null;
-    case 'create':
+    case 'create': {
       // `config` là dữ liệu của engine, mỗi bộ môn một hình dạng — engine tự
       // kiểm lấy. Ở đây chỉ chặn thứ không phải object, vì mọi engine đều
       // đọc nó như object.
       if (!str(m.gameId, 64)) return null;
       if (m.config !== undefined && (typeof m.config !== 'object' || m.config === null)) return null;
-      return m.config === undefined ? { t: 'create', gameId: m.gameId } : { t: 'create', gameId: m.gameId, config: m.config };
+      if (m.clock !== undefined && !str(m.clock, 32)) return null;
+      if (m.pass !== undefined && !str(m.pass, 64)) return null;
+      return {
+        t: 'create',
+        gameId: m.gameId,
+        ...(m.config === undefined ? {} : { config: m.config }),
+        ...(m.clock === undefined ? {} : { clock: m.clock as string }),
+        ...(m.pass === undefined ? {} : { pass: m.pass as string }),
+      };
+    }
     case 'join':
-      return str(m.code, 16) ? { t: 'join', code: m.code } : null;
+      if (!str(m.code, 16)) return null;
+      if (m.pass !== undefined && !str(m.pass, 64)) return null;
+      return { t: 'join', code: m.code, ...(m.pass === undefined ? {} : { pass: m.pass as string }) };
     case 'quick':
-      return str(m.gameId, 64) ? { t: 'quick', gameId: m.gameId } : null;
+      if (!str(m.gameId, 64)) return null;
+      if (m.clock !== undefined && !str(m.clock, 32)) return null;
+      return { t: 'quick', gameId: m.gameId, ...(m.clock === undefined ? {} : { clock: m.clock as string }) };
     case 'leave':
       return { t: 'leave' };
     case 'rematch':

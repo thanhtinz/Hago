@@ -134,6 +134,10 @@ npm test        # tsc --build --force + toàn bộ test
   phải đoán cả phần ân hạn, và hai máy đoán ra hai con số khác nhau — con số
   người chơi nhìn và con số máy chủ dùng để xử hết giờ phải là một. Nhịp chỉ
   gửi khi **chữ số giây** đổi, không phải mỗi 250ms.
+- **Đừng gửi lại ý định trong đường dẫn khi máy chủ vừa nối lại ghế cũ.**
+  `quick` và `create` ở máy chủ đều rời phòng hiện tại trước, nên gửi lại
+  sau khi bấm F5 giữa ván **là tự bỏ trận**. `welcome` mang theo `inRoom`,
+  và cờ đó dùng **một lần** — màn nào mở ra trước thì tiêu thụ nó.
 - **Luật có một nước thì giao diện phải có chỗ bấm nước đó.** Lớp meta có
   `accept-draw` từ ngày đầu và máy chủ vẫn phát sự kiện cầu hoà xuống, nhưng
   màn chơi không đọc `events`, nên suốt thời gian đó mọi lời cầu hoà trong

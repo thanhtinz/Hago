@@ -11,8 +11,9 @@
  */
 
 export type Intent =
-  | { kind: 'quick'; gameId: string }
-  | { kind: 'create'; gameId: string }
-  | { kind: 'join'; code: string }
+  /** `clock` là khoá trong `CLOCKS`; bỏ trống là đồng hồ mặc định của bộ môn. */
+  | { kind: 'quick'; gameId: string; clock?: string }
+  | { kind: 'create'; gameId: string; clock?: string; pass?: string }
+  | { kind: 'join'; code: string; pass?: string }
   /** Ván đã có sẵn trên dây nối (lời rủ vừa được nhận lời) — không gửi gì thêm. */
   | { kind: 'none' };

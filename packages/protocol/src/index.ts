@@ -37,11 +37,22 @@ export type ClientMsg =
    * được tính là bỏ trận.
    */
   | { t: 'hello'; token: string }
-  /** Mở phòng riêng, trả về mã để mời bạn. Phòng riêng không tính xếp hạng. */
-  | { t: 'create'; gameId: string; config?: unknown }
-  | { t: 'join'; code: string }
-  /** Vào hàng chờ ghép cặp của một bộ môn. */
-  | { t: 'quick'; gameId: string }
+  /**
+   * Mở phòng riêng, trả về mã để mời bạn. Phòng riêng không tính xếp hạng.
+   *
+   * `clock` là một khoá trong `CLOCKS`; bỏ trống thì dùng đồng hồ mặc định
+   * của chính bộ môn. `pass` khoá phòng lại — không có nó thì bất kỳ ai
+   * đoán trúng năm ký tự là vào được ván riêng của hai người khác.
+   */
+  | { t: 'create'; gameId: string; config?: unknown; clock?: string; pass?: string }
+  | { t: 'join'; code: string; pass?: string }
+  /**
+   * Vào hàng chờ ghép cặp của một bộ môn **ở một mức thời gian**.
+   *
+   * Hàng chờ tách theo mức: người xếp hàng cờ chớp mà bị ghép vào ván hai
+   * mươi phút thì mức thời gian chẳng còn nghĩa gì.
+   */
+  | { t: 'quick'; gameId: string; clock?: string }
   | { t: 'leave' }
   /**
    * Xin đấu lại ván nữa với đúng người vừa đánh, trong đúng phòng đó.
@@ -82,7 +93,15 @@ export type ClientMsg =
   | { t: 'chat-read'; channel: string; lastId: number };
 
 export type ServerMsg =
-  | { t: 'welcome'; youId: string }
+  /**
+   * Nối dây xong.
+   *
+   * `inRoom` nói ngay **máy chủ có nối lại ghế cũ cho mình không**. Không
+   * có nó thì client phải đoán: nó gửi lại ý định trong đường dẫn (ghép
+   * cặp, mở phòng) ngay khi socket mở, mà `quick()` ở máy chủ thì rời
+   * phòng hiện tại trước — nên **bấm F5 giữa ván là bỏ trận**.
+   */
+  | { t: 'welcome'; youId: string; inRoom: boolean }
   /**
    * Nhịp thở của sảnh: bao nhiêu người đang mở app, bao nhiêu ván đang chạy.
    *
@@ -112,6 +131,10 @@ export type ServerMsg =
       rematch: Seat[];
       /** Ván thứ mấy trong phòng này, đếm từ 1. */
       game: number;
+      /** Khoá mức thời gian đang dùng, hoặc chuỗi rỗng nếu là mặc định của bộ môn. */
+      clock: string;
+      /** Phòng có khoá mật khẩu không. */
+      locked: boolean;
     }
   | {
       t: 'state';
@@ -165,5 +188,31 @@ export type ServerMsg =
   /** Số tin chưa đọc theo từng người, để chấm đỏ trong danh sách bạn. */
   | { t: 'chat-unread'; dms: Record<string, number>; system: number }
   | { t: 'error'; code: string; msg: string };
+
+/**
+ * Các mức thời gian.
+ *
+ * Bốn mức, đặt tên theo cách người chơi cờ Việt gọi. Con số chọn theo
+ * **ván thật kéo dài bao lâu**, không theo một thang đẹp: ba phút là đủ
+ * cho một ván caro nhanh, còn hai mươi phút là đủ cho một ván ô ăn quan
+ * nghĩ kỹ từng nước.
+ *
+ * `incrementMs` ở đây là **mức hoàn tối đa mỗi nước**, không phải Fischer
+ * chuẩn — xem ghi chú ở `ClockSpec`. Mức càng nhanh thì ân hạn càng phải
+ * rộng tay: ở ván ba phút, 300ms trễ mạng mỗi nước là mất nửa phút cả ván.
+ */
+export const CLOCKS: Record<string, { nameVi: string; initialMs: number; incrementMs: number; graceMs: number }> = {
+  chop: { nameVi: 'Cờ chớp', initialMs: 3 * 60_000, incrementMs: 2_000, graceMs: 1_200 },
+  nhanh: { nameVi: 'Cờ nhanh', initialMs: 5 * 60_000, incrementMs: 3_000, graceMs: 1_500 },
+  'tieu-chuan': { nameVi: 'Tiêu chuẩn', initialMs: 10 * 60_000, incrementMs: 5_000, graceMs: 1_500 },
+  dai: { nameVi: 'Cờ dài', initialMs: 20 * 60_000, incrementMs: 8_000, graceMs: 2_000 },
+};
+
+/** Mức thời gian đọc thành chữ ngắn, ví dụ "Cờ nhanh · 5 phút". */
+export function clockLabel(key: string): string {
+  const c = CLOCKS[key];
+  if (!c) return 'Theo bộ môn';
+  return `${c.nameVi} · ${Math.round(c.initialMs / 60_000)} phút`;
+}
 
 export const PORT = Number(process.env.PORT ?? 8787);

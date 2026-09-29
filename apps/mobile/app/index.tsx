@@ -4,7 +4,10 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { registry, type BotLevel } from '@co/core';
-import { load as remembered, recentRooms } from '../src/net/store';
+import { load as remembered, recentRooms, save } from '../src/net/store';
+import { CLOCKS } from '@co/protocol';
+import { Chip as ClockChip } from '../src/ui/Tabs';
+import { Field } from '../src/ui/Field';
 import { LEVEL_NAME } from '../src/ui/MatchShell';
 import '../src/catalog';
 import { FACES, faceOf, type GameFace } from '../src/games/faces';
@@ -60,6 +63,9 @@ export default function Lobby() {
   useEffect(() => {
     void load();
   }, [load]);
+  // Đã tới sảnh thì cờ "vừa nối lại ghế cũ" hết tác dụng: từ đây trở đi mọi
+  // thứ người dùng bấm là một lựa chọn mới.
+  useEffect(() => live.seen(), [s.restored]);
   // Chấm đỏ lấy từ **dây nối**, không phải từ lần gọi API lúc mở màn: ai gửi
   // lời mời trong lúc mình đang ngồi ở sảnh thì nó phải nhúc nhích ngay.
   const requests = s.friendRequests || (profile?.requests ?? 0);
@@ -207,19 +213,24 @@ export default function Lobby() {
       {sheet === 'join' ? (
         <CodeSheet
           onClose={() => setSheet(null)}
-          onGo={(code) => {
+          onGo={(code, pass) => {
             setSheet(null);
-            router.push(`/online/join?code=${code}`);
+            const q = new URLSearchParams({ code });
+            if (pass) q.set('pass', pass);
+            router.push(`/online/join?${q.toString()}`);
           }}
         />
       ) : sheet ? (
         <PickGameSheet
           mode={sheet}
           onClose={() => setSheet(null)}
-          onPick={(id) => {
+          onPick={(id, o) => {
             const m = sheet;
             setSheet(null);
-            router.push(`/online/${m}?game=${id}`);
+            const q = new URLSearchParams({ game: id });
+            if (o.clock) q.set('clock', o.clock);
+            if (m === 'create' && o.pass.trim()) q.set('pass', o.pass.trim());
+            router.push(`/online/${m}?${q.toString()}`);
           }}
         />
       ) : null}
@@ -318,18 +329,56 @@ function Mode({ icon, label, onPress, badge = 0 }: { icon: IconName; label: stri
  * để máy chủ trả `NO_GAME` là bắt người chơi đi một vòng mới biết mình không
  * chơi được.
  */
-function PickGameSheet({ mode, onClose, onPick }: { mode: 'quick' | 'create'; onClose: () => void; onPick: (id: string) => void }) {
+function PickGameSheet({
+  mode,
+  onClose,
+  onPick,
+}: {
+  mode: 'quick' | 'create';
+  onClose: () => void;
+  onPick: (id: string, o: { clock: string; pass: string }) => void;
+}) {
   const open = FACES.filter((f) => READY.has(f.id));
+  // Mức thời gian nhớ qua lần mở sau: người quen cờ chớp không phải chọn
+  // lại mỗi lần mở app.
+  const [clock, setClock] = useState<string>(() => remembered<string>('muc-thoi-gian', ''));
+  const [pass, setPass] = useState('');
+  const pick = (id: string) => {
+    save('muc-thoi-gian', clock);
+    onPick(id, { clock, pass });
+  };
   return (
     <Sheet
       title={mode === 'quick' ? 'Ghép cặp bộ môn nào?' : 'Mở phòng bộ môn nào?'}
-      sub={mode === 'quick' ? 'Vào hàng chờ, có người là vào ván ngay' : 'Nhận một mã năm ký tự để mời bạn'}
+      sub={
+        mode === 'quick'
+          ? 'Hàng chờ tách theo mức thời gian — chỉ ghép với người chọn cùng mức'
+          : 'Nhận một mã năm ký tự để mời bạn'
+      }
       onClose={onClose}
+      maxHeight={430}
     >
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingBottom: S.xs }}>
+        <ClockChip label="Theo bộ môn" a11y="Mức Theo bộ môn" on={clock === ''} onPress={() => setClock('')} />
+        {Object.entries(CLOCKS).map(([k, c]) => (
+          <ClockChip
+            key={k}
+            label={`${c.nameVi} ${Math.round(c.initialMs / 60_000)} phút`}
+            a11y={`Mức ${c.nameVi}`}
+            on={clock === k}
+            onPress={() => setClock(k)}
+          />
+        ))}
+      </View>
+      {mode === 'create' ? (
+        <View style={{ paddingBottom: S.xs }}>
+          <Field label="Mật khẩu phòng (không bắt buộc)" value={pass} onChange={setPass} placeholder="Bỏ trống thì ai có mã cũng vào được" />
+        </View>
+      ) : null}
       {open.map((f) => (
         <Pressable
           key={f.id}
-          onPress={() => onPick(f.id)}
+          onPress={() => pick(f.id)}
           accessibilityRole="button"
           accessibilityLabel={f.nameVi}
           style={({ pressed }) => [{ borderRadius: R.md }, press({ pressed })]}
@@ -357,8 +406,9 @@ function PickGameSheet({ mode, onClose, onPick }: { mode: 'quick' | 'create'; on
 }
 
 /** Nhập mã phòng bạn đọc cho. */
-function CodeSheet({ onClose, onGo }: { onClose: () => void; onGo: (code: string) => void }) {
+function CodeSheet({ onClose, onGo }: { onClose: () => void; onGo: (code: string, pass: string) => void }) {
   const [code, setCode] = useState('');
+  const [pass, setPass] = useState('');
   const ok = code.trim().length === 5;
   // Đọc một lần lúc mở tấm: danh sách chỉ đổi khi vào một phòng mới, mà
   // lúc đó tấm này đã đóng rồi.
@@ -385,7 +435,10 @@ function CodeSheet({ onClose, onGo }: { onClose: () => void; onGo: (code: string
           paddingVertical: S.md,
         }}
       />
-      <Btn label="Vào phòng" disabled={!ok} onPress={() => onGo(code.trim())} />
+      {/* Ô mật khẩu để sẵn ở đây, không bắt người ta vào tới nơi rồi mới
+          bị hỏi. Phòng không khoá thì bỏ trống. */}
+      <Field label="Mật khẩu (nếu phòng có khoá)" value={pass} onChange={setPass} placeholder="Bỏ trống nếu phòng không khoá" />
+      <Btn label="Vào phòng" disabled={!ok} onPress={() => onGo(code.trim(), pass.trim())} />
 
       {/* Mã vừa vào gần đây. Phòng bị xoá khi cả hai người rời, nên phần
           lớn mã cũ sẽ báo "không có phòng nào mang mã này" — vì thế hàng
@@ -401,7 +454,7 @@ function CodeSheet({ onClose, onGo }: { onClose: () => void; onGo: (code: string
                 key={r.code}
                 accessibilityRole="button"
                 accessibilityLabel={`Vào lại mã ${r.code}`}
-                onPress={() => onGo(r.code)}
+                onPress={() => onGo(r.code, pass.trim())}
                 style={({ pressed }) => [
                   {
                     paddingHorizontal: S.md,

@@ -46,6 +46,21 @@ export interface LiveState {
   lobby: { online: number; rooms: number; queued: number } | null;
   /** Số lời mời kết bạn đang chờ mình trả lời. */
   friendRequests: number;
+  /**
+   * Máy chủ vừa nối lại ghế cũ, và **chưa màn nào tiêu thụ tin đó**.
+   * `null` là chưa nối dây xong.
+   *
+   * Cờ này giải đúng một tình huống: bấm F5 khi đang ở giữa ván. Lúc đó
+   * đường dẫn vẫn là `/online/quick?...`, và màn chơi sẽ gửi lại ý định
+   * "vào hàng chờ" ngay khi socket mở — mà vào hàng chờ là rời phòng hiện
+   * tại, và rời phòng giữa ván là bỏ trận.
+   *
+   * Nó là cờ **dùng một lần**: màn nào mở ra trước thì tiêu thụ nó. Vào
+   * thẳng bàn cờ thì bàn cờ tiêu thụ và bỏ qua ý định; còn nếu người dùng
+   * đã ghé qua sảnh thì sảnh tiêu thụ — đã ghé sảnh nghĩa là họ đang tự
+   * chọn việc tiếp theo, và lựa chọn đó phải được nghe.
+   */
+  restored: boolean | null;
 }
 
 const EMPTY: LiveState = {
@@ -62,6 +77,7 @@ const EMPTY: LiveState = {
   unreadSystem: 0,
   lobby: null,
   friendRequests: 0,
+  restored: null,
 };
 
 let state: LiveState = EMPTY;
@@ -83,6 +99,8 @@ function open(t: string): void {
   client = new GameClient(t, {
     phase: (phase) => set({ phase }),
     room: (room) => {
+      // Rời phòng là hết "ghế cũ": lần vào ván sau phải gửi lại ý định.
+      if (!room) set({ restored: false });
       // Đổi phòng thì vứt `view` cũ: `room` và `state` là hai thông điệp rời
       // nhau, nên có khoảnh khắc phòng đã là bộ môn khác mà view vẫn là ván cũ.
       // Đấu lại cũng vậy: cùng mã phòng nhưng khác ván, và thế cờ cũ còn
@@ -116,6 +134,7 @@ function open(t: string): void {
     chatUnread: (dms, system) => set({ unread: dms, unreadSystem: system }),
     // Nhịp đồng hồ chỉ đụng vào `ms` của từng ghế, không đụng thế cờ. Gộp
     // vào `st` để màn chơi đọc đồng hồ ở đúng một chỗ như mọi thứ khác.
+    welcome: (inRoom) => set({ restored: inRoom }),
     lobby: (online, rooms, queued) => set({ lobby: { online, rooms, queued } }),
     alerts: (friendRequests) => set({ friendRequests }),
     clock: (ms) => {
@@ -175,9 +194,9 @@ export function useWatch(ids: string[]): void {
 }
 
 export const live = {
-  quick: (gameId: string) => client?.quick(gameId),
-  create: (gameId: string) => client?.create(gameId),
-  join: (code: string) => client?.join(code),
+  quick: (gameId: string, clock?: string) => client?.quick(gameId, clock),
+  create: (gameId: string, o: { clock?: string; pass?: string } = {}) => client?.create(gameId, o),
+  join: (code: string, pass?: string) => client?.join(code, pass),
   leave: () => client?.leave(),
   rematch: (want: boolean) => client?.rematch(want),
   act: (action: unknown) => client?.act(action),
@@ -196,6 +215,24 @@ export const live = {
   sendChat: (channel: string, body: string) => client?.sendChat(channel, body),
   moreChat: (channel: string, before: number) => client?.moreChat(channel, before),
   readChat: (channel: string, lastId: number) => client?.readChat(channel, lastId),
+  /**
+   * Quên thế cờ đang giữ.
+   *
+   * Gọi ngay trước khi gửi một ý định mới. Không gọi thì một lần vào mã bị
+   * từ chối (sai mật khẩu, phòng đầy) sẽ **vẫn vẽ ván cũ**: máy chủ trả lỗi
+   * chứ không gửi `left`, nên `st` của ván trước còn nguyên và màn chơi
+   * tưởng mình đang ở trong đó.
+   */
+  forget: () => set({ room: null, st: null, waiting: null, error: null }),
+  /**
+   * Tiêu thụ cờ "vừa nối lại ghế cũ".
+   *
+   * Sảnh gọi khi mở ra: người dùng đã ở sảnh thì mọi thứ họ bấm sau đó là
+   * một lựa chọn mới, không phải dư âm của lần tải trang.
+   */
+  seen: () => {
+    if (state.restored) set({ restored: false });
+  },
   clearMatched: () => set({ justMatched: null }),
   clearError: () => set({ error: null }),
 };
@@ -286,11 +323,20 @@ export function useMatch(): Online {
 /** Dùng cho màn chờ: đã gửi ý định vào phòng chưa. */
 export function useIntentOnce(run: () => void): void {
   const [done, setDone] = useState(false);
-  const { phase } = useLive();
+  const { phase, restored } = useLive();
   useEffect(() => {
     if (done || phase === 'off' || phase === 'connecting') return;
-    run();
+    // Chờ máy chủ trả lời đã nối lại ghế cũ hay chưa. `'ready'` chỉ nghĩa
+    // là socket đã mở, và nó mở **trước** khi máy chủ kịp nói mình đang ở
+    // trong phòng nào.
+    if (restored === null) return;
     setDone(true);
+    if (restored) live.seen();
+    // Đã có ghế sẵn thì đừng gửi lại ý định trong đường dẫn: `quick` và
+    // `create` ở máy chủ đều rời phòng hiện tại trước, nên gửi lại là tự
+    // bỏ trận ván đang đánh dở.
+    if (restored) return;
+    run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, done]);
+  }, [phase, restored, done]);
 }
