@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { registry, type BotLevel } from '@co/core';
 import { load as remembered, recentRooms, save } from '../src/net/store';
-import { CLOCKS, type LiveRoom } from '@co/protocol';
+import { CLOCKS, type LiveRoom, type OpenRoom } from '@co/protocol';
 import { Chip as ClockChip } from '../src/ui/Tabs';
 import { Field } from '../src/ui/Field';
 import { LEVEL_NAME } from '../src/ui/MatchShell';
@@ -169,6 +169,11 @@ export default function Lobby() {
           </Txt>
         </View>
 
+        <OpenBoard
+          rooms={s.openRooms}
+          onJoin={(code) => online(() => router.push(`/online/join?${new URLSearchParams({ code }).toString()}`))}
+        />
+
         <LiveBoard rooms={s.liveRooms} onOpen={(code) => online(() => router.push(`/theo-doi/${code}`))} />
 
         <View
@@ -249,6 +254,88 @@ export default function Lobby() {
  * sai, và nói sai về chuyện có ai ở đây không là kiểu nói sai tệ nhất với
  * một sảnh game.
  */
+/**
+ * Những phòng đang chờ người thứ hai.
+ *
+ * Trước đây mở phòng xong chỉ còn cách đọc mã qua điện thoại: người lạ
+ * không có đường nào tìm ra một ván đang thiếu đúng một người, nên "tạo
+ * phòng" trên thực tế chỉ dùng được với bạn bè. Danh sách này là cửa cho
+ * người lạ.
+ */
+function OpenBoard({ rooms, onJoin }: { rooms: OpenRoom[]; onJoin: (code: string) => void }) {
+  if (!rooms.length) return null;
+  return (
+    <View style={{ paddingTop: S.xxl, gap: S.sm }}>
+      <View style={{ alignItems: 'center', gap: 2, paddingBottom: S.xs }}>
+        <Txt size={20} weight="display" color={A.ink}>
+          Phòng đang chờ
+        </Txt>
+        <Txt size={11.5} color={A.inkFaint}>
+          {rooms.length === 1 ? 'Một người đang chờ đối thủ' : `${rooms.length} người đang chờ đối thủ`}
+        </Txt>
+      </View>
+      <View style={{ paddingHorizontal: S.lg, gap: S.sm }}>
+        {rooms.slice(0, 6).map((r) => (
+          <OpenRow key={r.code} room={r} onPress={() => onJoin(r.code)} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function OpenRow({ room, onPress }: { room: OpenRoom; onPress: () => void }) {
+  const face = faceOf(room.gameId);
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Vào phòng của ${room.host}`}
+      style={({ pressed }) => [
+        {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: S.md,
+          padding: S.md,
+          borderRadius: R.md,
+          backgroundColor: A.panel,
+          borderWidth: 1,
+          borderColor: A.goldDeep,
+        },
+        press({ pressed }),
+      ]}
+    >
+      <View style={{ flex: 1, gap: 3 }}>
+        <Txt size={13.5} weight="semi" color={A.ink} numberOfLines={1}>
+          {room.host}
+        </Txt>
+        <Txt size={11} color={A.inkFaint}>
+          {face?.nameVi ?? room.gameId} · {room.clock ? (CLOCKS[room.clock]?.nameVi ?? 'Theo bộ môn') : 'Theo bộ môn'} ·{' '}
+          {waited(room.waitedMs)}
+        </Txt>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+        <Icon name="door" size={15} color={A.gold} />
+        <Txt size={12} weight="semi" color={A.gold}>
+          Vào
+        </Txt>
+      </View>
+    </Pressable>
+  );
+}
+
+/**
+ * Đã chờ bao lâu, nói theo cách người ta nói.
+ *
+ * "Vừa mở" chứ không phải "0 phút": một phòng mở được ba giây mà ghi 0
+ * phút thì đọc như một phòng hỏng.
+ */
+function waited(ms: number): string {
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return 'vừa mở';
+  if (m < 60) return `chờ ${m} phút`;
+  return `chờ ${Math.floor(m / 60)} giờ`;
+}
+
 /**
  * Những ván đang đánh, xem được ngay.
  *

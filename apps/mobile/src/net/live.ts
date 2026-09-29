@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import type { Outcome, Seat, Turn } from '@co/core';
-import type { ChatLine, LiveRoom, SeatInfo } from '@co/protocol';
+import type { ChatLine, LiveRoom, OpenRoom, SeatInfo } from '@co/protocol';
 import { token, useAuth } from './api';
 import { GameClient, type Phase, type RoomInfo, type StateMsg } from './client';
 
@@ -46,6 +46,8 @@ export interface LiveState {
   lobby: { online: number; rooms: number; queued: number } | null;
   /** Những ván đang đánh mà ai cũng xem được. */
   liveRooms: LiveRoom[];
+  /** Những phòng đang chờ người thứ hai. */
+  openRooms: OpenRoom[];
   /** Số lời mời kết bạn đang chờ mình trả lời. */
   friendRequests: number;
   /**
@@ -79,6 +81,7 @@ const EMPTY: LiveState = {
   unreadSystem: 0,
   lobby: null,
   liveRooms: [],
+  openRooms: [],
   friendRequests: 0,
   restored: null,
 };
@@ -138,7 +141,7 @@ function open(t: string): void {
     // Nhịp đồng hồ chỉ đụng vào `ms` của từng ghế, không đụng thế cờ. Gộp
     // vào `st` để màn chơi đọc đồng hồ ở đúng một chỗ như mọi thứ khác.
     welcome: (inRoom) => set({ restored: inRoom }),
-    lobby: (online, rooms, queued, liveRooms) => set({ lobby: { online, rooms, queued }, liveRooms }),
+    lobby: (online, rooms, queued, liveRooms, openRooms) => set({ lobby: { online, rooms, queued }, liveRooms, openRooms }),
     alerts: (friendRequests) => set({ friendRequests }),
     clock: (ms) => {
       const st = state.st;

@@ -1018,3 +1018,47 @@ test('rớt mạng là thôi xem, không giữ chỗ như giữ ghế', () => {
   rooms.disconnect(c.id);
   assert.equal(a.last('room')!.fans, 0);
 });
+
+// ---- phòng đang chờ ------------------------------------------------------
+
+test('sảnh liệt kê phòng đang chờ người thứ hai, và bỏ khi đủ người', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+
+  assert.equal(b.last('lobby')!.open.length, 0);
+  rooms.create(a.id, 'co-caro', {}, 'chop');
+  const code = a.last('room')!.code;
+
+  const open = b.last('lobby')!.open;
+  assert.equal(open.length, 1);
+  assert.equal(open[0]!.code, code);
+  assert.equal(open[0]!.host, 'An');
+  assert.equal(open[0]!.clock, 'chop', 'người vào phải biết mình sắp đánh mức thời gian nào');
+
+  rooms.join(b.id, code);
+  assert.equal(b.last('lobby')!.open.length, 0, 'đủ người thì không còn là phòng đang chờ');
+});
+
+test('phòng có khoá không lên danh sách chờ', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  rooms.create(a.id, 'co-caro', {}, undefined, 'bimat');
+  assert.equal(
+    b.last('lobby')!.open.length,
+    0,
+    'khoá cửa là chờ một người cụ thể, không phải chờ ai đi ngang',
+  );
+});
+
+test('chủ phòng rớt mạng thì phòng rời danh sách chờ', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  rooms.create(a.id, 'co-caro', {});
+  assert.equal(b.last('lobby')!.open.length, 1);
+
+  rooms.disconnect(a.id);
+  assert.equal(b.last('lobby')!.open.length, 0, 'không mời người ta ngồi đối diện một cái ghế trống');
+});

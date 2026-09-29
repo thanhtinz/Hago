@@ -1,4 +1,4 @@
-import type { ChatLine, ClientMsg, LiveRoom, SeatInfo, ServerMsg } from '@co/protocol';
+import type { ChatLine, ClientMsg, LiveRoom, OpenRoom, SeatInfo, ServerMsg } from '@co/protocol';
 import type { Outcome, Seat, Turn } from '@co/core';
 
 /**
@@ -65,7 +65,7 @@ export interface ClientEvents {
   /** Nhịp đồng hồ từ máy chủ, một giây một lần trong lúc ván chạy. */
   clock: (ms: number[]) => void;
   /** Nhịp thở của sảnh: số người đang nối, số ván đang chạy, số người xếp hàng. */
-  lobby: (online: number, rooms: number, queued: number, live: LiveRoom[]) => void;
+  lobby: (online: number, rooms: number, queued: number, live: LiveRoom[], open: OpenRoom[]) => void;
   /** Số việc đang chờ chính mình. */
   alerts: (friendRequests: number) => void;
   /** Nối dây xong. `inRoom` là máy chủ đã nối lại ghế cũ hay chưa. */
@@ -161,7 +161,10 @@ export class GameClient {
         case 'clock':
           return this.on.clock?.(m.ms);
         case 'lobby':
-          return this.on.lobby?.(m.online, m.rooms, m.queued, m.live);
+          // `?? []` không thừa: máy chủ cũ hơn app **một bản** thì hai
+          // danh sách này vắng mặt, và một màn sảnh trắng vì `undefined.length`
+          // là cách tệ nhất để nói "máy chủ chưa cập nhật".
+          return this.on.lobby?.(m.online, m.rooms, m.queued, m.live ?? [], m.open ?? []);
         case 'alerts':
           return this.on.alerts?.(m.friendRequests);
         case 'challenge':

@@ -41,6 +41,23 @@ export interface LiveRoom {
   rated: boolean;
 }
 
+/**
+ * Một phòng đang chờ người thứ hai, như sảnh nhìn thấy nó.
+ *
+ * Phòng có mật khẩu không nằm ở đây. Chủ phòng khoá cửa là họ đã nói rõ
+ * họ chờ **một người cụ thể**, không phải chờ bất kỳ ai đi ngang.
+ */
+export interface OpenRoom {
+  code: string;
+  gameId: string;
+  /** Tên người đang ngồi chờ. */
+  host: string;
+  /** Khoá mức thời gian, hoặc chuỗi rỗng nếu là mặc định của bộ môn. */
+  clock: string;
+  /** Mở bao lâu rồi, tính bằng mili giây. */
+  waitedMs: number;
+}
+
 export type ClientMsg =
   /**
    * Mở phiên bằng **token đăng nhập**.
@@ -149,6 +166,14 @@ export type ServerMsg =
        * mở app mỗi lần có ai đó đặt một quân.
        */
       live: LiveRoom[];
+      /**
+       * Phòng đang chờ người thứ hai, ai vào cũng được.
+       *
+       * Không có danh sách này thì mở phòng xong chỉ còn cách đọc mã qua
+       * điện thoại: người lạ không có đường nào tìm ra một ván đang thiếu
+       * đúng một người.
+       */
+      open: OpenRoom[];
     }
   /**
    * Số việc đang chờ chính người này xử lý: lời mời kết bạn đến.

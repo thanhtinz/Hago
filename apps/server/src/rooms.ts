@@ -9,7 +9,7 @@ import {
   type Outcome,
   type Seat,
 } from '@co/core';
-import { CLOCKS, type LiveRoom, type SeatInfo, type ServerMsg } from '@co/protocol';
+import { CLOCKS, type LiveRoom, type OpenRoom, type SeatInfo, type ServerMsg } from '@co/protocol';
 import { Chat, LOBBY, SYSTEM, dm, dmPair, isSystem, roomChannel, systemFor } from './chat.js';
 
 /**
@@ -118,6 +118,8 @@ interface Room {
   pass: string | null;
   /** Id những người đang xem ván này mà không ngồi ghế nào. */
   fans: Set<string>;
+  /** Mốc mở phòng, để sảnh nói được phòng này đã chờ bao lâu. */
+  openedAt: number;
 }
 
 /**
@@ -192,6 +194,17 @@ export class Rooms {
   private nextChallenge = 1;
   /** Ván đã báo kết thúc rồi, để không cộng thành tích hai lần. */
   private readonly finished = new Set<string>();
+
+  /**
+   * Đồng hồ tường, gom về một chỗ.
+   *
+   * Mọi đường có `now` đi vào từ ngoài vẫn dùng `now` của nó — đó là thứ
+   * cho phép test tua mười lăm phút trong một phần nghìn giây. Hàm này chỉ
+   * dành cho những mốc không ai truyền vào, như lúc mở phòng.
+   */
+  private now(): number {
+    return Date.now();
+  }
 
   constructor(o: RoomsOptions = {}) {
     this.serverSeed = o.serverSeed ?? `s${Date.now()}`;
@@ -361,8 +374,9 @@ export class Rooms {
   private pushLobby(): void {
     const s = this.stats();
     const live = this.liveRooms();
+    const open = this.openRooms(this.now());
     for (const p of this.players.values()) {
-      if (p.connected) p.send({ t: 'lobby', online: s.online, rooms: s.rooms, queued: s.queued, live });
+      if (p.connected) p.send({ t: 'lobby', online: s.online, rooms: s.rooms, queued: s.queued, live, open });
     }
   }
 
@@ -472,6 +486,7 @@ export class Rooms {
       seed: revealSeed(this.serverSeed, code, '1'),
       rematch: new Set(),
       fans: new Set(),
+      openedAt: this.now(),
       game: 1,
       lastClock: [-1, -1],
     };
@@ -502,6 +517,10 @@ export class Rooms {
     p.code = room.code;
     this.broadcastRoom(room);
     this.startIfReady(room);
+    // Vào phòng là đổi **cả hai** danh sách ở sảnh cùng lúc: phòng này rời
+    // mục "đang chờ" và, nếu đã đủ người, nhảy sang mục "đang đánh". Thiếu
+    // dòng này thì cả hai mục đứng sai cho tới lúc tình cờ có ai vào ra.
+    this.pushLobby();
   }
 
   /**
@@ -551,6 +570,7 @@ export class Rooms {
         seed: revealSeed(this.serverSeed, code, '1'),
         rematch: new Set(),
       fans: new Set(),
+      openedAt: this.now(),
         game: 1,
         lastClock: [-1, -1],
       };
@@ -693,6 +713,32 @@ export class Rooms {
    * một sảnh đông thì ba mươi dòng đã dài hơn màn hình, và danh sách này
    * đi kèm **mọi** nhịp thở của sảnh.
    */
+  /**
+   * Phòng đang chờ người thứ hai, cho sảnh.
+   *
+   * Phòng có khoá không vào danh sách: chủ phòng khoá cửa là họ đã nói rõ
+   * họ chờ một người cụ thể, không phải chờ ai đi ngang. Phòng mà chủ đã
+   * rời mạng cũng không: mời người ta vào ngồi đối diện một cái ghế trống
+   * thì tệ hơn là không mời.
+   */
+  private openRooms(now: number): OpenRoom[] {
+    const out: OpenRoom[] = [];
+    for (const room of this.rooms.values()) {
+      if (room.match || room.pass !== null) continue;
+      const host = room.players.find((x) => x?.connected);
+      if (!host || room.players.every((x) => x !== null)) continue;
+      out.push({
+        code: room.code,
+        gameId: room.gameId,
+        host: host.name,
+        clock: room.clockKey,
+        waitedMs: Math.max(0, now - room.openedAt),
+      });
+      if (out.length >= 30) break;
+    }
+    return out;
+  }
+
   private liveRooms(): LiveRoom[] {
     const out: LiveRoom[] = [];
     for (const room of this.rooms.values()) {
@@ -871,6 +917,7 @@ export class Rooms {
       seed: revealSeed(this.serverSeed, code, '1'),
       rematch: new Set(),
       fans: new Set(),
+      openedAt: this.now(),
       game: 1,
       lastClock: [-1, -1],
     };

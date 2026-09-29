@@ -304,3 +304,16 @@ bài thì không, và người **đang có ván của mình** thì không — đ
 `Player.fanOf` tách hẳn khỏi `Player.code`. Dùng chung một trường thì khán
 giả rời chỗ sẽ chạy qua `leave()`, mà `leave()` xoá lời xin đấu lại và tuyên
 bố bỏ trận. Một người ngồi xem không có ghế để bỏ.
+
+## 12. Sảnh phải nói phòng nào đang chờ
+
+`join()` phải gọi `pushLobby()` ở cuối. Vào phòng là đổi **cả hai** danh
+sách cùng lúc: phòng đó rời mục "đang chờ" và, nếu đã đủ người, nhảy sang
+mục "đang đánh". Thiếu dòng đó thì cả hai mục đứng sai cho tới lúc tình cờ
+có ai vào hoặc ra — và bài test đọc thông điệp `lobby` cuối cùng sẽ thấy
+một ảnh chụp từ trước lúc join.
+
+Mọi trường mới trong `lobby` phải đọc bằng `?? []` ở client. Máy chủ cũ hơn
+app một bản thì trường đó vắng mặt, và một màn sảnh trắng vì
+`undefined.length` là cách tệ nhất để nói "máy chủ chưa cập nhật". Đã dính
+đúng lỗi này ngay lần chạy đầu của `phong-cho.mjs`.
