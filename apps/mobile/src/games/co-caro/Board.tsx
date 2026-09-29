@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import type { CaroView } from '@co/game-co-caro';
@@ -37,11 +37,40 @@ export interface CaroBoardProps {
   disabled?: boolean;
   /** Ô đang được gợi ý, vẽ bằng nét chì mờ như người ta ướm thử. */
   hint?: { r: number; c: number } | null;
+  /**
+   * Chạm lần một ướm quân, chạm lại đúng ô đó mới đặt thật.
+   *
+   * Bàn 15×15 trên điện thoại cho ra ô **khoảng 23 điểm**, bằng một nửa
+   * mức chạm tối thiểu, và tám ô hàng xóm dính sát bốn phía nên `hitSlop`
+   * không cứu được gì — nới ra là ăn sang ô bên cạnh. Cách duy nhất còn
+   * lại là để người chơi nhìn thấy mình sắp đặt vào đâu trước khi đặt, y
+   * như mọi app cờ vây làm với bàn 19×19.
+   *
+   * Bật cho ván với người thật, nơi máy chủ là trọng tài và **không có
+   * hoàn tác**. Ván với máy có nút lùi lại nên cứ chạm một cái là đặt.
+   */
+  confirm?: boolean;
+  /** Báo ra ô đang ướm, để màn chơi nhắc "chạm lại để đặt". */
+  onAim?: (cell: { r: number; c: number } | null) => void;
 }
 
-export function CaroBoard({ view, size, mySeat, onPlay, disabled, hint }: CaroBoardProps) {
+export function CaroBoard({ view, size, mySeat, onPlay, disabled, hint, confirm, onAim }: CaroBoardProps) {
   const n = view.size;
   const cell = size / n;
+  /** Ô đang ướm, chỉ có khi `confirm`. */
+  const [aim, setAimRaw] = useState<number | null>(null);
+  const setAim = (i: number | null) => {
+    setAimRaw(i);
+    onAim?.(i === null ? null : { r: Math.floor(i / view.size), c: i % view.size });
+  };
+
+  // Hết lượt mình thì bỏ ô đang ướm: để lại thì nó nằm trên bàn suốt lượt
+  // đối thủ và người chơi tưởng mình vẫn đang đặt được.
+  const myTurn = !disabled && mySeat !== null && view.toMove === mySeat && view.winner === null;
+  useEffect(() => {
+    if (!myTurn) setAim(null);
+    // `view.last` đổi mỗi nước, nên nó là mốc "bàn cờ đã đi tiếp".
+  }, [myTurn, view.last]);
 
   const lines = useMemo(() => {
     const out: React.ReactNode[] = [];
@@ -226,23 +255,55 @@ export function CaroBoard({ view, size, mySeat, onPlay, disabled, hint }: CaroBo
             </G>
           );
         })}
+
+        {/* Quân đang ướm: vẽ mờ, cộng một vòng tròn bao quanh ô để mắt tìm
+            được nó ngay cả khi ngón tay còn che mất nửa bàn. */}
+        {aim !== null ? (
+          <G>
+            <Rect
+              x={(aim % n) * cell + 1}
+              y={Math.floor(aim / n) * cell + 1}
+              width={cell - 2}
+              height={cell - 2}
+              rx={3}
+              fill={inkFor(mySeat ?? 0)}
+              opacity={0.14}
+              stroke={inkFor(mySeat ?? 0)}
+              strokeWidth={1.6}
+            />
+            <G transform={`translate(${(aim % n) * cell + cell * 0.1}, ${Math.floor(aim / n) * cell + cell * 0.1}) scale(${(cell * 0.8) / 100})`}>
+              {(mySeat === 1 ? [O_VARIANTS[0]!] : X_VARIANTS[0]!).map((d, k) => (
+                <Path key={k} d={d} stroke={inkFor(mySeat ?? 0)} strokeWidth={11} strokeLinecap="round" fill="none" opacity={0.45} />
+              ))}
+            </G>
+          </G>
+        ) : null}
       </Svg>
 
-      {/* Lớp chạm nằm trên SVG: một ô một vùng chạm, đúng 44px trở lên ở bàn
-          15×15 trên màn hình điện thoại thường. */}
+      {/* Lớp chạm nằm trên SVG, một ô một vùng chạm. Ô chỉ khoảng 23 điểm —
+          bằng nửa mức chạm tối thiểu — nên ở ván không hoàn tác được, chạm
+          lần đầu chỉ **ướm**; xem `confirm` ở trên. */}
       <View style={{ position: 'absolute', inset: 0, flexDirection: 'column' }}>
         {Array.from({ length: n }, (_, r) => (
           <View key={r} style={{ flexDirection: 'row', height: cell }}>
             {Array.from({ length: n }, (_, c) => {
-              const taken = (view.cells[r * n + c] ?? -1) >= 0;
-              const canTap = !disabled && !taken && mySeat !== null && view.toMove === mySeat && view.winner === null;
+              const i = r * n + c;
+              const taken = (view.cells[i] ?? -1) >= 0;
+              const canTap = myTurn && !taken;
+              const aiming = aim === i;
               return (
                 <Pressable
                   key={c}
                   disabled={!canTap}
-                  onPress={() => onPlay(r, c)}
+                  onPress={() => {
+                    if (!confirm) return onPlay(r, c);
+                    if (aiming) {
+                      setAim(null);
+                      onPlay(r, c);
+                    } else setAim(i);
+                  }}
                   accessibilityRole="button"
-                  accessibilityLabel={`Ô hàng ${r + 1} cột ${c + 1}`}
+                  accessibilityLabel={aiming ? `Đặt vào hàng ${r + 1} cột ${c + 1}` : `Ô hàng ${r + 1} cột ${c + 1}`}
                   style={{ width: cell, height: cell }}
                 />
               );

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, PanResponder, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Animated, KeyboardAvoidingView, PanResponder, Platform, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, useAuth } from '../net/api';
@@ -7,9 +7,10 @@ import { useLive } from '../net/live';
 import { ChatPanel } from './Chat';
 import { Face } from './Crest';
 import { Icon } from './Icon';
-import { Panel, Txt } from './parts';
+import { Panel, SLOP, Txt, press } from './parts';
 import { Chip } from './Tabs';
 import { A, R, S, glow, lift } from './theme';
+import { useBackClose } from './useBackClose';
 
 /**
  * Nút chat nổi, kéo được, và tấm trò chuyện mở ra từ nó.
@@ -180,7 +181,7 @@ function Bubble({
             justifyContent: 'center',
           }}
         >
-          <Txt size={10} weight="bold" color="#FFF">
+          <Txt size={11} weight="bold" color="#FFF">
             {unread > 9 ? '9+' : unread}
           </Txt>
         </View>
@@ -210,7 +211,7 @@ function Sheet({
   const s = useLive();
   const [tab, setTab] = useState<Tab>('chung');
   const [convos, setConvos] = useState<
-    { withId: string; withName: string; last: { body: string; at: number; fromId: string | null }; unread: number }[]
+    { withId: string; withName: string; withAvatar: string | null; last: { body: string; at: number; fromId: string | null }; unread: number }[]
   >([]);
 
   useEffect(() => {
@@ -226,6 +227,7 @@ function Sheet({
    */
   const H = inMatch ? Math.min(height * 0.44, 340) : Math.min(height * 0.72, 560);
   const channel = inMatch ? roomChannel : tab === 'chung' ? 'chung' : tab === 'he-thong' ? `he-thong` : null;
+  useBackClose(true, onClose);
 
   return (
     <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end' }}>
@@ -235,13 +237,17 @@ function Sheet({
         accessibilityLabel="Đóng chat"
         style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: '#000', opacity: inMatch ? 0.28 : 0.55 }}
       />
+      {/* Ô nhắn tin nằm sát đáy tấm, mà tấm thì dán đáy màn — không có lớp
+          né bàn phím thì bàn phím che đúng cái ô đang gõ. iOS không bao giờ
+          tự co màn hộ. */}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Panel radius={R.xl} tone={1} seed={83}>
         <View style={{ height: H, padding: S.lg, paddingBottom: insets.bottom + S.md, gap: S.sm }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }}>
             <Txt size={16} weight="display" style={{ flex: 1 }}>
               {inMatch ? 'Trò chuyện trong phòng' : 'Trò chuyện'}
             </Txt>
-            <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Đóng">
+            <Pressable onPress={onClose} hitSlop={SLOP} accessibilityRole="button" accessibilityLabel="Đóng" style={press}>
               <Icon name="close" size={18} color={A.inkSoft} />
             </Pressable>
           </View>
@@ -279,9 +285,12 @@ function Sheet({
                     onClose();
                     router.push(`/chat/${c.withId}`);
                   }}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingVertical: 9 }}
+                  style={({ pressed }) => [
+                    { flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingVertical: 12 },
+                    press({ pressed }),
+                  ]}
                 >
-                  <Face avatar={null} id={c.withId} size={36} ring={false} />
+                  <Face avatar={c.withAvatar ?? null} id={c.withId} size={36} ring={false} />
                   <View style={{ flex: 1 }}>
                     <Txt size={13.5} weight="semi" numberOfLines={1}>
                       {c.withName}
@@ -293,7 +302,7 @@ function Sheet({
                   </View>
                   {c.unread > 0 ? (
                     <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: A.seal, alignItems: 'center', justifyContent: 'center' }}>
-                      <Txt size={10} weight="bold" color="#FFF">
+                      <Txt size={11} weight="bold" color="#FFF">
                         {c.unread > 9 ? '9+' : c.unread}
                       </Txt>
                     </View>
@@ -312,6 +321,7 @@ function Sheet({
           )}
         </View>
       </Panel>
+      </KeyboardAvoidingView>
     </View>
   );
 }

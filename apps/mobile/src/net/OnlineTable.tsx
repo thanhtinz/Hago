@@ -37,6 +37,8 @@ import type { Intent } from './useOnline';
 
 export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => void }) {
   const o = useMatch();
+  /** Nước đang ướm trên bàn caro, để nhắc "chạm lại để đặt". */
+  const [aim, setAim] = useState<string | null>(null);
   // Gửi ý định **một lần**, ngay khi dây đã nối. Gửi trong lúc chưa nối thì
   // nó nằm hàng đợi; gửi lại mỗi lần render thì vào hàng chờ hai ba lần.
   useIntentOnce(() => {
@@ -79,8 +81,8 @@ export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => 
       onDeclineDraw={() => o.send({ t: 'decline-draw' })}
       ended={o.outcome}
       youWon={o.outcome?.winner === me}
-      note={o.error}
-      noteTone="seal"
+      note={o.error ?? aim}
+      noteTone={o.error ? 'seal' : 'gold'}
       surface={surfaceFor(gameId)}
       top={{
         name: theirs?.name ?? 'Đối thủ',
@@ -97,7 +99,7 @@ export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => 
         ms: mine?.ms ?? 0,
       }}
     >
-      <Board gameId={gameId} o={o} />
+      <Board gameId={gameId} o={o} onAim={setAim} />
     </MatchShell>
   );
 }
@@ -108,7 +110,7 @@ function surfaceFor(gameId: string) {
   return (w: number, h: number) => <GroundBackdrop width={w} height={h} />;
 }
 
-function Board({ gameId, o }: { gameId: string; o: Online }) {
+function Board({ gameId, o, onAim }: { gameId: string; o: Online; onAim: (t: string | null) => void }) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [picked, setPicked] = useState<number | null>(null);
@@ -135,6 +137,8 @@ function Board({ gameId, o }: { gameId: string; o: Online }) {
             onPlay={(r, c) => o.send({ t: 'game', a: { r, c } })}
             disabled={!o.myTurn}
             hint={null}
+            confirm
+            onAim={(cell) => onAim(cell ? `Chạm lại ô hàng ${cell.r + 1} cột ${cell.c + 1} để đặt quân` : null)}
           />
         </View>
       </View>
@@ -201,7 +205,7 @@ function CodePill({ code, rated }: { code: string; rated: boolean }) {
       <Txt size={13} weight="bold" color={A.gold} style={{ letterSpacing: 2 }}>
         {code}
       </Txt>
-      <Txt size={8.5} weight="semi" color={A.inkFaint} style={{ letterSpacing: 0.8 }}>
+      <Txt size={11} weight="semi" color={A.inkFaint} style={{ letterSpacing: 0.5 }}>
         {rated ? 'XẾP HẠNG' : 'PHÒNG RIÊNG'}
       </Txt>
     </View>

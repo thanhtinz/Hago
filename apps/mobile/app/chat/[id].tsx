@@ -61,7 +61,7 @@ export default function DmScreen() {
             <Txt size={16} weight="display" numberOfLines={1}>
               {who?.name ?? 'Đang tải…'}
             </Txt>
-            <Txt size={10} color={online ? A.jade : A.inkFaint}>
+            <Txt size={11} color={online ? A.jade : A.inkFaint}>
               {online ? 'Đang trực tuyến' : 'Ngoại tuyến'}
             </Txt>
           </Pressable>

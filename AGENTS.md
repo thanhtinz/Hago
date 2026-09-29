@@ -78,6 +78,22 @@ npm test        # tsc --build --force + toàn bộ test
 - Bàn cờ nào **là vật thật** (tờ giấy cờ caro trên bàn) thì giữ mép và bóng đổ.
   Bàn cờ nào **vẽ lên mặt nền** (cờ gánh, ô ăn quan) thì tuyệt đối không có mép.
 - **Soi ảnh chụp ở mức phóng to** trước khi báo xong. `tools/crop.mjs`.
+- **Vùng chạm 44 điểm, chữ từ 11 điểm trở lên.** Nút nào bố cục không cho
+  cao 44 thì thêm `hitSlop={SLOP}` — trừ khi nó đứng sát nút khác trên cùng
+  một hàng, vì hitSlop của hai nút cạnh nhau chồng lên nhau và hệ điều hành
+  tự chọn hộ. Ô bàn cờ 15×15 không thể đạt 44: ở ván không hoàn tác được thì
+  chạm lần đầu chỉ **ướm**, chạm lại mới đặt.
+- **Mọi `Pressable` tự dựng đều dùng `press` từ `parts.tsx`.** Không phản hồi
+  khi chạm là lỗi cảm giác lớn nhất trên di động, và đã có ba mươi tám chỗ
+  vi phạm chính luật viết trong tệp đó.
+- **Tấm dán đáy màn có ô nhập thì phải có `KeyboardAvoidingView`.** iOS không
+  bao giờ tự co màn hộ.
+- **Nút quay lại cứng của Android**: mọi lớp phủ gọi `useBackClose`. Hộp thoại
+  ở đây là state chứ không phải màn của router, nên hệ điều hành không biết
+  chúng tồn tại — và Chromium thì không có nút đó, nên **ảnh chụp không bao
+  giờ bắt được lỗi này**.
+- **Nền mờ phải nằm cạnh tấm, không bọc quanh tấm.** Bọc quanh thì chạm vào
+  tiêu đề hay khoảng trống bên trong cũng rơi xuống phần tử cha và tấm tự đóng.
 - Hộp thoại dùng `Sheet` và `Confirm` ở `src/ui/Sheet.tsx`, không dựng tay.
   Ba bản chép trước đây lệch nhau độ mờ nền, bo góc, và chỉ một trong ba chừa
   vùng an toàn dưới đáy.

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, View, type ViewStyle } from 'react-native';
-import { Txt } from './parts';
+import { Txt, press } from './parts';
 import { A, R, S } from './theme';
 
 /**
@@ -50,9 +50,11 @@ export function Segmented<T extends string>({
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
             accessibilityLabel={label ? `${label} ${it.name}` : it.name}
-            style={{ flex: 1 }}
+            style={({ pressed }) => [{ flex: 1 }, press({ pressed })]}
           >
-            <View style={[{ paddingVertical: 9, alignItems: 'center', borderRadius: R.md }, shell(on)]}>
+            {/* Đệm 12 chứ không phải 9: 12×2 + dòng chữ 18 + viền 2,4 vừa
+                đúng 44 điểm, mức chạm tối thiểu. */}
+            <View style={[{ paddingVertical: 12, alignItems: 'center', borderRadius: R.md }, shell(on)]}>
               <Txt size={12.5} weight={on ? 'bold' : 'semi'} color={on ? A.gold : A.inkSoft}>
                 {it.name}
               </Txt>
@@ -93,16 +95,18 @@ export function Chip({
       accessibilityRole={role}
       accessibilityState={role === 'tab' ? { selected: on } : undefined}
       accessibilityLabel={badge ? `${a11y ?? label}, ${badge} chưa đọc` : (a11y ?? label)}
-      style={[
+      style={({ pressed }) => [
         {
           paddingHorizontal: S.md,
-          paddingVertical: 7,
+          // 12×2 + dòng chữ 16 + viền 2,4 = 44,4 điểm.
+          paddingVertical: 12,
           borderRadius: R.pill,
           flexDirection: 'row',
           alignItems: 'center',
           gap: 6,
         },
         shell(on),
+        press({ pressed }),
       ]}
     >
       <Txt size={11.5} weight={on ? 'bold' : 'semi'} color={on ? A.gold : A.inkSoft}>
@@ -111,16 +115,16 @@ export function Chip({
       {badge > 0 ? (
         <View
           style={{
-            minWidth: 16,
-            height: 16,
-            borderRadius: 8,
+            minWidth: 18,
+            height: 18,
+            borderRadius: 9,
             paddingHorizontal: 4,
             backgroundColor: A.seal,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Txt size={9} weight="bold" color="#FFF">
+          <Txt size={11} weight="bold" color="#FFF">
             {badge > 9 ? '9+' : badge}
           </Txt>
         </View>

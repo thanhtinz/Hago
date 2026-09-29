@@ -150,7 +150,7 @@ export class Chat {
    * Một câu truy vấn cho cả danh sách. Lấy từng cuộc rồi hỏi tin cuối của
    * từng cuộc là N+1 lần gọi để vẽ một màn hình.
    */
-  conversations(userId: string, limit = 50): { withId: string; withName: string; last: ChatMsg; unread: number }[] {
+  conversations(userId: string, limit = 50): { withId: string; withName: string; withAvatar: string | null; last: ChatMsg; unread: number }[] {
     const rows = this.db
       .prepare(
         `SELECT m.id, m.channel, m.from_id, m.body, m.created_at, COALESCE(u.name, 'Người đã rời') AS name
@@ -169,17 +169,35 @@ export class Chat {
       name: string;
     }[];
     const unread = this.unreadDms(userId);
-    const out: { withId: string; withName: string; last: ChatMsg; unread: number }[] = [];
+    // Tên và ảnh của **người kia**, không phải của người gửi tin cuối — tin
+    // cuối có thể là của chính mình, và lúc đó hàng sẽ mang tên mình.
+    //
+    // Lấy hết trong **một** câu. Hỏi từng người một là N+1 lần chạm đĩa để
+    // vẽ một màn hình, và danh sách trò chuyện thì mở ra rất nhiều lần.
+    const others = new Map<string, string>();
     for (const r of rows) {
       const pair = dmPair(r.channel);
       if (!pair) continue;
-      const other = pair[0] === userId ? pair[1] : pair[0];
-      // Tên người kia, không phải tên người gửi tin cuối — tin cuối có thể là
-      // của chính mình, và lúc đó hàng sẽ mang tên mình.
-      const who = (this.db.prepare('SELECT name FROM users WHERE id = ?').get(other) as unknown as { name: string } | undefined)?.name;
+      others.set(r.channel, pair[0] === userId ? pair[1] : pair[0]);
+    }
+    const ids = [...new Set(others.values())];
+    const who = new Map<string, { name: string; avatar: string | null }>();
+    if (ids.length) {
+      const marks = ids.map(() => '?').join(',');
+      for (const u of this.db.prepare(`SELECT id, name, avatar FROM users WHERE id IN (${marks})`).all(...ids)) {
+        const row = u as unknown as { id: string; name: string; avatar: string | null };
+        who.set(row.id, { name: row.name, avatar: row.avatar });
+      }
+    }
+    const out: { withId: string; withName: string; withAvatar: string | null; last: ChatMsg; unread: number }[] = [];
+    for (const r of rows) {
+      const other = others.get(r.channel);
+      if (!other) continue;
+      const u = who.get(other);
       out.push({
         withId: other,
-        withName: who ?? 'Người đã rời',
+        withName: u?.name ?? 'Người đã rời',
+        withAvatar: u?.avatar ?? null,
         last: { id: r.id, channel: r.channel, fromId: r.from_id, fromName: r.name, body: r.body, at: r.created_at },
         unread: unread[other] ?? 0,
       });

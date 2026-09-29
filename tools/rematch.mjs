@@ -56,6 +56,30 @@ await B.waitForTimeout(500);
 const stayed = (await B.getByLabel('Xin thua').count()) > 0;
 console.log(`  bấm Huỷ thì vẫn ở lại bàn: ${stayed}`);
 
+// ---- chạm hai lần mới đặt ----------------------------------------------
+
+console.log('Ô caro chỉ ~23 điểm: chạm lần đầu chỉ ướm, chạm lại mới đặt');
+await A.getByLabel('Ô hàng 8 cột 8').click();
+await A.waitForTimeout(500);
+await shot(A, '71-uom-quan');
+const aiming = (await A.getByText('Chạm lại ô hàng 8 cột 8 để đặt quân').count()) > 0;
+// Ướm xong mà vẫn chưa đi: lượt vẫn là của A.
+const notYet = (await A.getByLabel('Đặt vào hàng 8 cột 8').count()) > 0;
+console.log(`  có nhắc chạm lại: ${aiming} · chưa đặt thật: ${notYet}`);
+// Ướm sang ô khác thì quân ướm đi theo, không đặt bừa ô cũ.
+await A.getByLabel('Ô hàng 5 cột 5').click();
+await A.waitForTimeout(400);
+const aimMoved = (await A.getByLabel('Đặt vào hàng 5 cột 5').count()) > 0 && (await A.getByLabel('Ô hàng 8 cột 8').count()) > 0;
+console.log(`  ướm sang ô khác thì quân ướm đi theo: ${aimMoved}`);
+await A.getByLabel('Đặt vào hàng 5 cột 5').click();
+await A.waitForTimeout(900);
+await shot(A, '72-da-dat-quan');
+// Đặt xong thì ô đó không còn ướm được nữa, và dòng nhắc biến mất.
+const placed =
+  (await A.getByLabel('Đặt vào hàng 5 cột 5').count()) === 0 &&
+  (await A.getByText('Chạm lại ô hàng 5 cột 5 để đặt quân').count()) === 0;
+console.log(`  chạm lại thì đặt thật: ${placed}`);
+
 // ---- cầu hoà -----------------------------------------------------------
 
 console.log('A bấm Cầu hoà — phải hỏi lại trước khi gửi');
@@ -119,6 +143,8 @@ console.log(`  nhãn lượt đi hiện trên màn A: ${aTurn}`);
 
 console.log('Đánh một nước ở ván mới để chắc là bàn thật');
 await B.getByLabel('Ô hàng 8 cột 8').click();
+await B.waitForTimeout(300);
+await B.getByLabel('Đặt vào hàng 8 cột 8').click();
 await B.waitForTimeout(1200);
 await shot(A, '67-nuoc-dau-van-moi');
 const moved = (await A.getByLabel('Ô hàng 8 cột 8').getAttribute('aria-label')) !== null;
@@ -132,6 +158,9 @@ await shot(A, '68-doi-thu-roi-phong');
 
 await browser.close();
 finish([
+  [aiming && notYet, 'Chạm một lần đã đặt quân, không có bước ướm.'],
+  [aimMoved, 'Ướm sang ô khác không dời được quân ướm.'],
+  [placed, 'Chạm lại ô đang ướm không đặt được quân.'],
   [ticking, 'Đồng hồ đứng im trong lúc đối thủ nghĩ.'],
   [warnsLeave && stayed, 'Mũi tên Về sảnh giữa ván không hỏi lại.'],
   [asksFirst, 'Nút Cầu hoà gửi thẳng, không hỏi lại.'],

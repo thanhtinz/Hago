@@ -74,9 +74,17 @@ await B.waitForTimeout(2000);
 await shot(A, '21-online-ghe-0');
 await shot(B, '22-online-ghe-1');
 
-/** Bấm vào ô (hàng, cột) của bàn caro — dùng đúng nhãn trợ năng người dùng chạm. */
+/**
+ * Đặt một quân caro trong ván online: **hai chạm**.
+ *
+ * Ô của bàn 15×15 trên điện thoại chỉ khoảng 23 điểm, bằng nửa mức chạm tối
+ * thiểu, nên chạm lần đầu chỉ ướm quân và chạm lại đúng ô đó mới đặt thật.
+ * Máy chủ là trọng tài và không có hoàn tác, nên đặt nhầm là mất nước đi.
+ */
 const play = async (page, r, c) => {
   await page.getByLabel(`Ô hàng ${r + 1} cột ${c + 1}`).click();
+  await page.waitForTimeout(200);
+  await page.getByLabel(`Đặt vào hàng ${r + 1} cột ${c + 1}`).click();
   await page.waitForTimeout(650);
 };
 

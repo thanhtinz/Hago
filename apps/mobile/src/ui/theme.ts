@@ -33,7 +33,13 @@ export const A = {
 
   ink: '#F7E9CE',
   inkSoft: '#CBAF85',
-  inkFaint: '#9B8160',
+  /**
+   * Chữ phụ. Sáng hơn bản đầu (`#9B8160`) vì bản đó chỉ đạt 4,5:1 khi nằm
+   * thẳng trên nền sâu nhất — mà gần như chỗ nào trong app cũng có một tấm
+   * gỗ ở dưới, và trên mặt gỗ nó tụt xuống 3,5:1. Màu này đạt 4,62:1 ngay
+   * trên tấm sáng nhất (`panelHi`), tức là đạt ở mọi chỗ.
+   */
+  inkFaint: '#B4966F',
   /** Chữ đặt trên nền vàng kim. */
   onGold: '#3A2408',
 

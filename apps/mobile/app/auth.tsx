@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auth, useAction, useAuth } from '../src/net/api';
 import { Field } from '../src/ui/Field';
 import { Icon } from '../src/ui/Icon';
-import { Btn, Panel, Txt } from '../src/ui/parts';
+import { Btn, Panel, SLOP, Txt, press } from '../src/ui/parts';
 import { AppBackdrop, Rule } from '../src/ui/surface';
 import { A, R, S } from '../src/ui/theme';
 
@@ -94,7 +94,14 @@ export default function AuthScreen() {
 
             <Btn label={busy ? 'Đang gửi…' : mode === 'login' ? 'Đăng nhập' : 'Đăng ký'} disabled={busy} onPress={submit} />
 
-            <Pressable onPress={() => setMode(mode === 'login' ? 'register' : 'login')} accessibilityRole="button">
+            {/* Đổi giữa đăng nhập và đăng ký là thao tác chính của biểu
+                mẫu này, không phải một dòng chú thích — cho nó đủ 44 điểm
+                bằng chính phần đệm, đừng dựa vào hitSlop. */}
+            <Pressable
+              onPress={() => setMode(mode === 'login' ? 'register' : 'login')}
+              accessibilityRole="button"
+              style={({ pressed }) => [{ paddingVertical: 13 }, press({ pressed })]}
+            >
               <Txt size={12.5} color={A.gold} center>
                 {mode === 'login' ? 'Chưa có tài khoản? Đăng ký' : 'Đã có tài khoản? Đăng nhập'}
               </Txt>

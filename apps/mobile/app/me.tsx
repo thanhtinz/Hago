@@ -140,7 +140,7 @@ function Stat({ n, label }: { n: number | string; label: string }) {
       <Txt size={20} weight="display" color={A.gold}>
         {n}
       </Txt>
-      <Txt size={8.5} weight="semi" color={A.inkFaint} style={{ letterSpacing: 0.8 }} numberOfLines={1}>
+      <Txt size={11} weight="semi" color={A.inkFaint} style={{ letterSpacing: 0.4 }} numberOfLines={1}>
         {label}
       </Txt>
     </View>
@@ -204,7 +204,7 @@ function GameRow({ s }: { s: GameStat }) {
             {s.rating}
           </Txt>
           {s.best > s.rating ? (
-            <Txt size={9} color={A.inkFaint}>
+            <Txt size={11} color={A.inkFaint}>
               đỉnh {s.best}
             </Txt>
           ) : null}
@@ -285,7 +285,7 @@ function History({ p, gameIds }: { p: Profile | null; gameIds: string[] }) {
         {days.map(([label, list]) => (
           <View key={label}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingTop: S.md, paddingBottom: 2 }}>
-              <Txt size={10} weight="semi" color={A.gold} style={{ letterSpacing: 1 }}>
+              <Txt size={11} weight="semi" color={A.gold} style={{ letterSpacing: 0.8 }}>
                 {label.toUpperCase()}
               </Txt>
               <View style={{ flex: 1, height: 1, backgroundColor: A.lineSoft }} />
@@ -373,7 +373,7 @@ function MatchLine({ m, showGame = true }: { m: MatchRow; showGame?: boolean }) 
         <Txt size={13} weight="semi" numberOfLines={1}>
           {m.opponent}
         </Txt>
-        <Txt size={10} color={A.inkFaint} numberOfLines={1}>
+        <Txt size={11} color={A.inkFaint} numberOfLines={1}>
           {showGame ? `${faceOf(m.gameId)?.nameVi ?? m.gameId} · ${m.reason}` : m.reason}
         </Txt>
       </View>
@@ -381,7 +381,7 @@ function MatchLine({ m, showGame = true }: { m: MatchRow; showGame?: boolean }) 
         <Txt size={10.5} weight="bold" color={tone.c} style={{ letterSpacing: 0.6 }}>
           {tone.t}
         </Txt>
-        <Txt size={10} color={m.delta > 0 ? A.jade : m.delta < 0 ? A.sealLit : A.inkFaint}>
+        <Txt size={11} color={m.delta > 0 ? A.jade : m.delta < 0 ? A.sealLit : A.inkFaint}>
           {m.rated ? (m.delta > 0 ? `+${m.delta}` : String(m.delta)) : 'không tính'}
         </Txt>
       </View>
@@ -416,7 +416,7 @@ function Settings({ me, onChanged }: { me: { id: string; name: string; avatar: s
                 onChanged();
               })}
             />
-            <Txt size={10} color={A.inkFaint}>
+            <Txt size={11} color={A.inkFaint}>
               Ảnh được cắt vuông và thu về 256 điểm ngay trên máy bạn, nên không gửi kèm dữ liệu vị trí trong ảnh.
             </Txt>
           </View>

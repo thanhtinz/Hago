@@ -9,7 +9,7 @@ import { FACES, type GameFace } from '../src/games/faces';
 import { api, useAuth } from '../src/net/api';
 import { live, useLive } from '../src/net/live';
 import { Icon, type IconName } from '../src/ui/Icon';
-import { Btn, Txt } from '../src/ui/parts';
+import { Btn, SLOP, Txt, press } from '../src/ui/parts';
 import { Sheet } from '../src/ui/Sheet';
 import { Face } from '../src/ui/Crest';
 import { AppBackdrop, Panel, Rule, WoodFill } from '../src/ui/surface';
@@ -77,9 +77,9 @@ export default function Lobby() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Cài đặt"
-          hitSlop={10}
+          hitSlop={SLOP}
           onPress={() => router.push(me ? '/me?tab=cai-dat' : '/auth')}
-          style={{ position: 'absolute', right: S.lg, top: insets.top + S.md }}
+          style={({ pressed }) => [{ position: 'absolute', right: S.lg, top: insets.top + S.md }, press({ pressed })]}
         >
           <Icon name="settings" size={20} color={A.inkFaint} />
         </Pressable>
@@ -202,7 +202,7 @@ function Mode({ icon, label, onPress, badge = 0 }: { icon: IconName; label: stri
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={badge ? `${label}, ${badge} việc chờ` : label}
-      style={{ flex: 1, borderRadius: R.md }}
+      style={({ pressed }) => [{ flex: 1, borderRadius: R.md }, press({ pressed })]}
     >
       <Panel radius={R.md} tone={0} seed={label.length * 7}>
         <View style={{ gap: 5, paddingVertical: S.md, alignItems: 'center' }}>
@@ -231,7 +231,7 @@ function Mode({ icon, label, onPress, badge = 0 }: { icon: IconName; label: stri
             justifyContent: 'center',
           }}
         >
-          <Txt size={10} weight="bold" color="#FFF">
+          <Txt size={11} weight="bold" color="#FFF">
             {badge > 9 ? '9+' : badge}
           </Txt>
         </View>
@@ -256,7 +256,13 @@ function PickGameSheet({ mode, onClose, onPick }: { mode: 'quick' | 'create'; on
       onClose={onClose}
     >
       {open.map((f) => (
-        <Pressable key={f.id} onPress={() => onPick(f.id)} accessibilityRole="button" accessibilityLabel={f.nameVi} style={{ borderRadius: R.md }}>
+        <Pressable
+          key={f.id}
+          onPress={() => onPick(f.id)}
+          accessibilityRole="button"
+          accessibilityLabel={f.nameVi}
+          style={({ pressed }) => [{ borderRadius: R.md }, press({ pressed })]}
+        >
           <Panel radius={R.md} tone={1} seed={f.id.length * 11}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md }}>
               <View style={{ width: 54, height: 35, borderRadius: 6, overflow: 'hidden' }}>
@@ -410,7 +416,7 @@ function Chip({ label, muted }: { label: string; muted?: boolean }) {
         borderColor: A.goldDeep,
       }}
     >
-      <Txt size={10} weight="semi" color={muted ? A.gold : A.inkFaint}>
+      <Txt size={11} weight="semi" color={muted ? A.gold : A.inkFaint}>
         {label}
       </Txt>
     </View>
@@ -465,10 +471,13 @@ function BottomNav({
           accessibilityLabel={it.label}
           disabled={!it.onPress}
           onPress={it.onPress}
-          style={{ flex: 1, paddingTop: S.sm, paddingBottom: insetBottom + S.sm, alignItems: 'center', gap: 3 }}
+          style={({ pressed }) => [
+            { flex: 1, paddingTop: S.sm, paddingBottom: insetBottom + S.sm, alignItems: 'center', gap: 3 },
+            press({ pressed }),
+          ]}
         >
           <Icon name={it.icon} size={21} color={it.active ? A.gold : A.inkFaint} />
-          <Txt size={10} weight="semi" color={it.active ? A.gold : A.inkFaint}>
+          <Txt size={11} weight="semi" color={it.active ? A.gold : A.inkFaint}>
             {it.label}
           </Txt>
         </Pressable>

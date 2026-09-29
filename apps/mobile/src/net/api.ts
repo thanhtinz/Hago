@@ -241,7 +241,7 @@ export const api = {
   search: (q: string) => call<{ users: PublicUser[] }>(`/users?q=${encodeURIComponent(q)}`),
   friends: () => call<{ friends: Friend[]; blocked: PublicUser[] }>('/friends'),
   conversations: () =>
-    call<{ rows: { withId: string; withName: string; last: { body: string; at: number; fromId: string | null }; unread: number }[] }>(
+    call<{ rows: { withId: string; withName: string; withAvatar: string | null; last: { body: string; at: number; fromId: string | null }; unread: number }[] }>(
       '/chat/conversations',
     ),
   request: (id: string) => post<{ status: string }>('/friends/request', { id }),

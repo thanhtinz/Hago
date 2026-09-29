@@ -3,7 +3,7 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import type { ChatLine } from '@co/protocol';
 import { live, useLive } from '../net/live';
 import { Icon } from './Icon';
-import { Btn, Panel, Txt } from './parts';
+import { Btn, Panel, SLOP, Txt, press } from './parts';
 import { A, R, S } from './theme';
 
 /**
@@ -62,7 +62,8 @@ export function ChatPanel({ channel, meId, readOnly }: { channel: string; meId: 
             onPress={() => rows[0] && live.moreChat(channel, rows[0].id)}
             accessibilityRole="button"
             accessibilityLabel="Xem tin cũ hơn"
-            style={{ alignSelf: 'center', paddingVertical: S.sm }}
+            hitSlop={SLOP}
+            style={({ pressed }) => [{ alignSelf: 'center', paddingVertical: S.md, paddingHorizontal: S.lg }, press({ pressed })]}
           >
             <Txt size={11.5} color={A.gold}>
               Xem tin cũ hơn
@@ -147,7 +148,7 @@ function Line({ m, mine, first }: { m: ChatLine; mine: boolean; first: boolean }
   return (
     <View style={{ alignItems: mine ? 'flex-end' : 'flex-start', paddingTop: first ? 8 : 1 }}>
       {first && !mine ? (
-        <Txt size={10} color={A.inkFaint} style={{ paddingLeft: 4, paddingBottom: 2 }}>
+        <Txt size={11} color={A.inkFaint} style={{ paddingLeft: 4, paddingBottom: 2 }}>
           {m.fromName}
         </Txt>
       ) : null}
@@ -165,7 +166,7 @@ function Line({ m, mine, first }: { m: ChatLine; mine: boolean; first: boolean }
         <Txt size={14} color={A.ink}>
           {m.body}
         </Txt>
-        <Txt size={9} color={A.inkFaint} style={{ alignSelf: 'flex-end', paddingTop: 2 }}>
+        <Txt size={11} color={A.inkFaint} style={{ alignSelf: 'flex-end', paddingTop: 2 }}>
           {new Date(m.at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
         </Txt>
       </View>

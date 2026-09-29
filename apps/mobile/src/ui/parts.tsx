@@ -15,6 +15,22 @@ import { A, F, R, S, glow, lift } from './theme';
  * máy. Be Vietnam Pro còn là bộ chữ dựng riêng cho tiếng Việt, nên dấu không
  * bị chèn lên chữ hoa như mấy bộ sans quốc tế.
  */
+/**
+ * Phản hồi khi ngón chạm xuống, dùng chung cho mọi `Pressable` tự dựng.
+ *
+ * `Btn` và `IconBtn` đã có sẵn từ đầu, nhưng ba mươi tám chỗ `Pressable`
+ * khác trong app thì không đổi lấy một pixel khi bấm — và "nút không phản
+ * hồi khi chạm là lỗi cảm giác lớn nhất trên di động" là luật do chính
+ * tệp này viết ra. Một hàm để không chỗ nào còn cớ bỏ qua.
+ */
+export const press = ({ pressed }: { pressed: boolean }): ViewStyle => ({
+  opacity: pressed ? 0.82 : 1,
+  transform: [{ translateY: pressed ? 1 : 0 }],
+});
+
+/** Vùng chạm nới thêm cho nút nhỏ hơn 44 điểm mà bố cục không cho cao hơn. */
+export const SLOP = { top: 12, bottom: 12, left: 16, right: 16 } as const;
+
 export function Txt({
   children,
   size = 14,

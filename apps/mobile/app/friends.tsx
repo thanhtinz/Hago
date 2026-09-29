@@ -9,7 +9,8 @@ import { faceOf } from '../src/games/faces';
 import { Face } from '../src/ui/Crest';
 import { Field } from '../src/ui/Field';
 import { Icon } from '../src/ui/Icon';
-import { Btn, Panel, Txt } from '../src/ui/parts';
+import { Btn, Panel, SLOP, Txt, press } from '../src/ui/parts';
+import { Sheet } from '../src/ui/Sheet';
 import { AppBackdrop } from '../src/ui/surface';
 import { A, R, S } from '../src/ui/theme';
 
@@ -135,7 +136,13 @@ export default function FriendsScreen() {
             <Txt size={12} color={A.inkSoft} style={{ flex: 1 }}>
               Đang chờ {c.withName} trả lời
             </Txt>
-            <Pressable onPress={() => live.cancel(c.id)} accessibilityRole="button" accessibilityLabel="Rút lại lời rủ">
+            <Pressable
+              onPress={() => live.cancel(c.id)}
+              accessibilityRole="button"
+              accessibilityLabel="Rút lại lời rủ"
+              hitSlop={SLOP}
+              style={press}
+            >
               <Txt size={12} color={A.sealLit}>
                 Rút lại
               </Txt>
@@ -331,7 +338,7 @@ function Row({
         <Txt size={13.5} weight="semi" numberOfLines={1}>
           {u.name}
         </Txt>
-        <Txt size={10} color={online ? A.jade : A.inkFaint}>
+        <Txt size={11} color={online ? A.jade : A.inkFaint}>
           {online ? 'Đang trực tuyến' : 'Ngoại tuyến'}
         </Txt>
       </Pressable>
@@ -361,14 +368,20 @@ function Mini({
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={badge ? `${label}, ${badge} tin chưa đọc` : label}
-      style={{
-        paddingHorizontal: 9,
-        paddingVertical: 7,
-        borderRadius: R.pill,
-        borderWidth: 1.1,
-        borderColor: disabled ? A.lineSoft : tone === 'gold' ? A.goldDeep : tone === 'seal' ? A.sealSoft : A.line,
-        opacity: disabled ? 0.55 : 1,
-      }}
+      // Ba nút này xếp sát nhau trên một hàng, nên vùng chạm phải tự nó đủ
+      // rộng: hitSlop của ba nút cạnh nhau chồng lên nhau, và chồng lên
+      // nhau thì chạm vào giữa hai nút là hệ điều hành tự chọn hộ.
+      style={({ pressed }) => [
+        {
+          paddingHorizontal: 11,
+          paddingVertical: 12,
+          borderRadius: R.pill,
+          borderWidth: 1.1,
+          borderColor: disabled ? A.lineSoft : tone === 'gold' ? A.goldDeep : tone === 'seal' ? A.sealSoft : A.line,
+          opacity: disabled ? 0.55 : 1,
+        },
+        disabled ? undefined : press({ pressed }),
+      ]}
     >
       <Txt size={11} weight="semi" color={badge ? A.gold : fg}>
         {label}
@@ -390,7 +403,7 @@ function Mini({
             justifyContent: 'center',
           }}
         >
-          <Txt size={9.5} weight="bold" color="#FFF">
+          <Txt size={11} weight="bold" color="#FFF">
             {badge > 9 ? '9+' : badge}
           </Txt>
         </View>
@@ -406,42 +419,13 @@ function More({ onPress }: { onPress: () => void }) {
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel="Thêm lựa chọn"
-      hitSlop={8}
-      style={{ paddingHorizontal: 8, paddingVertical: 7 }}
+      hitSlop={SLOP}
+      style={({ pressed }) => [{ paddingHorizontal: 8, paddingVertical: 7 }, press({ pressed })]}
     >
       <Txt size={15} weight="bold" color={A.inkSoft}>
         ···
       </Txt>
     </Pressable>
-  );
-}
-
-/** Tấm trượt từ dưới lên, dùng chung cho mấy tấm ở màn này. */
-function Sheet({ title, sub, onClose, children }: { title: string; sub?: string; onClose: () => void; children: React.ReactNode }) {
-  const insets = useSafeAreaInsets();
-  return (
-    <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end' }}>
-      <Pressable
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="Đóng"
-        style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: '#000', opacity: 0.55 }}
-      />
-      <Panel radius={R.xl} tone={1} seed={67}>
-        <View style={{ gap: S.sm, padding: S.lg, paddingBottom: insets.bottom + S.lg }}>
-          <Txt size={17} weight="display">
-            {title}
-          </Txt>
-          {sub ? (
-            <Txt size={11} color={A.inkFaint} style={{ paddingBottom: S.xs }}>
-              {sub}
-            </Txt>
-          ) : null}
-          {children}
-          <Btn tone="ghost" label="Đóng" onPress={onClose} />
-        </View>
-      </Panel>
-    </View>
   );
 }
 
@@ -451,7 +435,13 @@ function PickGame({ name, onClose, onPick }: { name: string; onClose: () => void
     <Sheet title={`Rủ ${name} bộ môn nào?`} sub="Phòng riêng, không tính xếp hạng" onClose={onClose}>
       <>
           {GAMES.map((g) => (
-            <Pressable key={g} onPress={() => onPick(g)} accessibilityRole="button" accessibilityLabel={`Rủ ${faceOf(g)?.nameVi ?? g}`}>
+            <Pressable
+              key={g}
+              onPress={() => onPick(g)}
+              accessibilityRole="button"
+              accessibilityLabel={`Rủ ${faceOf(g)?.nameVi ?? g}`}
+              style={press}
+            >
               <Panel radius={R.md} tone={0} seed={g.length * 9}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md }}>
                   <View style={{ width: 48, height: 31, borderRadius: 5, overflow: 'hidden' }}>{renderMotif(g)}</View>

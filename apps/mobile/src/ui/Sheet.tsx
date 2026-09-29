@@ -1,9 +1,10 @@
 import React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Btn, Txt } from './parts';
 import { Panel } from './surface';
 import { A, R, S, lift } from './theme';
+import { useBackClose } from './useBackClose';
 
 /**
  * Tấm trượt từ đáy màn hình — khuôn chung cho mọi hộp thoại của app.
@@ -31,6 +32,7 @@ export function Sheet({
   maxHeight?: number;
 }) {
   const insets = useSafeAreaInsets();
+  useBackClose(true, onClose);
   return (
     <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end' }}>
       <Pressable
@@ -39,6 +41,9 @@ export function Sheet({
         onPress={onClose}
         style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: '#000', opacity: 0.55 }}
       />
+      {/* Tấm dán đáy màn mà có ô nhập thì bàn phím che mất chính ô đó. iOS
+          không bao giờ tự co màn, nên không có lớp này là hỏng hẳn. */}
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Panel radius={R.xl} tone={1} seed={71} style={lift(0.6, 30, -8)}>
         <View style={{ gap: S.sm, padding: S.lg, paddingBottom: insets.bottom + S.lg }}>
           <Grip />
@@ -51,7 +56,12 @@ export function Sheet({
             </Txt>
           ) : null}
           {maxHeight ? (
-            <ScrollView style={{ maxHeight }} contentContainerStyle={{ gap: S.sm }} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={{ maxHeight }}
+              contentContainerStyle={{ gap: S.sm }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
               {children}
             </ScrollView>
           ) : (
@@ -60,6 +70,7 @@ export function Sheet({
           <Btn label="Đóng" tone="ghost" onPress={onClose} />
         </View>
       </Panel>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -97,6 +108,7 @@ export function Confirm({
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  useBackClose(true, onClose);
   return (
     <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end' }}>
       <Pressable

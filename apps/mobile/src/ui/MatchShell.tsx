@@ -4,10 +4,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BotLevel, Outcome } from '@co/core';
 import type { Tally } from '../games/useVsBot';
 import { Icon } from './Icon';
-import { Btn, Clock, IconBtn, Panel, Tag, Txt } from './parts';
+import { Btn, Clock, IconBtn, Panel, Tag, Txt, press } from './parts';
 import { Confirm } from './Sheet';
 import { AppBackdrop, Rule } from './surface';
 import { A, R, S, glow, lift } from './theme';
+import { useBackClose } from './useBackClose';
 
 /**
  * Khung chung của mọi màn chơi.
@@ -110,13 +111,15 @@ export function MatchShell(p: MatchShellProps) {
   /** Việc đang chờ người chơi xác nhận lại. */
   const [ask, setAsk] = useState<'resign' | 'draw' | 'home' | null>(null);
   const goHome = () => (p.homeConfirms && !p.ended ? setAsk('home') : p.onHome());
+  // Nút quay lại cứng đóng hộp đang mở, không rời bàn cờ.
+  useBackClose(ask !== null, () => setAsk(null));
 
   return (
     <View style={{ flex: 1, paddingTop: insets.top + S.sm, paddingBottom: insets.bottom + S.sm }}>
       <AppBackdrop width={width} height={height} />
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, paddingHorizontal: S.lg, paddingBottom: S.sm }}>
-        <Pressable onPress={goHome} hitSlop={14} accessibilityRole="button" accessibilityLabel="Về sảnh">
+        <Pressable onPress={goHome} hitSlop={16} accessibilityRole="button" accessibilityLabel="Về sảnh" style={press}>
           <Icon name="back" size={22} color={A.inkSoft} />
         </Pressable>
         <Txt size={18} weight="display" style={{ flex: 1 }}>
@@ -127,17 +130,17 @@ export function MatchShell(p: MatchShellProps) {
             onPress={() => setPicking(true)}
             accessibilityRole="button"
             accessibilityLabel="Đổi mức máy"
-            style={{
+            style={({ pressed }) => [{
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
-              minHeight: 34,
+              minHeight: 44,
               paddingHorizontal: S.md,
               borderRadius: R.pill,
               backgroundColor: A.goldSoft,
               borderWidth: 1.2,
               borderColor: A.goldDeep,
-            }}
+            }, press({ pressed })]}
           >
             <Icon name="robot" size={15} color={A.gold} />
             <Txt size={12} weight="bold" color={A.gold}>
@@ -280,7 +283,10 @@ function DrawAsk({ onAccept, onDecline }: { onAccept?: () => void; onDecline?: (
             accessibilityRole="button"
             accessibilityLabel="Từ chối hoà"
             onPress={onDecline}
-            style={{ minHeight: 34, justifyContent: 'center', paddingHorizontal: S.md, borderRadius: R.pill, borderWidth: 1.2, borderColor: A.line }}
+            style={({ pressed }) => [
+              { minHeight: 44, justifyContent: 'center', paddingHorizontal: S.md, borderRadius: R.pill, borderWidth: 1.2, borderColor: A.line },
+              press({ pressed }),
+            ]}
           >
             <Txt size={12} weight="semi" color={A.inkSoft}>
               Từ chối
@@ -290,7 +296,10 @@ function DrawAsk({ onAccept, onDecline }: { onAccept?: () => void; onDecline?: (
             accessibilityRole="button"
             accessibilityLabel="Đồng ý hoà"
             onPress={onAccept}
-            style={{ minHeight: 34, justifyContent: 'center', paddingHorizontal: S.md, borderRadius: R.pill, backgroundColor: A.goldDeep }}
+            style={({ pressed }) => [
+              { minHeight: 44, justifyContent: 'center', paddingHorizontal: S.md, borderRadius: R.pill, backgroundColor: A.goldDeep },
+              press({ pressed }),
+            ]}
           >
             <Txt size={12} weight="bold" color={A.onGold}>
               Đồng ý
@@ -316,7 +325,7 @@ function Scoreboard({ tally }: { tally: Tally }) {
       <Txt size={19} weight="display" color={color}>
         {n}
       </Txt>
-      <Txt size={9.5} weight="semi" color={A.inkFaint} style={{ letterSpacing: 1 }}>
+      <Txt size={11} weight="semi" color={A.inkFaint} style={{ letterSpacing: 0.6 }}>
         {label}
       </Txt>
     </View>
@@ -388,6 +397,7 @@ function Result({
   rematch?: { mine: boolean; theirs: boolean } | undefined;
   onRematch?: ((want: boolean) => void) | undefined;
 }) {
+  const insets = useSafeAreaInsets();
   const tint = draw ? A.info : win ? A.gold : A.sealLit;
   return (
     <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
@@ -401,7 +411,7 @@ function Result({
           lift(0.6, 30, -12),
         ]}
       >
-        <View style={{ gap: S.sm, padding: S.lg, paddingBottom: S.xxl, alignItems: 'center' }}>
+        <View style={{ gap: S.sm, padding: S.lg, paddingBottom: insets.bottom + S.lg, alignItems: 'center' }}>
           <Txt size={27} weight="displayHeavy" color={tint} center>
             {draw ? 'Hoà' : win ? 'Bạn thắng' : 'Bạn thua'}
           </Txt>
@@ -452,20 +462,20 @@ function LevelSheet({
   onPick: (lv: BotLevel) => void;
   onClose: () => void;
 }) {
+  const insets = useSafeAreaInsets();
+  useBackClose(true, onClose);
   return (
-    <Pressable
-      accessibilityLabel="Đóng"
-      onPress={onClose}
-      style={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        bottom: 0,
-        justifyContent: 'flex-end',
-        backgroundColor: 'rgba(12,7,3,0.72)',
-      }}
-    >
+    // Nền mờ là một `Pressable` **nằm cạnh** tấm gỗ, không phải bọc quanh
+    // nó. Bọc quanh thì chạm vào tiêu đề hay khoảng trống trong tấm cũng
+    // rơi xuống phần tử cha và tấm tự đóng — các `View` tĩnh bên trong
+    // không bắt sự kiện chạm.
+    <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, justifyContent: 'flex-end' }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Đóng"
+        onPress={onClose}
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(12,7,3,0.72)' }}
+      />
       <Panel
         radius={0}
         tone={2}
@@ -473,7 +483,7 @@ function LevelSheet({
         hairline={false}
         style={{ borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, borderTopWidth: 1.4, borderTopColor: A.goldDeep }}
       >
-        <View style={{ gap: S.sm, padding: S.lg, paddingBottom: S.xxl }}>
+        <View style={{ gap: S.sm, padding: S.lg, paddingBottom: insets.bottom + S.lg }}>
           <Txt size={17} weight="display" style={{ marginBottom: S.xs }}>
             Mức máy
           </Txt>
@@ -482,17 +492,20 @@ function LevelSheet({
               key={lv}
               accessibilityRole="button"
               onPress={() => onPick(lv)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: S.md,
-                minHeight: 56,
-                padding: S.md,
-                borderRadius: R.md,
-                backgroundColor: level === lv ? A.goldSoft : A.panel,
-                borderWidth: 1.2,
-                borderColor: level === lv ? A.gold : A.line,
-              }}
+              style={({ pressed }) => [
+                {
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: S.md,
+                  minHeight: 56,
+                  padding: S.md,
+                  borderRadius: R.md,
+                  backgroundColor: level === lv ? A.goldSoft : A.panel,
+                  borderWidth: 1.2,
+                  borderColor: level === lv ? A.gold : A.line,
+                },
+                press({ pressed }),
+              ]}
             >
               <Icon name="robot" size={20} color={level === lv ? A.gold : A.inkSoft} />
               <View style={{ flex: 1 }}>
@@ -511,6 +524,6 @@ function LevelSheet({
           </Txt>
         </View>
       </Panel>
-    </Pressable>
+    </View>
   );
 }
