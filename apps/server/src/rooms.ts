@@ -230,7 +230,9 @@ export class Rooms {
 
   markRead(id: string, channel: string, lastId: number): void {
     const p = this.players.get(id);
-    if (!p || !this.chat) return;
+    // Cùng cánh cửa như mọi lệnh nhắn tin khác: không có nó thì ai cũng
+    // đánh dấu đã đọc hộ kênh riêng của người lạ.
+    if (!p || !this.chat || !this.mayJoin(id, channel)) return;
     this.chat.markRead(id, channel, lastId);
     this.pushUnread(p);
   }

@@ -18,7 +18,7 @@
     "serve": "npx serve -l 8080 -s apps/mobile/dist",
     "shot": "node tools/screenshot.mjs",
     "start": "npm run web && sh tools/chay.sh",
-    "kiem-giao-dien": "for f in screenshot two-players rematch sanh bxh taikhoan avatar history friends chat; do node tools/$f.mjs || exit 1; done"
+    "kiem-giao-dien": "for f in screenshot two-players rematch sanh bxh taikhoan thongbao avatar history friends chat; do node tools/$f.mjs || exit 1; done"
   },
   "devDependencies": {
     "@types/node": "^22.7.5",

@@ -162,3 +162,29 @@ test('thông báo hệ thống: chung và riêng gộp thành một dòng thời
   assert.deepEqual(other.map((m) => m.body), ['Bảo trì lúc 2 giờ']);
   assert.equal(chat.unreadSystem(y.id), 1);
 });
+
+test('thông báo hệ thống gộp kênh chung và kênh riêng, và đọc rồi thì tắt chấm đỏ', async () => {
+  const { chat, x, y } = await fresh();
+  chat.post(SYSTEM, null, 'Hệ thống', 'Máy chủ bảo trì lúc 2 giờ sáng');
+  chat.post(systemFor(x.id), null, 'Hệ thống', 'Bạn vừa thắng một ván', x.id);
+  chat.post(systemFor(y.id), null, 'Hệ thống', 'Riêng của Bình', y.id);
+
+  const feed = chat.systemFeed(x.id);
+  assert.deepEqual(
+    feed.map((m) => m.body),
+    ['Máy chủ bảo trì lúc 2 giờ sáng', 'Bạn vừa thắng một ván'],
+    'thấy tin chung và tin riêng của mình, không thấy tin riêng của người khác',
+  );
+  assert.equal(chat.unreadSystem(x.id), 2);
+
+  // Đánh dấu đã đọc phải đi **từng kênh một**, tới đúng id cuối của kênh đó.
+  // Gửi chung một con số là đánh dấu nhầm kênh kia — đó chính là lý do chấm
+  // đỏ trước đây không bao giờ tắt.
+  for (const ch of ['he-thong', `he-thong:${x.id}`]) {
+    const last = feed.filter((m) => m.channel === ch).reduce((n, m) => Math.max(n, m.id), 0);
+    if (last) chat.markRead(x.id, ch, last);
+  }
+  assert.equal(chat.unreadSystem(x.id), 0);
+  // Bình vẫn còn tin riêng chưa đọc của mình.
+  assert.equal(chat.unreadSystem(y.id), 2);
+});

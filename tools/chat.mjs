@@ -90,8 +90,11 @@ console.log(`  phát thông báo: ${r.status}`);
 await B.getByLabel(/Hệ thống/).click();
 await B.waitForTimeout(1200);
 const sawNotice = (await B.getByText('Máy chủ bảo trì lúc 2 giờ sáng mai').count()) > 0;
-const readOnly = (await B.getByText('Kênh này chỉ để đọc.').count()) > 0;
-console.log(`  thấy thông báo: ${sawNotice} · không gõ vào được: ${readOnly}`);
+// Mục thông báo giờ là một dòng thời gian gộp hai kênh, **không có ô nhập
+// nào cả** — trước đây nó là một khung chat bình thường bị khoá, mà một ô
+// nhập bị khoá vẫn mời người ta thử gõ vào.
+const readOnly = (await B.getByLabel('Ô nhắn tin').count()) === 0;
+console.log(`  thấy thông báo: ${sawNotice} · không có ô nhập: ${readOnly}`);
 await shot(B, '49-thong-bao-he-thong');
 
 // Khoá quản trị sai thì không phát được.
@@ -142,7 +145,7 @@ if (errs.length) fail(`Lỗi trên trang:\n  ${errs.join('\n  ')}`);
 if (!dragged) fail('Nút nổi không kéo được hoặc không dính mép.');
 if (!sawLobby) fail('Tin sảnh chung không tới người khác.');
 if (!sawNotice) fail('Không thấy thông báo hệ thống.');
-if (!readOnly) fail('Kênh thông báo vẫn gõ vào được.');
+if (!readOnly) fail('Mục thông báo vẫn có ô nhập.');
 if (bad.status !== 401) fail('Khoá quản trị sai vẫn phát được thông báo.');
 if (!roomOnly || !noLobbyTab || !hidesLobby) fail('Vào ván mà vẫn xem được chat ngoài.');
 if (!sawRoom) fail('Chat trong phòng không tới đối thủ.');

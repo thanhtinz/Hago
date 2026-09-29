@@ -446,7 +446,8 @@ export class Accounts {
     winner: number | null;
     reason: string;
     rated: boolean;
-  }): void {
+    /** Điểm đổi bao nhiêu cho từng ghế. Trả ra để tầng ngoài báo cho người chơi. */
+  }): { delta: [number, number] } {
     const [a, b] = m.seats;
     let dA = 0;
     let dB = 0;
@@ -486,6 +487,7 @@ export class Accounts {
       this.db.exec('ROLLBACK');
       throw e;
     }
+    return { delta: [dA, dB] };
   }
 
   private played(userId: string, gameId: string): number {
@@ -743,6 +745,47 @@ export class Accounts {
     if (me === other) throw new AuthError('SELF', 'Không tự chặn mình được');
     this.removeFriend(me, other);
     this.db.prepare('INSERT OR IGNORE INTO blocks (blocker, blocked, created_at) VALUES (?, ?, ?)').run(me, other, Date.now());
+  }
+
+  /**
+   * Báo cáo một người dùng.
+   *
+   * Một lần mỗi người mỗi ngày: báo cáo mười lần một người không làm việc
+   * xử lý nhanh hơn, chỉ làm hàng đợi của người xử lý dài ra — và biến
+   * chính nó thành một công cụ quấy rối.
+   */
+  report(me: string, target: string, reason: string, note: string, now = Date.now()): void {
+    if (me === target) throw new AuthError('SELF', 'Không tự báo cáo mình được');
+    if (!this.user(target)) throw new AuthError('NO_USER', 'Không có người chơi này');
+    const kinds = ['quay-roi', 'gian-lan', 'ten-xau', 'khac'];
+    if (!kinds.includes(reason)) throw new AuthError('BAD_REASON', 'Lý do không hợp lệ');
+    const recent = this.db
+      .prepare('SELECT 1 AS n FROM reports WHERE reporter = ? AND target = ? AND created_at > ?')
+      .get(me, target, now - 24 * 3_600_000);
+    if (recent) throw new AuthError('ALREADY', 'Bạn đã báo cáo người này hôm nay rồi');
+    const clean = note.replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, 500);
+    this.db
+      .prepare('INSERT INTO reports (reporter, target, reason, note, created_at) VALUES (?, ?, ?, ?, ?)')
+      .run(me, target, reason, clean, now);
+  }
+
+  /** Hàng đợi báo cáo, mới nhất trước. Chỉ tầng quản trị gọi. */
+  reports(limit = 100): { id: number; reporter: string; target: string; targetName: string; reason: string; note: string; at: number }[] {
+    const rows = this.db
+      .prepare(
+        `SELECT r.id, r.reporter, r.target, COALESCE(u.name, '(đã xoá)') AS target_name, r.reason, r.note, r.created_at
+         FROM reports r LEFT JOIN users u ON u.id = r.target ORDER BY r.id DESC LIMIT ?`,
+      )
+      .all(limit) as unknown as { id: number; reporter: string; target: string; target_name: string; reason: string; note: string; created_at: number }[];
+    return rows.map((r) => ({
+      id: r.id,
+      reporter: r.reporter,
+      target: r.target,
+      targetName: r.target_name,
+      reason: r.reason,
+      note: r.note,
+      at: r.created_at,
+    }));
   }
 
   unblock(me: string, other: string): void {

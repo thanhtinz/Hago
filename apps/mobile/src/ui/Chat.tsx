@@ -80,7 +80,10 @@ export function ChatPanel({ channel, meId, readOnly }: { channel: string; meId: 
         ) : null}
 
         {rows.map((m, i) => (
-          <Line key={m.id} m={m} mine={m.fromId === meId} first={rows[i - 1]?.fromId !== m.fromId} />
+          <React.Fragment key={m.id}>
+            {sameDay(rows[i - 1]?.at, m.at) ? null : <DayMark at={m.at} />}
+            <Line m={m} mine={m.fromId === meId} first={rows[i - 1]?.fromId !== m.fromId || !sameDay(rows[i - 1]?.at, m.at)} />
+          </React.Fragment>
         ))}
       </ScrollView>
 
@@ -121,6 +124,37 @@ export function ChatPanel({ channel, meId, readOnly }: { channel: string; meId: 
           <Btn label="Gửi" size="md" disabled={!draft.trim()} onPress={send} style={{ minWidth: 76 }} />
         </View>
       )}
+    </View>
+  );
+}
+
+const sameDay = (a: number | undefined, b: number): boolean => {
+  if (a === undefined) return false;
+  const x = new Date(a);
+  const y = new Date(b);
+  return x.getFullYear() === y.getFullYear() && x.getMonth() === y.getMonth() && x.getDate() === y.getDate();
+};
+
+/**
+ * Vạch ngày.
+ *
+ * Không có nó thì một cuộc trò chuyện kéo dài ba tuần đọc như một khối liền
+ * mạch: "7 giờ tối" ở dòng trên và "9 giờ sáng" ở dòng dưới cách nhau đúng
+ * mười ngày mà nhìn ra y như cách nhau mười bốn tiếng.
+ */
+function DayMark({ at }: { at: number }) {
+  const d = new Date(at);
+  const now = new Date();
+  const days = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()) / 86_400_000);
+  const label =
+    days === 0 ? 'Hôm nay' : days === 1 ? 'Hôm qua' : days < 7 ? `${days} ngày trước` : d.toLocaleDateString('vi-VN');
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingVertical: S.md }}>
+      <View style={{ flex: 1, height: 1, backgroundColor: A.lineSoft }} />
+      <Txt size={11} color={A.inkFaint}>
+        {label}
+      </Txt>
+      <View style={{ flex: 1, height: 1, backgroundColor: A.lineSoft }} />
     </View>
   );
 }

@@ -511,3 +511,39 @@ test('xuất dữ liệu mang đủ hồ sơ, thành tích, lịch sử và bạ
   assert.ok(!text.includes('scrypt$'), 'không được lộ bản băm mật khẩu');
   assert.ok(!text.includes('pass'), 'không được có trường mật khẩu nào');
 });
+
+test('báo cáo: một lần mỗi người mỗi ngày, và vào được hàng đợi quản trị', async () => {
+  const a = fresh();
+  const x = (await a.register('An', 'an@example.com', 'matkhaudai')).user;
+  const y = (await a.register('Bình', 'binh@example.com', 'matkhaudai')).user;
+
+  await fails(() => a.report(x.id, x.id, 'quay-roi', ''), 'SELF');
+  await fails(() => a.report(x.id, 'khong-co-ai', 'quay-roi', ''), 'NO_USER');
+  await fails(() => a.report(x.id, y.id, 'ly-do-bia', ''), 'BAD_REASON');
+
+  const t0 = 1_700_000_000_000;
+  a.report(x.id, y.id, 'quay-roi', 'Nhắn tin khó chịu', t0);
+  // Báo cáo mười lần một người không làm việc xử lý nhanh hơn, chỉ làm hàng
+  // đợi dài ra — và biến chính nó thành một công cụ quấy rối.
+  await fails(() => a.report(x.id, y.id, 'quay-roi', 'lại nữa', t0 + 60_000), 'ALREADY');
+  // Sang ngày hôm sau thì được.
+  a.report(x.id, y.id, 'gian-lan', 'hôm nay lại thế', t0 + 25 * 3_600_000);
+
+  const q = a.reports();
+  assert.equal(q.length, 2);
+  assert.equal(q[0]!.reason, 'gian-lan', 'mới nhất trước');
+  assert.equal(q[0]!.targetName, 'Bình');
+  assert.equal(q[1]!.note, 'Nhắn tin khó chịu');
+});
+
+test('chặn được cả người chưa từng là bạn', async () => {
+  const a = fresh();
+  const x = (await a.register('An', 'an@example.com', 'matkhaudai')).user;
+  const y = (await a.register('Bình', 'binh@example.com', 'matkhaudai')).user;
+  assert.equal(a.areFriends(x.id, y.id), false);
+  a.block(x.id, y.id);
+  assert.ok(a.isBlockedEither(x.id, y.id));
+  assert.deepEqual(a.blocked(x.id).map((u) => u.name), ['Bình']);
+  // Và chặn rồi thì bên kia không gửi lời mời sang được nữa.
+  await fails(() => a.requestFriend(y.id, x.id), 'BLOCKED');
+});

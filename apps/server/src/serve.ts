@@ -83,7 +83,7 @@ export function buildServer(opts: ServeOptions = {}): Serving {
     isBlocked: (a, b) => accounts.isBlockedEither(a, b),
     pendingRequests: (id) => accounts.friends(id).filter((f) => f.incoming).length,
     onFinish: ({ gameId, code, rated, seats, names, outcome }) => {
-      accounts.recordMatch({
+      const { delta } = accounts.recordMatch({
         gameId,
         code,
         seats: [seats[0] ?? null, seats[1] ?? null],
@@ -95,6 +95,26 @@ export function buildServer(opts: ServeOptions = {}): Serving {
         // ván họ vừa đánh với bạn.
         rated,
       });
+      /**
+       * Báo kết quả vào hộp thông báo riêng của từng người.
+       *
+       * Đây là sự kiện **đầu tiên** trong app tự sinh ra thông báo hệ
+       * thống. Trước đó kênh thông báo chỉ nhận được thứ quản trị viên gõ
+       * tay qua `/api/admin/notice`, nên cái chuông đỏ ở sảnh thực tế
+       * không bao giờ sáng vì một việc thật nào của người chơi.
+       */
+      if (!rated) return;
+      // Tên tiếng Việt lấy từ chính engine (`spec.nameVi`), không chép lại
+      // ở đây — chép là sớm muộn cũng lệch với tên hiện trong app.
+      const name = registry.get(gameId)?.spec.nameVi ?? gameId;
+      for (const [seat, id] of seats.entries()) {
+        if (!id) continue;
+        const d = delta[seat] ?? 0;
+        const them = names[seat === 0 ? 1 : 0] ?? 'đối thủ';
+        const how = outcome.winner === null ? 'Hoà' : outcome.winner === seat ? 'Thắng' : 'Thua';
+        const sign = d > 0 ? `+${d}` : String(d);
+        rooms.systemMessage(`${how} ${them} ở ${name}. Điểm ${sign}.`, id);
+      }
     },
   });
 

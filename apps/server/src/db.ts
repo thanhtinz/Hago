@@ -117,6 +117,10 @@ CREATE TABLE IF NOT EXISTS friends (
   CHECK (a < b)
 );
 
+-- Tìm bạn của một người phải quét cả bảng nếu không có chỉ mục này: khoá
+-- chính là (a, b) nên tra riêng theo cột b không dùng được nó.
+CREATE INDEX IF NOT EXISTS friends_b ON friends(b);
+
 -- Chặn thì **một chiều**: tôi chặn anh không có nghĩa anh chặn tôi.
 CREATE TABLE IF NOT EXISTS blocks (
   blocker    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -141,6 +145,26 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 CREATE INDEX IF NOT EXISTS messages_channel ON messages(channel, id);
 CREATE INDEX IF NOT EXISTS messages_to ON messages(to_id, id);
+-- Đếm tin chưa đọc quét theo người gửi trong từng kênh; không có chỉ mục
+-- này thì mỗi lần mở app là một lần quét toàn bộ bảng tin nhắn.
+CREATE INDEX IF NOT EXISTS messages_from ON messages(from_id, id);
+
+-- Báo cáo người dùng.
+--
+-- Không có bảng này thì "chặn" là công cụ duy nhất người dùng có, mà chặn
+-- chỉ giấu một người khỏi mắt mình: kẻ quấy rối vẫn đi quấy rối người tiếp
+-- theo. Một nền tảng có nhắn tin mà không có đường báo cáo là một nền tảng
+-- đẩy hết việc xử lý sang phía nạn nhân.
+CREATE TABLE IF NOT EXISTS reports (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  reporter   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  target     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  -- 'quay-roi' | 'gian-lan' | 'ten-xau' | 'khac'
+  reason     TEXT NOT NULL,
+  note       TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS reports_target ON reports(target, id);
 
 -- Đã đọc tới đâu, cho mỗi người mỗi kênh. Một hàng thay cho một cờ "đã đọc"
 -- trên từng tin: chưa đọc = đếm tin có id lớn hơn mốc này, một câu truy vấn.

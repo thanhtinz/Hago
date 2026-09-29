@@ -253,6 +253,7 @@ export default function FriendsScreen() {
 
 /** Tìm người chơi theo tên rồi gửi lời mời. */
 function Search({ onAdded }: { onAdded: () => void }) {
+  const router = useRouter();
   const [q, setQ] = useState('');
   const [hits, setHits] = useState<PublicUser[]>([]);
   const [sent, setSent] = useState<Set<string>>(new Set());
@@ -279,10 +280,21 @@ function Search({ onAdded }: { onAdded: () => void }) {
         <Field label="Tìm người chơi" value={q} onChange={setQ} placeholder="Gõ ít nhất hai ký tự" />
         {hits.map((u) => (
           <View key={u.id} style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingTop: S.xs }}>
-            <Face avatar={u.avatar} id={u.id} size={32} ring={false} />
-            <Txt size={13} style={{ flex: 1 }} numberOfLines={1}>
-              {u.name}
-            </Txt>
+            {/* Tên và ảnh mở **hồ sơ**. Kết bạn với một cái tên lạ mà không
+                xem được thành tích hay ván gần đây của họ thì cái tên đó
+                không nói lên gì — và đó cũng là đường duy nhất tới nút chặn
+                và báo cáo cho người chưa quen. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Xem hồ sơ ${u.name}`}
+              onPress={() => router.push(`/u/${u.id}`)}
+              style={({ pressed }) => [{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingVertical: 6 }, press({ pressed })]}
+            >
+              <Face avatar={u.avatar} id={u.id} size={32} ring={false} />
+              <Txt size={13} style={{ flex: 1 }} numberOfLines={1}>
+                {u.name}
+              </Txt>
+            </Pressable>
             <Mini
               label={sent.has(u.id) ? 'Đã gửi' : 'Kết bạn'}
               tone={sent.has(u.id) ? undefined : 'gold'}

@@ -273,6 +273,10 @@ export const api = {
     ),
   search: (q: string) => call<{ users: PublicUser[] }>(`/users?q=${encodeURIComponent(q)}`),
   friends: () => call<{ friends: Friend[]; blocked: PublicUser[] }>('/friends'),
+  /** Thông báo hệ thống: kênh chung và kênh riêng gộp làm một dòng thời gian. */
+  systemFeed: () =>
+    call<{ rows: { id: number; channel: string; fromId: string | null; fromName: string; body: string; at: number }[] }>('/chat/system'),
+  report: (id: string, reason: string, note: string) => post('/friends/report', { id, reason, note }),
   conversations: () =>
     call<{ rows: { withId: string; withName: string; withAvatar: string | null; last: { body: string; at: number; fromId: string | null }; unread: number }[] }>(
       '/chat/conversations',

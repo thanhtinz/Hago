@@ -9,7 +9,9 @@ import { live, useLive, useWatch } from '../../src/net/live';
 import { faceOf } from '../../src/games/faces';
 import { Face } from '../../src/ui/Crest';
 import { Icon } from '../../src/ui/Icon';
-import { Btn, Panel, Txt } from '../../src/ui/parts';
+import { Btn, Panel, SLOP, Txt, press } from '../../src/ui/parts';
+import { Field } from '../../src/ui/Field';
+import { Sheet } from '../../src/ui/Sheet';
 import { AppBackdrop } from '../../src/ui/surface';
 import { A, R, S, lift } from '../../src/ui/theme';
 
@@ -38,6 +40,10 @@ export default function UserScreen() {
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [note, setNote] = useState('');
+  const [said, setSaid] = useState<string | null>(null);
 
   const load = useCallback(() => {
     void api
@@ -147,6 +153,23 @@ export default function UserScreen() {
                     )}
                   </View>
                 )}
+
+                {/* Chặn và báo cáo đứng được ở **mọi** hồ sơ, không chỉ hồ
+                    sơ của người đã là bạn. Kẻ quấy rối hiếm khi là bạn bè,
+                    và trước đây hai việc này chỉ có trong danh sách bạn. */}
+                {mine || data.blocked ? null : (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Chặn hoặc báo cáo"
+                    hitSlop={SLOP}
+                    onPress={() => setMenu(true)}
+                    style={({ pressed }) => [{ paddingTop: S.md }, press({ pressed })]}
+                  >
+                    <Txt size={11.5} color={A.inkFaint}>
+                      Chặn hoặc báo cáo người này
+                    </Txt>
+                  </Pressable>
+                )}
               </View>
             </Panel>
 
@@ -194,9 +217,75 @@ export default function UserScreen() {
           </>
         )}
       </ScrollView>
+
+      {menu && data ? (
+        <Sheet
+          title={data.user.name}
+          sub={said ?? 'Chặn thì người đó không nhắn và không rủ bạn được nữa. Báo cáo gửi tới người quản trị.'}
+          onClose={() => {
+            setMenu(false);
+            setReporting(false);
+            setSaid(null);
+          }}
+        >
+          {reporting ? (
+            <>
+              <Field label="Chuyện gì đã xảy ra" value={note} onChange={(t) => setNote(t.slice(0, 500))} placeholder="Nói ngắn gọn giúp người xử lý" />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.sm }}>
+                {REASONS.map((r) => (
+                  <Btn
+                    key={r.id}
+                    tone="wood"
+                    label={r.name}
+                    disabled={busy}
+                    onPress={() => {
+                      setBusy(true);
+                      void api
+                        .report(data.user.id, r.id, note)
+                        .then(() => setSaid('Đã gửi báo cáo. Cảm ơn bạn.'))
+                        .catch((e: { msg?: string }) => setSaid(e?.msg ?? 'Không gửi được báo cáo'))
+                        .finally(() => {
+                          setBusy(false);
+                          setReporting(false);
+                        });
+                    }}
+                  />
+                ))}
+              </View>
+            </>
+          ) : (
+            <>
+              <Btn tone="wood" label="Báo cáo người này" disabled={busy} onPress={() => setReporting(true)} />
+              <Btn
+                tone="wood"
+                label="Chặn người này"
+                disabled={busy}
+                onPress={() => {
+                  setBusy(true);
+                  void api
+                    .block(data.user.id)
+                    .then(() => {
+                      setMenu(false);
+                      load();
+                    })
+                    .finally(() => setBusy(false));
+                }}
+              />
+            </>
+          )}
+        </Sheet>
+      ) : null}
     </View>
   );
 }
+
+/** Lý do báo cáo. Bốn nhóm, đủ để phân loại mà không bắt người ta viết luận. */
+const REASONS = [
+  { id: 'quay-roi', name: 'Quấy rối' },
+  { id: 'gian-lan', name: 'Gian lận' },
+  { id: 'ten-xau', name: 'Tên phản cảm' },
+  { id: 'khac', name: 'Khác' },
+] as const;
 
 function Card({ title, sub, children }: { title: string; sub?: string; children: React.ReactNode }) {
   return (

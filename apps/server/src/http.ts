@@ -356,6 +356,13 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
       ctx.notify(body, str(reqBody.to) || undefined);
       return json(res, 200, { ok: true }), true;
     }
+    /** Hàng đợi báo cáo. Cùng một khoá quản trị, cùng một lối tắt hẳn khi chưa đặt. */
+    if (p === '/api/admin/reports' && req.method === 'GET') {
+      const admin = process.env.ADMIN_TOKEN;
+      if (!admin) throw new AuthError('NO_ADMIN', 'Chưa bật đường quản trị');
+      if (token !== admin) throw new AuthError('NO_AUTH', 'Sai khoá quản trị');
+      return json(res, 200, { reports: ctx.accounts.reports() }), true;
+    }
 
     /**
      * Bảng xếp hạng. Không cần đăng nhập để **xem** — nhưng đã đăng nhập
@@ -388,12 +395,21 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
       const u = need();
       const status = ctx.accounts.requestFriend(u.id, str(body.id));
       ctx.onFriendChange?.(u.id, str(body.id));
+      ctx.notify(
+        status === 'accepted'
+          ? `${u.name} cũng vừa gửi lời mời — hai bạn đã là bạn bè.`
+          : `${u.name} muốn kết bạn với bạn.`,
+        str(body.id),
+      );
       return json(res, 200, { status }), true;
     }
     if (p === '/api/friends/accept' && req.method === 'POST') {
       const u = need();
       ctx.accounts.acceptFriend(u.id, str(body.id));
       ctx.onFriendChange?.(u.id, str(body.id));
+      // Báo cho **người đã gửi lời mời**: họ là bên đang chờ, và không có
+      // dòng này thì họ chỉ biết bằng cách thỉnh thoảng mở lại danh sách.
+      ctx.notify(`${u.name} đã nhận lời mời kết bạn của bạn.`, str(body.id));
       return json(res, 200, { ok: true }), true;
     }
     if (p === '/api/friends/remove' && req.method === 'POST') {
@@ -406,6 +422,11 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
       const u = need();
       ctx.accounts.block(u.id, str(body.id));
       ctx.onFriendChange?.(u.id, str(body.id));
+      return json(res, 200, { ok: true }), true;
+    }
+    if (p === '/api/friends/report' && req.method === 'POST') {
+      const u = need();
+      ctx.accounts.report(u.id, str(body.id), str(body.reason), str(body.note));
       return json(res, 200, { ok: true }), true;
     }
     if (p === '/api/friends/unblock' && req.method === 'POST') {

@@ -3,7 +3,7 @@ import { Animated, KeyboardAvoidingView, PanResponder, Platform, Pressable, Scro
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, useAuth } from '../net/api';
-import { useLive } from '../net/live';
+import { live, useLive } from '../net/live';
 import { ChatPanel } from './Chat';
 import { Face } from './Crest';
 import { Icon } from './Icon';
@@ -244,7 +244,7 @@ function Sheet({
    * đúng cái việc nó sinh ra để làm.
    */
   const H = inMatch ? Math.min(height * 0.44, 340) : Math.min(height * 0.72, 560);
-  const channel = inMatch ? roomChannel : tab === 'chung' ? 'chung' : tab === 'he-thong' ? `he-thong` : null;
+  const channel = inMatch ? roomChannel : tab === 'chung' ? 'chung' : null;
   useBackClose(true, onClose);
 
   return (
@@ -328,8 +328,10 @@ function Sheet({
                 </Pressable>
               ))}
             </ScrollView>
+          ) : !inMatch && tab === 'he-thong' ? (
+            <SystemFeed meId={meId} />
           ) : channel ? (
-            <ChatPanel channel={channel} meId={meId} readOnly={tab === 'he-thong' && !inMatch} />
+            <ChatPanel channel={channel} meId={meId} />
           ) : (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               <Txt size={12} color={A.inkFaint}>
@@ -341,5 +343,87 @@ function Sheet({
       </Panel>
       </KeyboardAvoidingView>
     </View>
+  );
+}
+
+/**
+ * Thông báo hệ thống: **hai kênh gộp làm một dòng thời gian**.
+ *
+ * Tab này trước đây mở đúng kênh chung `he-thong`, trong khi chấm đỏ trên
+ * tab lại đếm cả kênh riêng `he-thong:<id>`. Hậu quả: một thông báo gửi
+ * riêng cho mình làm nổi số đỏ, bấm vào thì không thấy gì, và số đỏ **không
+ * bao giờ tắt** vì không ai đánh dấu đã đọc kênh riêng. Máy chủ đã có sẵn
+ * `systemFeed()` gộp hai kênh từ đầu; chỉ là app chưa gọi tới nó lần nào.
+ */
+function SystemFeed({ meId }: { meId: string }) {
+  const [rows, setRows] = useState<{ id: number; channel: string; body: string; at: number }[] | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void api
+      .systemFeed()
+      .then((r) => {
+        if (!alive) return;
+        setRows(r.rows);
+        // Đánh dấu đã đọc **cả hai kênh**, mỗi kênh tới đúng id cuối của nó.
+        // Gửi chung một con số là đánh dấu nhầm kênh kia.
+        const top = (ch: string) => r.rows.filter((x) => x.channel === ch).reduce((n, x) => Math.max(n, x.id), 0);
+        for (const ch of ['he-thong', `he-thong:${meId}`]) {
+          const last = top(ch);
+          if (last > 0) live.readChat(ch, last);
+        }
+      })
+      .catch(() => alive && setRows([]));
+    return () => {
+      alive = false;
+    };
+  }, [meId]);
+
+  if (rows === null) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <Txt size={12} color={A.inkFaint}>
+          Đang xem…
+        </Txt>
+      </View>
+    );
+  }
+  if (!rows.length) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: S.lg }}>
+        <Txt size={12.5} color={A.inkFaint} center>
+          Chưa có thông báo nào. Kết quả ván xếp hạng và lời mời kết bạn sẽ hiện ở đây.
+        </Txt>
+      </View>
+    );
+  }
+  return (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: S.sm, paddingVertical: S.xs }}>
+      {rows
+        .slice()
+        .reverse()
+        .map((m) => (
+          <View
+            key={`${m.channel}:${m.id}`}
+            style={{
+              borderRadius: R.md,
+              backgroundColor: A.panelHi,
+              borderWidth: 1,
+              // Thông báo gửi riêng mang viền vàng: nó nói về **mình**, khác
+              // hẳn một thông báo phát cho cả nền tảng.
+              borderColor: m.channel === 'he-thong' ? A.lineSoft : A.goldDeep,
+              padding: S.md,
+              gap: 4,
+            }}
+          >
+            <Txt size={13} color={A.ink}>
+              {m.body}
+            </Txt>
+            <Txt size={11} color={A.inkFaint}>
+              {new Date(m.at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}
+            </Txt>
+          </View>
+        ))}
+    </ScrollView>
   );
 }

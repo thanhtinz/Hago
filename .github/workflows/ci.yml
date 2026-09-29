@@ -104,6 +104,11 @@ jobs:
       - name: Đổi mật khẩu, quản lý thiết bị, giới thiệu
         run: node tools/taikhoan.mjs
 
+      - name: Thông báo riêng, chấm đỏ tắt đúng lúc, và báo cáo người dùng
+        run: node tools/thongbao.mjs
+        env:
+          ADMIN_TOKEN: bimat-quan-tri-cho-ci
+
       # Ảnh chụp được giữ lại để soi tay. Nhiều lỗi giao diện của dự án này
       # chỉ lộ ra khi phóng to ảnh chụp, không lộ ra ở bất kỳ bài test nào.
       - uses: actions/upload-artifact@v4
