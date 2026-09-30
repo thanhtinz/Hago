@@ -11,7 +11,9 @@ import { canPickImage, pickSquareImage } from '../src/net/pickImage';
 import { Field } from '../src/ui/Field';
 import { Chip, Segmented } from '../src/ui/Tabs';
 import { Icon } from '../src/ui/Icon';
-import { Btn, Panel, Txt, press } from '../src/ui/parts';
+import { capChiTiet, xpCua } from '@co/protocol';
+import { BacHoacCho, ThongThaoTag } from '../src/ui/DanhHieu';
+import { Btn, Panel, Tag, Txt, press } from '../src/ui/parts';
 import { feedback } from '../src/ui/feedback';
 import { AppBackdrop, Rule } from '../src/ui/surface';
 import { A, R, S, lift } from '../src/ui/theme';
@@ -125,6 +127,8 @@ function Hero({ me, p }: { me: { id: string; name: string; email: string | null;
           <Stat n={main ? main.rating : '—'} label={main ? `ĐIỂM ${(faceOf(main.gameId)?.nameVi ?? '').toUpperCase()}` : 'ĐIỂM'} />
         </View>
 
+        {played > 0 ? <CapDo stats={p?.stats ?? []} /> : null}
+
         {p?.streak && p.streak.n > 1 ? (
           <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', paddingTop: S.sm }}>
             <Icon name="bolt" size={13} color={p.streak.kind === 'win' ? A.gold : A.inkFaint} />
@@ -135,6 +139,38 @@ function Hero({ me, p }: { me: { id: string; name: string; email: string | null;
         ) : null}
       </View>
     </Panel>
+  );
+}
+
+/**
+ * Cấp tài khoản và đoạn đường tới cấp sau.
+ *
+ * Cấp dẫn xuất từ `stats`, không lưu cột riêng — nên nó **hồi tố**: người
+ * đã đánh tám mươi ván mở app lên thấy cấp 11 ngay, không bắt đầu lại từ 0.
+ *
+ * Kịch trần thì bỏ hẳn thanh và ghi "cao nhất": một thanh không bao giờ
+ * đầy là một thanh nói dối.
+ */
+function CapDo({ stats }: { stats: GameStat[] }) {
+  const xp = xpCua(stats);
+  const c = capChiTiet(xp);
+  return (
+    <View style={{ alignSelf: 'stretch', paddingTop: S.md, gap: 5 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }}>
+        <Tag label={`Cấp ${c.cap}`} color={A.gold} />
+        <Txt size={11.5} color={A.inkFaint} style={{ flex: 1 }}>
+          {c.toi === null ? 'Cao nhất' : `${c.trong}/${c.toi} kinh nghiệm tới cấp ${c.cap + 1}`}
+        </Txt>
+      </View>
+      {c.toi === null ? null : (
+        <View style={{ height: 3, borderRadius: 2, overflow: 'hidden', backgroundColor: A.panelLo }}>
+          <View style={{ width: `${Math.round((c.trong / c.toi) * 100)}%`, height: 3, backgroundColor: A.gold }} />
+        </View>
+      )}
+      <Txt size={10.5} color={A.inkFaint}>
+        Cấp đếm số ván bạn đã đánh ở đây. Nó không nói bạn mạnh cỡ nào — chỗ đó là danh hiệu.
+      </Txt>
+    </View>
   );
 }
 
@@ -218,6 +254,13 @@ function GameRow({ s }: { s: GameStat }) {
       </View>
       <View style={{ flexDirection: 'row', height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: A.panelLo }}>
         {seg.map((g, i) => (g.v > 0 ? <View key={i} style={{ flex: g.v / n, backgroundColor: g.c }} /> : null))}
+      </View>
+      {/* Danh hiệu vàng và thông thạo xám đứng cùng một hàng và đo hai
+          điều khác nhau: một cái nói mạnh yếu, một cái nói đã đánh bao
+          nhiêu. Khác màu là thứ duy nhất phân biệt được chúng ngay. */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <BacHoacCho rating={s.rating} ranked={s.ranked} />
+        <ThongThaoTag row={s} />
       </View>
     </View>
   );

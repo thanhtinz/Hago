@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { registry, type BotLevel } from '@co/core';
 import { load as remembered, recentRooms, save } from '../src/net/store';
-import { CLOCKS } from '@co/protocol';
+import { CLOCKS, conMayVan, danhHieuOf } from '@co/protocol';
 import { Chip as ClockChip } from '../src/ui/Tabs';
 import { Field } from '../src/ui/Field';
 import { LEVEL_NAME } from '../src/ui/MatchShell';
@@ -283,7 +283,12 @@ function summary(p: Profile | null): string {
   const main = [...(p?.stats ?? [])].sort((x, y) => y.win + y.draw + y.loss - (x.win + x.draw + x.loss))[0]!;
   const name = faceOf(main.gameId)?.nameVi ?? main.gameId;
   const streak = p?.streak && p.streak.n > 1 && p.streak.kind === 'win' ? ` · ${p.streak.n} thắng liên tiếp` : '';
-  return `${main.rating} điểm ${name} · ${played} ván${streak}`;
+  // Danh hiệu đứng đầu dòng khi đã có: đó là thứ người ta muốn thấy trước
+  // con số. Chưa đủ ván định hạng thì nói thẳng còn thiếu mấy ván, chứ
+  // không im lặng bỏ trống chỗ đó.
+  const bac = danhHieuOf(main.rating, main.ranked);
+  const dau = bac ? `${bac.ten} · ` : `Còn ${conMayVan(main.ranked)} ván định hạng · `;
+  return `${dau}${main.rating} điểm ${name} · ${played} ván${streak}`;
 }
 
 /** Một ô trong hàng chế độ. `badge` là số việc đang chờ mình xử lý. */

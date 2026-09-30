@@ -317,3 +317,51 @@ Mọi trường mới trong `lobby` phải đọc bằng `?? []` ở client. Má
 app một bản thì trường đó vắng mặt, và một màn sảnh trắng vì
 `undefined.length` là cách tệ nhất để nói "máy chủ chưa cập nhật". Đã dính
 đúng lỗi này ngay lần chạy đầu của `phong-cho.mjs`.
+
+## 13. Ba con số nói ba điều khác nhau
+
+`packages/protocol/src/xephang.ts` giữ cả ba, và cả máy chủ lẫn app cùng
+đọc từ đó. Hai bản chép là hai bản lệch nhau ngay lần chỉnh đầu tiên.
+
+- **Danh hiệu** đo mạnh yếu, dẫn từ Elo, và chỉ có nghĩa **kèm tên bộ môn** —
+  Elo tính riêng từng bộ môn nên một danh hiệu đứng một mình là số bịa.
+  `danhHieuOf` nhận **hai** tham số: không có `ranked` thì tài khoản vừa
+  đăng ký đọc ra "Kỳ thủ" ngay, vì 1200 nằm giữa dải đó.
+- **Cấp độ** đo số ván đã đánh, dẫn xuất từ `stats`, **không lưu cột**. Nhờ
+  thế nó hồi tố. Giá phải trả: đổi trọng số là viết lại cấp của mọi người
+  trong im lặng, nên bốn con số đó coi như đóng băng.
+- **Thông thạo** đo mức gắn bó với một bộ môn và **không cộng thêm cho ván
+  thắng**. Một con số vừa thưởng thắng vừa tự xưng không đo trình độ thì nó
+  là một cái Elo thứ hai yếu hơn, đứng ngay cạnh Elo thật.
+
+Bảng **Tổng** không gắn danh hiệu: nó là `SUM(rating - 1200)` của nhiều bộ
+môn, không phải một thang Elo.
+
+`stats.ranked` là cột duy nhất thêm mới. Ngưỡng lên bảng và đầu vào K của
+`eloDelta` đều đếm cột này, không đếm `win+draw+loss` — không tách thì năm
+ván tự xin thua với một tài khoản phụ là đủ lên bảng xếp hạng.
+
+## 14. Đổ lại dữ liệu cũ: một hàm riêng, chốt bằng bảng `meta`
+
+Thêm cột thì phải sửa **cả** `SCHEMA` lẫn mảng `migrate()`. Thêm **bảng**
+thì chỉ `SCHEMA` — `db.exec(SCHEMA)` chạy mỗi lần mở nên
+`CREATE TABLE IF NOT EXISTS` tạo được bảng trên kho đã có, còn `migrate()`
+thì không tạo bảng được.
+
+Đổ lại dữ liệu cho cột mới **không được** nằm chung `try` với `ALTER`:
+`ALTER` ném ngay ở lần mở thứ hai, `catch` nuốt lỗi, không ai gọi
+`ROLLBACK`, và kết nối kẹt trong transaction suốt đời tiến trình —
+`recordMatch` nhận "cannot start a transaction within a transaction" và
+**mọi ván kết thúc đều không ghi được**. Tách thành `backfill()` riêng,
+chốt bằng bảng `meta`.
+
+Bài kiểm di trú phải chạy trên **tệp thật** (`apps/server/src/db.test.ts`):
+kho `:memory:` luôn mới tinh nên nó nuốt trôi mọi câu `ALTER` và mọi bài
+test đều xanh trong khi máy chủ thật báo "no such column".
+
+## 15. `ScrollView` ngang trong một cột flex phải có `flexGrow: 0`
+
+Không có nó thì khi danh sách bên dưới ngắn, hàng thẻ nở ra ăn hết chỗ
+trống và bốn cái thẻ bị kéo cao gần nửa màn hình. Lỗi này nấp rất lâu vì
+bảng trong lúc kiểm luôn có nhiều hàng; nó chỉ lộ ra ở đúng cảnh một nền
+tảng mới có hai người — tức là cảnh thật.

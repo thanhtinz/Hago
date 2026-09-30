@@ -283,3 +283,8 @@ export function clockLabel(key: string): string {
 }
 
 export const PORT = Number(process.env.PORT ?? 8787);
+
+// Danh hiệu, cấp độ và thông thạo. Để riêng một tệp vì chúng là **luật
+// hiển thị** chứ không phải hình dạng gói tin, nhưng re-export ở đây để
+// mọi nơi vẫn nhập từ một chỗ duy nhất.
+export * from './xephang.js';

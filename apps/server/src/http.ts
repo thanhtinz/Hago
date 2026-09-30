@@ -392,6 +392,7 @@ export async function handleApi(req: IncomingMessage, res: ServerResponse, ctx: 
         rating: r.rating,
         played: r.played,
         win: r.win,
+        ranked: r.ranked,
       }));
       const mine = me ? ctx.accounts.rankOf(me.id, gameId) : null;
       return json(res, 200, { rows, me: mine, minRanked: MIN_RANKED }), true;

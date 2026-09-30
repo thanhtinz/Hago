@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { DatabaseSync } from 'node:sqlite';
+import { VAN_DINH_HANG } from '@co/protocol';
 import { pairOf, type User } from './db.js';
 
 export interface GameStat {
@@ -10,6 +11,8 @@ export interface GameStat {
   loss: number;
   rating: number;
   best: number;
+  /** Bao nhiêu ván trong số đó là ván xếp hạng. */
+  ranked: number;
 }
 
 export interface MatchRow {
@@ -48,12 +51,17 @@ export function eloDelta(mine: number, theirs: number, score: number, played: nu
 const SESSION_DAYS = 60;
 
 /**
- * Bao nhiêu ván mới được vào bảng xếp hạng.
+ * Bao nhiêu **ván xếp hạng** mới được vào bảng xếp hạng.
  *
  * Elo của người mới nhảy 40 điểm một ván (K=40 dưới 30 ván), nên không có
  * ngưỡng thì thắng một ván là leo lên trên người đã đánh hai trăm ván.
+ *
+ * Lấy từ `@co/protocol` chứ không viết lại con số ở đây: ngưỡng lên bảng
+ * và ngưỡng có danh hiệu **phải** là cùng một con số, và hai hằng số 5 ở
+ * hai tệp là đúng cái làm bảng xếp hạng với hồ sơ nói hai câu khác nhau
+ * ngay lần chỉnh đầu tiên.
  */
-export const MIN_RANKED = 5;
+export const MIN_RANKED = VAN_DINH_HANG;
 
 /** Đổi tên một lần mỗi ngày. */
 const RENAME_EVERY = 24 * 60 * 60 * 1000;
@@ -419,14 +427,17 @@ export class Accounts {
 
   // ---- thành tích, điểm và lịch sử -----------------------------------
 
-  private statRow(userId: string, gameId: string): { win: number; draw: number; loss: number; rating: number; best: number } {
+  private statRow(userId: string, gameId: string): { win: number; draw: number; loss: number; rating: number; best: number; ranked: number } {
     this.db.prepare('INSERT OR IGNORE INTO stats (user_id, game_id) VALUES (?, ?)').run(userId, gameId);
-    return this.db.prepare('SELECT win, draw, loss, rating, best FROM stats WHERE user_id = ? AND game_id = ?').get(userId, gameId) as unknown as {
+    return this.db
+      .prepare('SELECT win, draw, loss, rating, best, ranked FROM stats WHERE user_id = ? AND game_id = ?')
+      .get(userId, gameId) as unknown as {
       win: number;
       draw: number;
       loss: number;
       rating: number;
       best: number;
+      ranked: number;
     };
   }
 
@@ -449,17 +460,22 @@ export class Accounts {
     /** Log input của ván, dạng JSON, để phát lại. */
     log?: string;
     /** Điểm đổi bao nhiêu cho từng ghế. Trả ra để tầng ngoài báo cho người chơi. */
-  }): { delta: [number, number] } {
+  }): { delta: [number, number]; rating: [number, number]; ranked: [number, number] } {
     const [a, b] = m.seats;
     let dA = 0;
     let dB = 0;
+    const ra = a ? this.statRow(a, m.gameId).rating : 0;
+    const rb = b ? this.statRow(b, m.gameId).rating : 0;
+    // Số ván xếp hạng **trước** ván này. Cộng thêm ở cuối để tầng ngoài so
+    // được danh hiệu trước và sau mà không phải đọc lại cơ sở dữ liệu.
+    const na = a ? this.vanXepHang(a, m.gameId) : 0;
+    const nb = b ? this.vanXepHang(b, m.gameId) : 0;
     if (m.rated && a && b) {
-      const ra = this.statRow(a, m.gameId).rating;
-      const rb = this.statRow(b, m.gameId).rating;
       const sa = m.winner === null ? 0.5 : m.winner === 0 ? 1 : 0;
-      dA = eloDelta(ra, rb, sa, this.played(a, m.gameId));
-      dB = eloDelta(rb, ra, 1 - sa, this.played(b, m.gameId));
+      dA = eloDelta(ra, rb, sa, na);
+      dB = eloDelta(rb, ra, 1 - sa, nb);
     }
+    const them = m.rated ? 1 : 0;
 
     const tx = () => {
       for (const [seat, id] of [a, b].entries()) {
@@ -469,10 +485,10 @@ export class Accounts {
         this.statRow(id, m.gameId);
         this.db
           .prepare(
-            `UPDATE stats SET ${r} = ${r} + 1, rating = rating + ?, best = MAX(best, rating + ?)
+            `UPDATE stats SET ${r} = ${r} + 1, rating = rating + ?, best = MAX(best, rating + ?), ranked = ranked + ?
              WHERE user_id = ? AND game_id = ?`,
           )
-          .run(d, d, id, m.gameId);
+          .run(d, d, them, id, m.gameId);
       }
       this.db
         .prepare(
@@ -489,12 +505,21 @@ export class Accounts {
       this.db.exec('ROLLBACK');
       throw e;
     }
-    return { delta: [dA, dB] };
+    return { delta: [dA, dB], rating: [ra + dA, rb + dB], ranked: [na + them, nb + them] };
   }
 
-  private played(userId: string, gameId: string): number {
-    const r = this.statRow(userId, gameId);
-    return r.win + r.draw + r.loss;
+  /**
+   * Số ván **xếp hạng** đã đánh. Đây là đầu vào của lịch K trong `eloDelta`.
+   *
+   * Trước đây chỗ này đếm cả ván phòng riêng, nên hai người bạn đánh năm
+   * mươi ván với nhau sẽ tụt K xuống 24 mà chưa đánh một ván tính điểm
+   * nào — điểm của họ đông cứng lại trước khi thang điểm kịp tìm đúng chỗ
+   * cho họ. Hệ quả ngược lại cũng có thật và trông như lỗi: ai đã đánh
+   * nhiều ván phòng riêng thì nay điểm nhảy 40 một ván, nên lần đổi này
+   * phải có một thông báo hệ thống đi kèm.
+   */
+  private vanXepHang(userId: string, gameId: string): number {
+    return this.statRow(userId, gameId).ranked;
   }
 
   /**
@@ -513,23 +538,23 @@ export class Accounts {
    * chơi ba bộ môn ở mức trung bình vẫn hơn người xuất sắc một bộ môn chỉ
    * vì 1200 × 3 > 1400.
    */
-  leaderboard(gameId: string | null, limit = 50): { user: User; rating: number; played: number; win: number }[] {
+  leaderboard(gameId: string | null, limit = 50): { user: User; rating: number; played: number; win: number; ranked: number }[] {
     const rows = gameId
       ? (this.db
           .prepare(
-            `SELECT s.user_id, s.rating AS rating, s.win + s.draw + s.loss AS played, s.win AS win
-             FROM stats s WHERE s.game_id = ? AND s.win + s.draw + s.loss >= ?
+            `SELECT s.user_id, s.rating AS rating, s.win + s.draw + s.loss AS played, s.win AS win, s.ranked AS ranked
+             FROM stats s WHERE s.game_id = ? AND s.ranked >= ?
              ORDER BY rating DESC, played DESC LIMIT ?`,
           )
-          .all(gameId, MIN_RANKED, limit) as unknown as { user_id: string; rating: number; played: number; win: number }[])
+          .all(gameId, MIN_RANKED, limit) as unknown as { user_id: string; rating: number; played: number; win: number; ranked: number }[])
       : (this.db
           .prepare(
-            `SELECT s.user_id, SUM(s.rating - 1200) AS rating, SUM(s.win + s.draw + s.loss) AS played, SUM(s.win) AS win
-             FROM stats s WHERE s.win + s.draw + s.loss >= ?
+            `SELECT s.user_id, SUM(s.rating - 1200) AS rating, SUM(s.win + s.draw + s.loss) AS played, SUM(s.win) AS win, SUM(s.ranked) AS ranked
+             FROM stats s WHERE s.ranked >= ?
              GROUP BY s.user_id ORDER BY rating DESC, played DESC LIMIT ?`,
           )
-          .all(MIN_RANKED, limit) as unknown as { user_id: string; rating: number; played: number; win: number }[]);
-    const out: { user: User; rating: number; played: number; win: number }[] = [];
+          .all(MIN_RANKED, limit) as unknown as { user_id: string; rating: number; played: number; win: number; ranked: number }[]);
+    const out: { user: User; rating: number; played: number; win: number; ranked: number }[] = [];
     if (!rows.length) return out;
     // Một câu cho tất cả người dùng, không hỏi từng người một.
     const ids = rows.map((r) => r.user_id);
@@ -540,7 +565,7 @@ export class Accounts {
     }
     for (const r of rows) {
       const u = users.get(r.user_id);
-      if (u) out.push({ user: u, rating: r.rating, played: r.played, win: r.win });
+      if (u) out.push({ user: u, rating: r.rating, played: r.played, win: r.win, ranked: r.ranked });
     }
     return out;
   }
@@ -551,38 +576,38 @@ export class Accounts {
    * Tách khỏi `leaderboard` vì hạng của mình phải hiện **kể cả khi mình
    * đứng thứ ba trăm** — đó mới là con số người ta mở bảng ra để xem.
    */
-  rankOf(userId: string, gameId: string | null): { rank: number; rating: number; played: number } | null {
+  rankOf(userId: string, gameId: string | null): { rank: number; rating: number; played: number; ranked: number } | null {
     if (gameId) {
       const mine = this.db
-        .prepare('SELECT rating, win + draw + loss AS played FROM stats WHERE user_id = ? AND game_id = ?')
-        .get(userId, gameId) as unknown as { rating: number; played: number } | undefined;
-      if (!mine || mine.played < MIN_RANKED) return null;
+        .prepare('SELECT rating, win + draw + loss AS played, ranked FROM stats WHERE user_id = ? AND game_id = ?')
+        .get(userId, gameId) as unknown as { rating: number; played: number; ranked: number } | undefined;
+      if (!mine || mine.ranked < MIN_RANKED) return null;
       const above = this.db
-        .prepare('SELECT COUNT(*) AS n FROM stats WHERE game_id = ? AND win + draw + loss >= ? AND rating > ?')
+        .prepare('SELECT COUNT(*) AS n FROM stats WHERE game_id = ? AND ranked >= ? AND rating > ?')
         .get(gameId, MIN_RANKED, mine.rating) as unknown as { n: number };
-      return { rank: above.n + 1, rating: mine.rating, played: mine.played };
+      return { rank: above.n + 1, rating: mine.rating, played: mine.played, ranked: mine.ranked };
     }
     const mine = this.db
-      .prepare('SELECT SUM(rating - 1200) AS rating, SUM(win + draw + loss) AS played FROM stats WHERE user_id = ? AND win + draw + loss >= ?')
-      .get(userId, MIN_RANKED) as unknown as { rating: number | null; played: number | null };
+      .prepare('SELECT SUM(rating - 1200) AS rating, SUM(win + draw + loss) AS played, SUM(ranked) AS ranked FROM stats WHERE user_id = ? AND ranked >= ?')
+      .get(userId, MIN_RANKED) as unknown as { rating: number | null; played: number | null; ranked: number | null };
     if (mine?.rating === null || mine?.played === null || mine === undefined) return null;
     const above = this.db
       .prepare(
         `SELECT COUNT(*) AS n FROM (
-           SELECT user_id, SUM(rating - 1200) AS r FROM stats WHERE win + draw + loss >= ? GROUP BY user_id
+           SELECT user_id, SUM(rating - 1200) AS r FROM stats WHERE ranked >= ? GROUP BY user_id
          ) WHERE r > ?`,
       )
       .get(MIN_RANKED, mine.rating) as unknown as { n: number };
-    return { rank: above.n + 1, rating: mine.rating, played: mine.played };
+    return { rank: above.n + 1, rating: mine.rating, played: mine.played, ranked: mine.ranked ?? 0 };
   }
 
   stats(userId: string): GameStat[] {
     const rows = this.db
-      .prepare('SELECT game_id, win, draw, loss, rating, best FROM stats WHERE user_id = ? ORDER BY game_id')
-      .all(userId) as unknown as { game_id: string; win: number; draw: number; loss: number; rating: number; best: number }[];
+      .prepare('SELECT game_id, win, draw, loss, rating, best, ranked FROM stats WHERE user_id = ? ORDER BY game_id')
+      .all(userId) as unknown as { game_id: string; win: number; draw: number; loss: number; rating: number; best: number; ranked: number }[];
     return rows
       .filter((r) => r.win + r.draw + r.loss > 0)
-      .map((r) => ({ gameId: r.game_id, win: r.win, draw: r.draw, loss: r.loss, rating: r.rating, best: r.best }));
+      .map((r) => ({ gameId: r.game_id, win: r.win, draw: r.draw, loss: r.loss, rating: r.rating, best: r.best, ranked: r.ranked }));
   }
 
   /**

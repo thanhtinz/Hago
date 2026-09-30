@@ -10,6 +10,7 @@ import { faceOf } from '../src/games/faces';
 import { Face } from '../src/ui/Crest';
 import { Icon } from '../src/ui/Icon';
 import { Panel, Txt, press } from '../src/ui/parts';
+import { BacTag } from '../src/ui/DanhHieu';
 import { Chip } from '../src/ui/Tabs';
 import { AppBackdrop, Rule } from '../src/ui/surface';
 import { A, R, S, glow, lift } from '../src/ui/theme';
@@ -70,9 +71,15 @@ export default function BoardScreen() {
         </Txt>
       </View>
 
+      {/* `flexGrow: 0` chứ không để mặc: hàng thẻ này là một `ScrollView`
+          nằm trong một cột flex, nên khi danh sách dưới nó ngắn, nó nở ra
+          ăn hết chỗ trống và bốn cái thẻ bị kéo cao gần nửa màn hình. Lỗi
+          nấp suốt nhiều tháng vì bảng trong lúc kiểm luôn có mười ba hàng;
+          nó chỉ lộ ra ở đúng cảnh một nền tảng mới có hai người. */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0, flexShrink: 0 }}
         contentContainerStyle={{ gap: S.sm, paddingHorizontal: S.lg, paddingVertical: S.md }}
       >
         <Chip label="Tổng" a11y="Bảng Tổng" on={tab === 'tong'} onPress={() => setTab('tong')} />
@@ -128,9 +135,16 @@ function Row({ row, me, total, onPress }: { row: BoardRow; me: string | null; to
             <Txt size={14.5} weight={mine ? 'bold' : 'semi'} numberOfLines={1}>
               {row.user.name}
             </Txt>
-            <Txt size={11} color={A.inkFaint}>
-              {row.played} ván · thắng {row.played ? Math.round((row.win / row.played) * 100) : 0}%
-            </Txt>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 2 }}>
+              {/* Danh hiệu **chỉ ở bảng từng bộ môn**. Bảng Tổng là tổng
+                  phần điểm vượt mốc của nhiều bộ môn, không phải một thang
+                  Elo — gắn danh hiệu lên nó là đọc một con số bằng cái
+                  thước của con số khác. */}
+              {total ? null : <BacTag rating={row.rating} ranked={row.ranked} />}
+              <Txt size={11} color={A.inkFaint}>
+                {row.played} ván · thắng {row.played ? Math.round((row.win / row.played) * 100) : 0}%
+              </Txt>
+            </View>
           </View>
           {/* Chữ số điểm dùng bộ chữ thân, không phải bộ chữ hiển thị:
               trong Playfair dấu cộng nằm ở trục toán học, cao hơn tâm chữ
@@ -155,7 +169,8 @@ function Empty({ minRanked }: { minRanked: number }) {
           Chưa ai đủ điều kiện
         </Txt>
         <Txt size={12.5} color={A.inkSoft} center>
-          Phải đánh ít nhất {minRanked} ván ghép cặp của một bộ môn mới có tên trong bảng. Ván ở phòng riêng không tính điểm.
+          Phải đánh ít nhất {minRanked} ván đấu xếp hạng của một bộ môn mới có tên trong bảng. Đánh thường và ván ở phòng riêng
+          không tính.
         </Txt>
       </View>
     </Panel>
@@ -191,13 +206,14 @@ function MyRank({ board, total, insetBottom }: { board: Board; total: boolean; i
                 </Txt>{' '}
                 · {m.played} ván
               </Txt>
+              {total ? null : <BacTag rating={m.rating} ranked={m.ranked} />}
               <Txt size={16} weight="bold" color={A.gold} style={{ fontVariant: ['tabular-nums'] }}>
                 {total && m.rating > 0 ? `+${m.rating}` : m.rating}
               </Txt>
             </>
           ) : (
             <Txt size={12.5} color={A.inkSoft} style={{ flex: 1 }}>
-              Bạn chưa có hạng — cần {board.minRanked} ván ghép cặp của một bộ môn.
+              Bạn chưa có hạng — cần {board.minRanked} ván đấu xếp hạng của một bộ môn.
             </Txt>
           )}
         </View>

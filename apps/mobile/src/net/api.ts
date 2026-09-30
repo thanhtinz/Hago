@@ -40,6 +40,8 @@ export interface GameStat {
   loss: number;
   rating: number;
   best: number;
+  /** Bao nhiêu ván trong số đó là ván xếp hạng. */
+  ranked: number;
 }
 
 export interface MatchRow {
@@ -244,12 +246,14 @@ export interface BoardRow {
   rating: number;
   played: number;
   win: number;
+  /** Bao nhiêu ván trong số đó là ván xếp hạng. Danh hiệu đọc con số này. */
+  ranked: number;
 }
 
 export interface Board {
   rows: BoardRow[];
   /** Hạng của chính mình, kể cả khi nằm ngoài danh sách. */
-  me: { rank: number; rating: number; played: number } | null;
+  me: { rank: number; rating: number; played: number; ranked: number } | null;
   /** Số ván tối thiểu để có tên trong bảng. */
   minRanked: number;
 }

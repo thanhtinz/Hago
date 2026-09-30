@@ -61,14 +61,21 @@ await shot(A, '80-bang-xep-hang-tong');
 
 const hasMe = (await A.getByText(NA).count()) > 0;
 const hasRank = (await A.getByText(/Bạn đang hạng/).count()) > 0;
-console.log(`  có tên mình trong bảng: ${hasMe} · có hạng của mình ở đáy: ${hasRank}`);
+// Bảng Tổng là tổng phần điểm vượt mốc của nhiều bộ môn, không phải một
+// thang Elo — gắn danh hiệu lên nó là đọc một con số bằng cái thước của
+// con số khác.
+const tongKhongCoBac = (await A.getByTestId('danh-hieu').count()) === 0;
+console.log(`  có tên mình trong bảng: ${hasMe} · có hạng của mình ở đáy: ${hasRank} · bảng Tổng không gắn danh hiệu: ${tongKhongCoBac}`);
 
 console.log('Đổi sang bảng riêng của cờ caro');
 await A.getByLabel('Bảng Cờ Caro').click();
 await A.waitForTimeout(1500);
 await shot(A, '81-bang-xep-hang-caro');
 const caroHasMe = (await A.getByText(NA).count()) > 0;
-console.log(`  bảng cờ caro có tên mình: ${caroHasMe}`);
+// Năm ván xếp hạng là vừa đủ định hạng, nên cả hai người phải có danh hiệu.
+const soBac = await A.getByTestId('danh-hieu').count();
+const coBacChu = (await A.getByText(/Kỳ thủ|Cao thủ|Tay cờ|Kiện tướng|Nhập môn/).count()) > 0;
+console.log(`  bảng cờ caro có tên mình: ${caroHasMe} · số thẻ danh hiệu: ${soBac} · đọc ra chữ: ${coBacChu}`);
 
 console.log('Bảng của bộ môn chưa ai đánh phải nói rõ vì sao trống');
 await A.getByLabel('Bảng Ô Ăn Quan').click();
@@ -85,7 +92,26 @@ await C.getByLabel('Xếp hạng').click();
 await C.waitForTimeout(1600);
 await shot(C, '83-chua-co-hang');
 const tellsNewcomer = (await C.getByText(/Bạn chưa có hạng/).count()) > 0;
-console.log(`  nói thẳng với người mới: ${tellsNewcomer}`);
+const noiRoXepHang = (await C.getByText(/ván đấu xếp hạng/).count()) > 0;
+console.log(`  nói thẳng với người mới: ${tellsNewcomer} · nói rõ phải là ván xếp hạng: ${noiRoXepHang}`);
+
+console.log('Trang cá nhân phải có cấp và danh hiệu, và nói rõ cấp không đo mạnh yếu');
+await A.goto(`${BASE}/me`, { waitUntil: 'networkidle' });
+await A.waitForTimeout(1800);
+await shot(A, '122-ho-so-co-cap-va-danh-hieu');
+const coCap = (await A.getByText(/^Cấp \d+$/).count()) > 0;
+const coTienDo = (await A.getByText(/kinh nghiệm tới cấp/).count()) > 0;
+const noiRoCap = (await A.getByText(/Nó không nói bạn mạnh cỡ nào/).count()) > 0;
+const hoSoCoBac = (await A.getByTestId('danh-hieu').count()) > 0;
+const coThongThao = (await A.getByTestId('thong-thao').count()) > 0;
+console.log(`  cấp: ${coCap} · tiến độ: ${coTienDo} · nói rõ cấp là gì: ${noiRoCap} · danh hiệu: ${hoSoCoBac} · thông thạo: ${coThongThao}`);
+
+console.log('Người chưa đánh ván nào thì không có vạch tiến độ và không có nhãn thông thạo');
+await C.goto(`${BASE}/me`, { waitUntil: 'networkidle' });
+await C.waitForTimeout(1600);
+await shot(C, '123-ho-so-chua-danh-van-nao');
+const moiTinh = (await C.getByText(/kinh nghiệm tới cấp/).count()) === 0 && (await C.getByTestId('thong-thao').count()) === 0;
+console.log(`  chưa có gì thì nói thẳng là chưa có gì: ${moiTinh}`);
 
 await browser.close();
 finish([
@@ -94,6 +120,12 @@ finish([
   [caroHasMe, 'Bảng riêng của cờ caro không có tên.'],
   [explains, 'Bảng trống không nói vì sao trống.'],
   [tellsNewcomer, 'Người chưa đủ ván không được nói là chưa có hạng.'],
+  [noiRoXepHang, 'Không nói rõ ngưỡng đếm ván đấu xếp hạng.'],
+  [tongKhongCoBac, 'Bảng Tổng gắn danh hiệu, mà nó không phải một thang Elo.'],
+  [soBac >= 2 && coBacChu, 'Bảng từng bộ môn không hiện danh hiệu.'],
+  [coCap && coTienDo && noiRoCap, 'Hồ sơ thiếu cấp, thiếu tiến độ, hoặc không nói cấp đo cái gì.'],
+  [hoSoCoBac && coThongThao, 'Hồ sơ thiếu danh hiệu hoặc thiếu nhãn thông thạo.'],
+  [moiTinh, 'Người chưa đánh ván nào vẫn bị vẽ vạch tiến độ hoặc nhãn thông thạo.'],
   [errors.length === 0, 'Có lỗi trên trang.'],
 ]);
-console.log('\nBảng xếp hạng đọc đúng điểm từ ván đánh thật.');
+console.log('\nBảng xếp hạng chỉ đếm ván xếp hạng, và danh hiệu, cấp, thông thạo đều đọc từ ván thật.');

@@ -63,6 +63,13 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);
 
+-- Cờ đánh dấu những việc chỉ được làm đúng một lần trên một kho dữ liệu,
+-- ví dụ một lần đổ lại dữ liệu cũ sau khi thêm cột.
+CREATE TABLE IF NOT EXISTS meta (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
 -- Thành tích, cộng dồn theo bộ môn. Tách khỏi users để thêm bộ môn không
 -- phải thêm cột.
 CREATE TABLE IF NOT EXISTS stats (
@@ -74,6 +81,10 @@ CREATE TABLE IF NOT EXISTS stats (
   -- Elo, mỗi bộ môn một thang riêng. Mạnh cờ caro không nói gì về cờ vây.
   rating  INTEGER NOT NULL DEFAULT 1200,
   best    INTEGER NOT NULL DEFAULT 1200,
+  -- Số ván **xếp hạng** đã đánh ở bộ môn này. Tách khỏi win+draw+loss vì
+  -- ván phòng riêng cũng cộng vào ba cột kia: không tách thì năm ván tự
+  -- xin thua với một tài khoản phụ là đủ lên bảng xếp hạng.
+  ranked  INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (user_id, game_id)
 );
 
@@ -189,6 +200,7 @@ export function openDb(file = process.env.DB_FILE ?? 'data/co.db'): DatabaseSync
   db.exec('PRAGMA foreign_keys = ON');
   db.exec(SCHEMA);
   migrate(db);
+  backfill(db);
   return db;
 }
 
@@ -208,6 +220,8 @@ function migrate(db: DatabaseSync): void {
     // Log input của ván, dạng JSON. Đây là thứ duy nhất cần để dựng lại
     // toàn bộ ván: state không phải nguồn chân lý, log mới là (R1).
     'ALTER TABLE matches ADD COLUMN log TEXT',
+    // Ngưỡng lên bảng xếp hạng đếm cột này chứ không đếm tổng số ván.
+    'ALTER TABLE stats ADD COLUMN ranked INTEGER NOT NULL DEFAULT 0',
   ];
   for (const sql of add) {
     try {
@@ -215,6 +229,41 @@ function migrate(db: DatabaseSync): void {
     } catch {
       // Đã có cột rồi. Đây là đường chạy bình thường ở lần mở thứ hai trở đi.
     }
+  }
+}
+
+/**
+ * Đổ lại `stats.ranked` từ bảng `matches` đã có, đúng một lần.
+ *
+ * Cột mới ra đời với giá trị 0 cho **mọi** hàng cũ, nên không có bước này
+ * thì sáng hôm lên bản bảng xếp hạng rỗng trơn và màn hình tự tin nói
+ * "chưa ai đủ điều kiện" với một cơ sở dữ liệu đầy ván.
+ *
+ * Tách hẳn khỏi `migrate()` và **không** gộp transaction với nó. `ALTER`
+ * ném ngay ở lần mở thứ hai, `catch` ở đó nuốt lỗi và không ai gọi
+ * `ROLLBACK` — kết nối sẽ nằm trong transaction suốt đời tiến trình, rồi
+ * `recordMatch` nhận "cannot start a transaction within a transaction" và
+ * **mọi ván kết thúc đều không ghi được**. Test `:memory:` không bao giờ
+ * bắt được lỗi đó vì kho mới luôn nuốt trôi câu `ALTER`.
+ *
+ * Chốt bằng bảng `meta` chứ không bằng việc `ALTER` có ném hay không: thêm
+ * cột và đổ lại dữ liệu là hai việc khác nhau, và nếu câu đổ lại ngã thì
+ * không có gì được đánh dấu xong nên lần mở sau thử lại từ đầu.
+ */
+function backfill(db: DatabaseSync): void {
+  const done = db.prepare('SELECT value FROM meta WHERE key = ?').get('backfill-ranked');
+  if (done) return;
+  db.exec('BEGIN');
+  try {
+    db.exec(`UPDATE stats SET ranked = (
+      SELECT COUNT(*) FROM matches m
+      WHERE m.rated = 1 AND m.game_id = stats.game_id
+        AND (m.a_id = stats.user_id OR m.b_id = stats.user_id))`);
+    db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)').run('backfill-ranked', '1');
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
   }
 }
 
