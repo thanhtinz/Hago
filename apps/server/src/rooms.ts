@@ -574,8 +574,8 @@ export class Rooms {
         rated: xepHang,
         seed: revealSeed(this.serverSeed, code, '1'),
         rematch: new Set(),
-      fans: new Set(),
-      openedAt: this.now(),
+        fans: new Set(),
+        openedAt: this.now(),
         game: 1,
         lastClock: [-1, -1],
       };

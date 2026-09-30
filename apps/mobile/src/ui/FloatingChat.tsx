@@ -71,7 +71,18 @@ export function FloatingChat() {
 
   return (
     <>
-      <Bubble unread={unread} inMatch={inMatch} onPress={() => setOpen(true)} W={W} height={height} insets={insets} />
+      {/* Sảnh có cụm hành động neo đáy (hai chip + nút vàng 72) cộng thanh
+          điều hướng; chỗ đậu 96 điểm rơi đúng vào mặt nút vàng. Đậu cao
+          hơn ở đúng màn đó, các màn khác giữ nguyên. */}
+      <Bubble
+        unread={unread}
+        inMatch={inMatch}
+        onPress={() => setOpen(true)}
+        W={W}
+        height={height}
+        insets={insets}
+        chuaDay={path === '/' ? 216 : 96}
+      />
       {open ? (
         <Sheet
           meId={me.id}
@@ -95,6 +106,7 @@ function Bubble({
   W,
   height,
   insets,
+  chuaDay,
 }: {
   unread: number;
   inMatch: boolean;
@@ -102,9 +114,11 @@ function Bubble({
   W: number;
   height: number;
   insets: { top: number; bottom: number };
+  /** Chừa bấy nhiêu điểm phía dưới chỗ đậu mặc định. */
+  chuaDay: number;
 }) {
   const right = W - SIZE - MARGIN;
-  const low = height - insets.bottom - SIZE - 96;
+  const low = height - insets.bottom - SIZE - chuaDay;
   /**
    * Chỗ đậu mặc định: **sát đáy**, ngay trên thanh điều hướng.
    *

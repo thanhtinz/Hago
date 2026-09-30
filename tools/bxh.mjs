@@ -52,7 +52,7 @@ for (let v = 0; v < 5; v++) {
 console.log('Mở bảng xếp hạng từ thanh dưới');
 await A.goto(`${BASE}/`, { waitUntil: 'networkidle' });
 await A.waitForTimeout(1500);
-await A.getByLabel('Xếp hạng').click();
+await A.getByLabel('Xếp hạng').last().click();
 await A.waitForTimeout(1800);
 await shot(A, '80-bang-xep-hang-tong');
 
@@ -85,7 +85,7 @@ console.log(`  nói rõ vì sao trống: ${explains}`);
 // nhìn một khoảng trống rồi tự đoán.
 console.log('Người chưa đủ ván thì đáy màn nói thẳng còn thiếu bao nhiêu');
 const C = await signUp(await openPage(browser, 'C'), `Cường ${tag}`, 'bc');
-await C.getByLabel('Xếp hạng').click();
+await C.getByLabel('Xếp hạng').last().click();
 await C.waitForTimeout(1600);
 await shot(C, '83-chua-co-hang');
 const tellsNewcomer = (await C.getByText(/Bạn chưa có hạng/).count()) > 0;

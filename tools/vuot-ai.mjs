@@ -15,7 +15,7 @@ const browser = await launch();
 const page = await openPage(browser, 'V');
 
 console.log('Mở danh sách ải từ sảnh');
-await page.getByLabel('Vượt ải').click();
+await page.getByLabel('Vượt ải', { exact: true }).click();
 await page.waitForTimeout(1500);
 await shot(page, '130-danh-sach-ai');
 const coChuong = (await page.getByText(/Chương 1 · Vỡ lòng/).count()) > 0;

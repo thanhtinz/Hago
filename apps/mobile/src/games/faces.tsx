@@ -73,7 +73,7 @@ const V = '0 0 100 64';
  * thì hai bên hở ra nền — mà nền hở đúng bằng màu chất liệu của game nên
  * không thấy mối nối.
  */
-const Frame = ({ bg, children }: { bg: string; children: React.ReactNode }) => (
+export const Frame = ({ bg, children }: { bg: string; children: React.ReactNode }) => (
   <Svg width="100%" height="100%" viewBox={V} preserveAspectRatio="xMidYMid meet">
     <Rect x={0} y={0} width={100} height={64} fill={bg} />
     {children}
@@ -85,7 +85,7 @@ const Frame = ({ bg, children }: { bg: string; children: React.ReactNode }) => (
  * trông ngẫu nhiên, nhưng phải giống hệt nhau qua mỗi lần vẽ lại — nếu không
  * thì cứ đổi hướng màn hình là cả bàn cờ lại đổi vân, trông như đang chập.
  */
-function seeded(seed: number): () => number {
+export function seeded(seed: number): () => number {
   let x = seed | 0 || 1;
   return () => {
     x ^= x << 13;
@@ -96,7 +96,7 @@ function seeded(seed: number): () => number {
 }
 
 /** Hạt lấm tấm rải đều — cát, sỏi, sợi giấy. */
-function speckle(seed: number, n: number, color: string, rMax = 0.7, opacity = 0.35) {
+export function speckle(seed: number, n: number, color: string, rMax = 0.7, opacity = 0.35) {
   const rnd = seeded(seed);
   return Array.from({ length: n }, (_, i) => (
     <Circle
@@ -111,7 +111,7 @@ function speckle(seed: number, n: number, color: string, rMax = 0.7, opacity = 0
 }
 
 /** Thớ gỗ: những đường cong dài gần song song, chỗ dày chỗ thưa. */
-function woodGrain(seed: number, n: number, color: string, opacity = 0.2) {
+export function woodGrain(seed: number, n: number, color: string, opacity = 0.2) {
   const rnd = seeded(seed);
   return Array.from({ length: n }, (_, i) => {
     const y = (i + 0.5) * (64 / n) + (rnd() - 0.5) * 3;

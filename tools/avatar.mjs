@@ -70,7 +70,7 @@ await page.getByLabel('Email').fill(`av${Date.now()}@vidu.com`);
 await page.getByLabel('Mật khẩu').fill('matkhaudai');
 await page.getByText('Đăng ký', { exact: true }).click();
 await page.waitForTimeout(1800);
-await page.getByLabel('Tôi').first().click();
+await page.getByLabel('Tôi').last().click();
 await page.waitForTimeout(1000);
 await page.getByLabel('Thẻ Cài đặt').click();
 await shot('30-anh-dai-dien');

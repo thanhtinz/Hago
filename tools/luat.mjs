@@ -6,8 +6,8 @@
  * đọc được luật — họ phải đoán từ chính bàn cờ.
  *
  * Bài này đi đúng ba đường mà người ta thực sự đi: bấm nút "Luật" trên thẻ
- * ở sảnh, chạm vào một thẻ bộ môn **chưa mở**, và bấm dấu hỏi ngay trong
- * ván đang đánh. Kèm một điều dễ làm sai: nút "Đấu với máy" chỉ được hiện
+ * bộ môn trong tấm chọn chế độ, chạm vào một thẻ bộ môn **chưa mở** ở danh
+ * mục, và bấm dấu hỏi ngay trong ván đang đánh. Kèm một điều dễ làm sai: nút "Đấu với máy" chỉ được hiện
  * ở bộ môn đã có engine — mời người ta vào một ván không tồn tại thì tệ
  * hơn là không mời.
  */
@@ -16,7 +16,11 @@ import { errors, finish, launch, openPage, shot, BASE } from './lib.mjs';
 const browser = await launch();
 const page = await openPage(browser, 'L');
 
-console.log('Mở luật từ nút trên thẻ ở sảnh');
+console.log('Mở luật từ nút trên thẻ bộ môn trong tấm chọn chế độ');
+// Sảnh không còn thẻ bộ môn nào; thẻ có tranh (và nút Luật ở góc tranh)
+// nằm trong tấm chọn chế độ, đúng chỗ người ta đang cân nhắc đánh gì.
+await page.getByLabel('Đổi chế độ', { exact: true }).click();
+await page.waitForTimeout(1000);
 await page.getByLabel('Luật Cờ Gánh').click();
 await page.waitForTimeout(1400);
 await shot(page, '112-luat-co-ganh');
@@ -80,4 +84,4 @@ finish([
   [noPlay, 'Bộ môn chưa có engine mà vẫn mời đấu với máy.'],
   [errors.length === 0, 'Có lỗi trên trang.'],
 ]);
-console.log('\nLuật chơi đọc được từ sảnh, từ trong ván, và cả ở bộ môn chưa mở.');
+console.log('\nLuật chơi đọc được từ tấm chọn chế độ, từ trong ván, và cả ở bộ môn chưa mở.');

@@ -5,12 +5,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { registry } from '@co/core';
 import '../src/catalog';
 import { backToLobby } from '../src/nav';
-import { FACES, GROUPS, type GameFace } from '../src/games/faces';
-import { CHAT_SPACE } from '../src/ui/FloatingChat';
+import { FACES, GROUPS } from '../src/games/faces';
+import { BottomNav } from '../src/ui/BottomNav';
 import { Icon } from '../src/ui/Icon';
-import { Nhan, Panel, Txt, press } from '../src/ui/parts';
+import { Txt, press } from '../src/ui/parts';
+import { TheAnh } from '../src/ui/TheAnh';
 import { AppBackdrop, Rule } from '../src/ui/surface';
-import { A, R, S, lift } from '../src/ui/theme';
+import { A, S } from '../src/ui/theme';
 
 /**
  * Danh mục mười ba bộ môn.
@@ -46,7 +47,7 @@ export default function BoMonScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + CHAT_SPACE + S.xxl, paddingTop: S.md, gap: S.md }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: S.xxl, paddingTop: S.md, gap: S.md }}>
         {GROUPS.map((g) => {
           const items = FACES.filter((f) => f.group === g.id);
           if (!items.length) return null;
@@ -60,62 +61,27 @@ export default function BoMonScreen() {
               </View>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.md, paddingHorizontal: S.lg }}>
                 {items.map((f) => (
-                  <Card key={f.id} face={f} ready={READY.has(f.id)} onPress={() => router.push(READY.has(f.id) ? `/play/${f.id}` : `/luat/${f.id}`)} onRules={() => router.push(`/luat/${f.id}`)} />
+                  <View key={f.id} style={{ width: '47.5%' }}>
+                    <TheAnh
+                      ten={f.nameVi}
+                      surface={f.surface}
+                      Art={f.Motif}
+                      khoa={!READY.has(f.id)}
+                      dieuKien="Sắp có"
+                      nhan={[f.mode, f.minutes]}
+                      a11y={READY.has(f.id) ? `Chơi ${f.nameVi}` : `Xem luật ${f.nameVi}, chưa mở`}
+                      onPress={() => router.push(READY.has(f.id) ? `/play/${f.id}` : `/luat/${f.id}`)}
+                      onGoc={() => router.push(`/luat/${f.id}`)}
+                    />
+                  </View>
                 ))}
               </View>
             </View>
           );
         })}
       </ScrollView>
-    </View>
-  );
-}
 
-/** Một thẻ bộ môn trong danh mục. Bấm vào là đấu với máy; nút Luật ở góc. */
-function Card({ face, ready, onPress, onRules }: { face: GameFace; ready: boolean; onPress: () => void; onRules: () => void }) {
-  const Motif = face.Motif;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={ready ? `Chơi ${face.nameVi}` : `Xem luật ${face.nameVi}, chưa mở`}
-      onPress={onPress}
-      style={({ pressed }) => [{ width: '47.5%', borderRadius: R.md, transform: [{ translateY: pressed ? 1 : 0 }] }, lift(ready ? 0.4 : 0.28, 12, 5)]}
-    >
-      <Panel radius={R.md} tone={ready ? 2 : 1} hairline={false} style={{ borderWidth: 1, borderColor: ready ? A.line : A.lineSoft }}>
-        <View style={{ padding: 6 }}>
-          <View style={{ aspectRatio: 100 / 64, borderRadius: 7, overflow: 'hidden', backgroundColor: face.surface, opacity: ready ? 1 : 0.7 }}>
-            <Motif />
-            {ready ? null : (
-              <View style={{ position: 'absolute', top: 6, right: 6 }}>
-                <Nhan label="Sắp có" muted />
-              </View>
-            )}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Luật ${face.nameVi}`}
-              hitSlop={12}
-              onPress={onRules}
-              style={({ pressed }) => [
-                { position: 'absolute', left: 6, bottom: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: R.sm, backgroundColor: '#00000099' },
-                press({ pressed }),
-              ]}
-            >
-              <Txt size={11} weight="semi" color={A.ink}>
-                Luật
-              </Txt>
-            </Pressable>
-          </View>
-        </View>
-        <View style={{ paddingHorizontal: S.md, paddingBottom: S.md, paddingTop: 2, gap: 5 }}>
-          <Txt size={15} weight="display" color={ready ? A.ink : A.inkSoft} numberOfLines={1}>
-            {face.nameVi}
-          </Txt>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5 }}>
-            <Nhan label={face.mode} />
-            <Nhan label={face.minutes} />
-          </View>
-        </View>
-      </Panel>
-    </Pressable>
+      <BottomNav active="bo-mon" />
+    </View>
   );
 }

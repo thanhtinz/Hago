@@ -9,7 +9,7 @@
  * gian mã chỉ có 32 mũ 5 — đoán mò vài nghìn lần là chen được vào ván
  * riêng của hai người lạ.
  */
-import { ghepCap, taoPhong, errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
+import { ghepCap, taoPhong, moVaoMa, errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
 
 const browser = await launch();
 const tag = String(Date.now()).slice(-5);
@@ -30,9 +30,9 @@ async function leaveMatch(page) {
 console.log('Tấm chọn bộ môn của làn ĐÁNH THƯỜNG phải có hàng mức thời gian');
 // Chỉ làn đánh thường mới chọn được mức: làn xếp hạng ghim một mức duy
 // nhất để không chia đôi một đám đông vốn đã mỏng.
-await A.getByLabel('Vào chơi').click();
+await A.getByLabel('Đổi chế độ', { exact: true }).click();
 await A.waitForTimeout(900);
-await A.getByLabel('Đánh thường').click();
+await A.getByLabel('Chế độ Đánh thường', { exact: true }).click();
 await A.waitForTimeout(800);
 await shot(A, '107-chon-muc-thoi-gian');
 const hasClocks =
@@ -45,6 +45,8 @@ console.log('Hai người chọn cùng mức cờ chớp — phải ghép đư�
 await A.getByLabel('Mức Cờ chớp').click();
 await A.waitForTimeout(300);
 await A.getByLabel('Cờ Caro', { exact: true }).click();
+await A.waitForTimeout(500);
+await A.getByLabel('VÀO TRẬN').click();
 await A.waitForTimeout(1200);
 
 await ghepCap(B, 'Cờ Caro', { lan: 'thuong', clock: 'Cờ chớp', wait: 2400 });
@@ -59,18 +61,16 @@ console.log(`  đồng hồ 3 phút: ${blitz} · có nhãn mức: ${labelled}`);
 await leaveMatch(A);
 await A.goto(`${BASE}/`, { waitUntil: 'networkidle' });
 await A.waitForTimeout(1600);
-await A.getByLabel('Vào chơi').click();
-await A.waitForTimeout(900);
-await A.getByLabel('Đánh thường').click();
-await A.waitForTimeout(900);
-// Không chạm vào hàng mức: nếu nhớ được thì màn chờ phải nói "Cờ chớp".
-await A.getByLabel('Cờ Caro', { exact: true }).click();
-await A.waitForTimeout(1800);
+// Không chạm vào hàng mức: nếu nhớ được thì chính chip chế độ trên sảnh
+// phải nói "Cờ chớp", và lớp phủ hàng chờ cũng thế.
+const remembered = (await A.getByLabel('Đổi chế độ', { exact: true }).innerText()).includes('Cờ chớp');
+await A.getByLabel('VÀO TRẬN').click();
+await A.waitForTimeout(1600);
 await shot(A, '108b-nho-muc-da-chon');
-const remembered = (await A.getByText('Cờ chớp · 3 phút').count()) > 0;
-console.log(`  nhớ mức đã chọn: ${remembered}`);
-await A.getByText('Về sảnh').click();
-await A.waitForTimeout(1400);
+const rememberedCho = (await A.getByText(/Cờ chớp/).count()) > 0;
+console.log(`  nhớ mức đã chọn: ${remembered} · hàng chờ nói đúng mức: ${rememberedCho}`);
+await A.getByLabel('Huỷ', { exact: true }).click();
+await A.waitForTimeout(1200);
 await B.goto(`${BASE}/`, { waitUntil: 'networkidle' });
 await B.waitForTimeout(1400);
 
@@ -84,8 +84,7 @@ const code = (await A.locator('text=/^[A-Z0-9]{5}$/').first().innerText()).trim(
 console.log(`  phòng báo là có khoá: ${locked} · mã: ${code}`);
 
 console.log('B vào bằng mã nhưng không có mật khẩu — phải bị chặn');
-await B.getByLabel('Vào mã').click();
-await B.waitForTimeout(600);
+await moVaoMa(B);
 await B.getByLabel('Mã phòng').fill(code);
 await B.getByText('Vào phòng').click();
 await B.waitForTimeout(2000);
@@ -108,7 +107,7 @@ finish(
   [
     [hasClocks, 'Tấm chọn bộ môn không có hàng mức thời gian.'],
     [blitz && labelled, 'Chọn cờ chớp mà đồng hồ không phải 3 phút.'],
-    [remembered, 'Không nhớ mức thời gian đã chọn.'],
+    [remembered && rememberedCho, 'Không nhớ mức thời gian đã chọn.'],
     [locked, 'Phòng có mật khẩu mà không báo là có khoá.'],
     [blocked && canRetry, 'Vào phòng khoá mà không có mật khẩu thì không bị chặn, hoặc không gõ lại được.'],
     [inRoom && aInRoom, 'Gõ đúng mật khẩu vẫn không vào được phòng.'],

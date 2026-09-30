@@ -24,7 +24,7 @@ await taoPhong(A, 'Cờ Caro', { clock: 'Cờ chớp', wait: 2200 });
 console.log('B mở trang Ván đấu từ thanh dưới — thẻ "Đang chờ" mở sẵn');
 await B.goto(`${BASE}/`, { waitUntil: 'networkidle' });
 await B.waitForTimeout(1800);
-await B.getByLabel('Ván đấu').click();
+await B.getByLabel('Ván đấu').last().click();
 await B.waitForTimeout(1400);
 await shot(B, '119-van-dau-dang-cho');
 const listed = (await B.getByLabel(`Vào phòng của ${NA}`).count()) > 0;
@@ -41,7 +41,7 @@ console.log(`  vào thẳng bàn cờ: ${inRoom}`);
 
 console.log('Phòng đã đủ người phải rời thẻ "Đang chờ" và sang thẻ "Đang đánh"');
 const C = await signUp(await openPage(browser, 'C'), `Cường ${tag}`, 'pc');
-await C.getByLabel('Ván đấu').click();
+await C.getByLabel('Ván đấu').last().click();
 await C.waitForTimeout(1400);
 const gone = (await C.getByLabel(`Vào phòng của ${NA}`).count()) === 0;
 await C.getByLabel(/^Thẻ Đang đánh/).click();

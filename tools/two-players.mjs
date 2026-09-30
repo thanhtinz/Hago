@@ -12,7 +12,7 @@ import { chromium } from 'playwright';
 import { existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { ghepCap, taoPhong } from './lib.mjs';
+import { ghepCap, taoPhong, moVaoMa } from './lib.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'docs/screenshots');
@@ -64,8 +64,7 @@ const code = (await A.locator('text=/^[A-Z0-9]{5}$/').first().innerText()).trim(
 console.log(`  mã phòng: ${code}`);
 
 console.log('B vào bằng mã');
-await B.getByLabel('Vào mã').click();
-await B.waitForTimeout(400);
+await moVaoMa(B);
 await B.getByLabel('Mã phòng').fill(code);
 await B.getByText('Vào phòng').click();
 await B.waitForTimeout(2000);
@@ -124,7 +123,7 @@ await A.waitForTimeout(900);
 await A.getByText('Về sảnh').click();
 await A.waitForTimeout(1500);
 await shot(A, '25b-sau-khi-ve-sanh');
-await A.getByLabel('Tôi').click();
+await A.getByLabel('Tôi').last().click();
 await A.waitForTimeout(1500);
 await shot(A, '26-trang-ca-nhan');
 const hasStats = (await A.getByText('Cờ Gánh').count()) > 0;

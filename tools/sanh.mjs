@@ -58,11 +58,23 @@ await B.waitForTimeout(1200);
 
 // ---- thành tích thật trên thẻ -----------------------------------------
 
-console.log('Thẻ người chơi nói đúng tình trạng, không in chữ cứng');
+console.log('Dải hạng nói đúng tình trạng, không in chữ cứng và không in "0 điểm"');
 await A.getByLabel('Về sảnh').first().click();
 await A.waitForTimeout(1500);
-const honest = (await A.getByText('Chưa xếp hạng · chưa đánh ván nào').count()) > 0;
-console.log(`  chưa đánh ván nào thì nói đúng thế: ${honest}`);
+const honest = (await A.getByText('Chưa định hạng').count()) > 0 && (await A.getByText('0 điểm').count()) === 0;
+console.log(`  chưa đủ ván định hạng thì nói đúng thế: ${honest}`);
+
+// Điểm ở app này tính **riêng từng bộ môn**, nên dải hạng phải nói về bộ
+// môn ĐANG NẠP. Lỗi cũ là nó luôn nói về bộ môn đánh nhiều nhất, và chỉ
+// lộ ra khi hai thứ đó khác nhau.
+console.log('Dải hạng phải theo bộ môn đang nạp, không theo bộ môn đánh nhiều nhất');
+await A.getByLabel('Đổi chế độ', { exact: true }).click();
+await A.waitForTimeout(1000);
+await A.getByLabel('Cờ Gánh', { exact: true }).click();
+await A.waitForTimeout(900);
+const theoBoMonDangNap = (await A.getByTestId('dai-hang-bo-mon').innerText()).includes('Cờ Gánh');
+console.log(`  dải hạng đổi theo bộ môn đang nạp: ${theoBoMonDangNap}`);
+await shot(A, '136-dai-hang-theo-bo-mon');
 
 // ---- mời bạn vào đúng phòng -------------------------------------------
 
@@ -101,7 +113,8 @@ await browser.close();
 finish([
   [pulse > 0, 'Sảnh không hiện số người đang chơi.'],
   [badge > 0, 'Chấm đỏ lời mời kết bạn không tự hiện ở sảnh.'],
-  [honest, 'Thẻ người chơi không nói đúng tình trạng xếp hạng.'],
+  [honest, 'Dải hạng không nói đúng tình trạng xếp hạng.'],
+  [theoBoMonDangNap, 'Dải hạng in điểm của một bộ môn khác với bộ môn đang nạp.'],
   [copyable && copied, 'Mã phòng không sao chép được.'],
   [invitable && gotInvite, 'Không mời được bạn vào phòng đang chờ.'],
   [aPlaying && bPlaying, 'Nhận lời mời không đưa được cả hai vào cùng một bàn.'],

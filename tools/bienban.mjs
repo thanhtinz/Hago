@@ -59,7 +59,7 @@ await A.waitForTimeout(1500);
 console.log('Vào lịch sử rồi bấm vào chính ván vừa đánh');
 await A.getByText('Về sảnh').click();
 await A.waitForTimeout(1500);
-await A.getByLabel('Tôi').click();
+await A.getByLabel('Tôi').last().click();
 await A.waitForTimeout(1600);
 await A.getByLabel('Thẻ Lịch sử').click();
 await A.waitForTimeout(1400);

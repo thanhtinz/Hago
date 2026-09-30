@@ -1,14 +1,15 @@
 import React, { useRef, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, TextInput, View, useWindowDimensions } from 'react-native';
 import { registry } from '@co/core';
 import { CLOCKS } from '@co/protocol';
 import { FACES, faceOf } from '../games/faces';
 import { load as remembered, recentRooms, save } from '../net/store';
 import { Field } from './Field';
-import { Icon } from './Icon';
-import { Btn, Panel, Txt, press } from './parts';
+import { Btn, Txt, press } from './parts';
+import { Rule } from './surface';
 import { Sheet } from './Sheet';
 import { Chip as ClockChip } from './Tabs';
+import { TheAnh } from './TheAnh';
 import { A, R, S } from './theme';
 
 /**
@@ -33,6 +34,7 @@ export function PickGameSheet({
   mode,
   onClose,
   onPick,
+  onRules,
 }: {
   /**
    * `xh` là ghép cặp xếp hạng, `thuong` là ghép cặp đánh thường, `create`
@@ -41,12 +43,16 @@ export function PickGameSheet({
   mode: 'xh' | 'thuong' | 'create';
   onClose: () => void;
   onPick: (id: string, o: { clock: string; pass: string }) => void;
+  /** Bộ môn chưa mở dẫn tới trang luật — một đích đến thật. */
+  onRules?: (id: string) => void;
 }) {
-  const open = FACES.filter((f) => READY.has(f.id));
+  const mo = FACES.filter((f) => READY.has(f.id));
+  const khoa = FACES.filter((f) => !READY.has(f.id));
   // Mức thời gian nhớ qua lần mở sau: người quen cờ chớp không phải chọn
   // lại mỗi lần mở app.
   const [clock, setClock] = useState<string>(() => remembered<string>('muc-thoi-gian', ''));
   const [pass, setPass] = useState('');
+  const { height } = useWindowDimensions();
   const pick = (id: string) => {
     save('muc-thoi-gian', clock);
     onPick(id, { clock, pass });
@@ -62,19 +68,20 @@ export function PickGameSheet({
             : 'Hàng chờ tách theo mức thời gian — chỉ ghép với người chọn cùng mức'
       }
       onClose={onClose}
-      maxHeight={430}
+      height={Math.round(height * 0.82)}
     >
       {/* Làn xếp hạng ghim một mức giờ nên **không có** hàng chip này. Để
           chip ở đây rồi âm thầm bỏ qua lựa chọn của người dùng là nói dối
           họ; câu giải thích nằm ngay ở dòng phụ của tấm. */}
       {mode === 'xh' ? null : (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingBottom: S.xs }}>
-          <ClockChip label="Theo bộ môn" a11y="Mức Theo bộ môn" on={clock === ''} onPress={() => setClock('')} />
+          <ClockChip label="Theo bộ môn" a11y="Mức Theo bộ môn" role="button" on={clock === ''} onPress={() => setClock('')} />
           {Object.entries(CLOCKS).map(([k, c]) => (
             <ClockChip
               key={k}
               label={`${c.nameVi} ${Math.round(c.initialMs / 60_000)} phút`}
               a11y={`Mức ${c.nameVi}`}
+              role="button"
               on={clock === k}
               onPress={() => setClock(k)}
             />
@@ -86,32 +93,52 @@ export function PickGameSheet({
           <Field label="Mật khẩu phòng (không bắt buộc)" value={pass} onChange={setPass} placeholder="Bỏ trống thì ai có mã cũng vào được" />
         </View>
       ) : null}
-      {open.map((f) => (
-        <Pressable
-          key={f.id}
-          onPress={() => pick(f.id)}
-          accessibilityRole="button"
-          accessibilityLabel={f.nameVi}
-          style={({ pressed }) => [{ borderRadius: R.md }, press({ pressed })]}
-        >
-          <Panel radius={R.md} tone={1} seed={f.id.length * 11}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md }}>
-              <View style={{ width: 54, height: 35, borderRadius: 6, overflow: 'hidden' }}>
-                <f.Motif />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Txt size={15} weight="display">
-                  {f.nameVi}
-                </Txt>
-                <Txt size={10.5} color={A.inkFaint}>
-                  {f.minutes}
-                </Txt>
-              </View>
-              <Icon name="chevron" size={16} color={A.inkFaint} />
-            </View>
-          </Panel>
-        </Pressable>
-      ))}
+      {/* Lưới thẻ có tranh, không phải danh sách hàng. Tấm này nằm trên
+          luồng vào trận, tức là chỗ **quyết định quan trọng nhất** của app —
+          mà tranh bộ môn ở đây từng bị bóp còn 54×35 trong khi cùng bức ấy
+          được vẽ 178 điểm ở màn danh mục. Hình to phải đứng cạnh quyết
+          định to. */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.md }}>
+        {mo.map((f) => (
+          <View key={f.id} style={{ width: '47.5%' }}>
+            <TheAnh
+              testID="the-bo-mon"
+              ten={f.nameVi}
+              surface={f.surface}
+              Art={f.Motif}
+              nhan={[f.minutes]}
+              a11y={f.nameVi}
+              onPress={() => pick(f.id)}
+              onGoc={onRules ? () => onRules(f.id) : undefined}
+            />
+          </View>
+        ))}
+      </View>
+      {/* Mười bộ môn chưa mở vẫn hiện. Lọc chúng đi ở đúng tấm nằm trên
+          luồng vào trận thì nền tảng trông đúng bằng ba bộ môn — trong khi
+          màn danh mục, nơi không ai đi qua, lại trưng đủ mười ba. */}
+      <View style={{ alignItems: 'center', paddingTop: S.sm, gap: 2 }}>
+        <Rule width={160} />
+        <Txt size={11} color={A.inkFaint}>
+          Sắp mở
+        </Txt>
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.md }}>
+        {khoa.map((f) => (
+          <View key={f.id} style={{ width: '47.5%' }}>
+            <TheAnh
+              testID="the-bo-mon"
+              ten={f.nameVi}
+              surface={f.surface}
+              Art={f.Motif}
+              khoa
+              nhan={[f.mode]}
+              a11y={`${f.nameVi}, chưa mở`}
+              onPress={() => onRules?.(f.id)}
+            />
+          </View>
+        ))}
+      </View>
     </Sheet>
   );
 }

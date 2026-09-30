@@ -11,7 +11,9 @@ import { canPickImage, pickSquareImage } from '../src/net/pickImage';
 import { Field } from '../src/ui/Field';
 import { Chip, Segmented } from '../src/ui/Tabs';
 import { Icon } from '../src/ui/Icon';
-import { capChiTiet, xpCua } from '@co/protocol';
+import { capChiTiet, danhHieuOf, xpCua } from '@co/protocol';
+import { AnHang } from '../src/ui/AnHang';
+import { BottomNav } from '../src/ui/BottomNav';
 import { BacHoacCho, ThongThaoTag } from '../src/ui/DanhHieu';
 import { Btn, Panel, Tag, Txt, press } from '../src/ui/parts';
 import { feedback } from '../src/ui/feedback';
@@ -232,9 +234,16 @@ function GameRow({ s }: { s: GameStat }) {
     { v: s.draw, c: A.inkFaint },
     { v: s.loss, c: A.seal },
   ];
+  // Huy hiệu thật, không phải một chuỗi chữ: đây là chỗ người ta mở ra để
+  // ngắm thành tích, và một bậc hạng đọc ra từ vật liệu nhanh hơn từ chữ.
+  const bac = danhHieuOf(s.rating, s.ranked);
   return (
     <View style={{ gap: 6, paddingVertical: S.sm }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }}>
+        {/* Chỉ vẽ khi **đã có** danh hiệu: một khung rỗng lặp lại trên mỗi
+            hàng là mười ba khung rỗng, và mắt học rất nhanh cách bỏ qua
+            chúng. Chưa định hạng thì câu "còn mấy ván" phía dưới đã nói. */}
+        {bac ? <AnHang bac={bac.bac} size={44} /> : null}
         <Txt size={13.5} weight="semi" style={{ flex: 1 }}>
           {faceOf(s.gameId)?.nameVi ?? s.gameId}
         </Txt>
@@ -896,9 +905,10 @@ function Shell({ W, height, insets, children }: { W: number; height: number; ins
   return (
     <View style={{ flex: 1 }}>
       <AppBackdrop width={W} height={height} />
-      <ScrollView contentContainerStyle={{ padding: S.lg, paddingTop: insets.top + S.md, paddingBottom: insets.bottom + S.xxl, gap: S.md }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: S.lg, paddingTop: insets.top + S.md, paddingBottom: S.xxl, gap: S.md }}>
         {children}
       </ScrollView>
+      <BottomNav active="toi" />
     </View>
   );
 }

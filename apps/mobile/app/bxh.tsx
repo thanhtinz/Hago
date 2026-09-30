@@ -10,6 +10,7 @@ import { faceOf } from '../src/games/faces';
 import { Face } from '../src/ui/Crest';
 import { Icon } from '../src/ui/Icon';
 import { Panel, Txt, press } from '../src/ui/parts';
+import { BottomNav } from '../src/ui/BottomNav';
 import { BacTag } from '../src/ui/DanhHieu';
 import { Chip } from '../src/ui/Tabs';
 import { AppBackdrop, Rule } from '../src/ui/surface';
@@ -89,7 +90,8 @@ export default function BoardScreen() {
       </ScrollView>
 
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: S.lg, paddingBottom: 140, gap: S.sm }}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: S.lg, paddingBottom: S.xxl, gap: S.sm }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} tintColor={A.gold} colors={[A.gold]} />}
       >
@@ -106,7 +108,9 @@ export default function BoardScreen() {
         )}
       </ScrollView>
 
-      {me && board ? <MyRank board={board} total={tab === 'tong'} insetBottom={insets.bottom} /> : null}
+      {me && board ? <MyRank board={board} total={tab === 'tong'} insetBottom={0} /> : null}
+
+      <BottomNav active="bxh" />
     </View>
   );
 }
@@ -184,10 +188,12 @@ function Empty({ minRanked }: { minRanked: number }) {
  * năm mươi hàng vẫn không thấy mình đâu, và đó đúng là người cần con số này
  * nhất.
  */
+// Nằm trong dòng chảy chứ không dán tuyệt đối vào đáy: từ ngày có thanh
+// điều hướng, một tấm `bottom: 0` nằm **dưới** thanh đó.
 function MyRank({ board, total, insetBottom }: { board: Board; total: boolean; insetBottom: number }) {
   const m = board.me;
   return (
-    <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+    <View>
       <Panel
         radius={0}
         tone={2}

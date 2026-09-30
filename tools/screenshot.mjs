@@ -59,7 +59,7 @@ await shot('01-sanh');
 // Lưới 13 bộ môn đã rời sảnh sang danh mục riêng, nên đây là một màn
 // khác chứ không còn là một lần cuộn.
 console.log('Danh mục bộ môn');
-await page.getByLabel('Bộ môn', { exact: true }).click();
+await page.getByLabel('Bộ môn', { exact: true }).last().click();
 await page.waitForTimeout(1200);
 await shot('02-sanh-bo-mon');
 
@@ -71,14 +71,14 @@ await page.mouse.wheel(0, 1700);
 await page.waitForTimeout(900);
 await shot('02b-sanh-bo-mon-duoi');
 
-console.log('Về sảnh rồi mở màn chọn chế độ');
+console.log('Về sảnh rồi mở tấm chọn chế độ');
 await page.goBack();
 await page.waitForTimeout(1200);
-await page.getByLabel('Vào chơi').click();
+await page.getByLabel('Đổi chế độ', { exact: true }).click();
 await page.waitForTimeout(1200);
 await shot('02c-chon-che-do');
-await page.goBack();
-await page.waitForTimeout(1200);
+await page.getByText('Đóng', { exact: true }).click();
+await page.waitForTimeout(800);
 
 console.log('Đăng nhập và trang cá nhân');
 await page.getByLabel('Đăng nhập').first().click();
@@ -92,15 +92,17 @@ await page.getByLabel('Email').fill(`shot${Date.now()}@vidu.com`);
 await page.getByLabel('Mật khẩu').fill('matkhaudai');
 await page.getByText('Đăng ký', { exact: true }).click();
 await page.waitForTimeout(1800);
-await page.getByLabel('Tôi').first().click();
+await page.getByLabel('Tôi').last().click();
 await page.waitForTimeout(1200);
 await shot('27-trang-ca-nhan-moi');
 await page.goto(`${URL_BASE}/`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
 
 console.log('Bàn cờ caro');
-// Sảnh không còn nút "Đấu với máy" cứng vào cờ caro; giờ vào bằng chính
-// thẻ bộ môn ở dải ngang.
+// Sảnh không còn thẻ bộ môn nào: đấu với máy là một **công cụ tập**, nằm
+// trong danh mục, không trưng ở mặt tiền.
+await page.getByLabel('Bộ môn', { exact: true }).last().click();
+await page.waitForTimeout(1200);
 await page.getByLabel('Chơi Cờ Caro').click();
 await page.waitForTimeout(1400);
 await shot('03-caro-ban-trong');
@@ -184,7 +186,7 @@ console.log('  kết quả:', done ?? 'chưa xong');
 await shot('06-caro-ket-qua');
 
 console.log('Cờ gánh: vào bàn, chọn quân, đi một nước');
-await page.goto(`${URL_BASE}/`, { waitUntil: 'networkidle' });
+await page.goto(`${URL_BASE}/bo-mon`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
 await page.getByLabel('Chơi Cờ Gánh').click();
 await page.waitForTimeout(1200);
@@ -205,7 +207,7 @@ await page.waitForTimeout(900);
 await shot('10-ganh-goi-y');
 
 console.log('Ô ăn quan: vào bàn, chọn ô, rải một nước');
-await page.goto(`${URL_BASE}/`, { waitUntil: 'networkidle' });
+await page.goto(`${URL_BASE}/bo-mon`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
 await page.getByLabel('Chơi Ô Ăn Quan').click();
 await page.waitForTimeout(1400);

@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { backToLobby } from '../src/nav';
 import { useAuth } from '../src/net/api';
 import { useLive } from '../src/net/live';
-import { CHAT_SPACE } from '../src/ui/FloatingChat';
+import { BottomNav } from '../src/ui/BottomNav';
 import { Icon } from '../src/ui/Icon';
 import { Btn, Txt, press } from '../src/ui/parts';
 import { LiveRow, NoRooms, OpenRow } from '../src/ui/RoomLists';
@@ -76,7 +76,7 @@ export default function RoomsScreen() {
         />
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: S.lg, paddingBottom: insets.bottom + CHAT_SPACE + S.xxl, gap: S.sm }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: S.lg, paddingBottom: S.xxl, gap: S.sm }}>
         {tab === 'cho' ? (
           open.length ? (
             open.map((r) => (
@@ -106,6 +106,8 @@ export default function RoomsScreen() {
           />
         )}
       </ScrollView>
+
+      <BottomNav active="van" />
     </View>
   );
 }

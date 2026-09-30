@@ -41,7 +41,7 @@ await play(A, 7, 7);
 console.log('Người thứ ba mở trang Ván đấu từ thanh dưới, thẻ "Đang đánh"');
 await C.goto(`${BASE}/`, { waitUntil: 'networkidle' });
 await C.waitForTimeout(1800);
-await C.getByLabel('Ván đấu').click();
+await C.getByLabel('Ván đấu').last().click();
 await C.waitForTimeout(1200);
 await C.getByLabel(/^Thẻ Đang đánh/).click();
 await C.waitForTimeout(900);

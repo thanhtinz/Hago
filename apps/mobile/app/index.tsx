@@ -1,65 +1,69 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Pressable, RefreshControl, ScrollView, View, useWindowDimensions } from 'react-native';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { registry, type BotLevel } from '@co/core';
-import { load as remembered, recentRooms, save } from '../src/net/store';
-import { CLOCKS, conMayVan, danhHieuOf } from '@co/protocol';
-import { Chip as ClockChip } from '../src/ui/Tabs';
-import { Field } from '../src/ui/Field';
-import { LEVEL_NAME } from '../src/ui/MatchShell';
+import { CHUONG, TONG_SAO, aiCuaChuong, capChiTiet, daMo, xpCua } from '@co/protocol';
+import { registry } from '@co/core';
 import '../src/catalog';
-import { FACES, faceOf, type GameFace } from '../src/games/faces';
+import { FACES, faceOf } from '../src/games/faces';
 import { api, useAuth, type Profile } from '../src/net/api';
 import { live, useLive } from '../src/net/live';
-import { Icon, type IconName } from '../src/ui/Icon';
-import { Btn, Nhan, SLOP, Txt, press } from '../src/ui/parts';
-import { CodeSheet } from '../src/ui/PickSheets';
-import { Sheet } from '../src/ui/Sheet';
+import { load as remembered, save, saoVuotAi } from '../src/net/store';
+import { BottomNav } from '../src/ui/BottomNav';
 import { Face } from '../src/ui/Crest';
-import { AppBackdrop, Panel, Rule, SurfaceFill } from '../src/ui/surface';
-import { A, R, S, glow, lift } from '../src/ui/theme';
+import { DaiHang } from '../src/ui/DaiHang';
+import { HangChoOverlay } from '../src/ui/HangChoOverlay';
+import { Icon } from '../src/ui/Icon';
+import { Nhan, SLOP, Txt, press } from '../src/ui/parts';
+import { CodeSheet, PickGameSheet } from '../src/ui/PickSheets';
+import { SheetChonCheDo } from '../src/ui/SheetChonCheDo';
+import { StartDock } from '../src/ui/StartDock';
+import { TheAnh } from '../src/ui/TheAnh';
+import { AppBackdrop, Panel } from '../src/ui/surface';
+import { A, R, S } from '../src/ui/theme';
 
 /**
  * Sảnh.
  *
- * Bố cục học từ các app cờ online đông người dùng: trên cùng là người chơi,
- * giữa là **một** nút chơi to, dưới là lưới bộ môn — chín lần mở app thì tám
- * lần người ta chỉ muốn bấm "chơi tiếp", không muốn đọc danh mục.
+ * **Sảnh không phải một danh mục.** Nó trả lời đúng ba câu: tôi là ai, tôi
+ * sắp đánh gì, bấm đâu để đánh. Không một thẻ bộ môn nào còn nằm ở đây —
+ * mười ba bộ môn sống ở `/bo-mon` và trong tấm chọn chế độ, và sảnh chỉ
+ * giữ **một** hàng dẫn sang đó. Bản trước đổ ba thẻ bộ môn ra mặt tiền dưới
+ * tiêu đề "Đấu với máy", tức là thứ chiếm nhiều diện tích nhất lại là chế
+ * độ ít quan trọng nhất.
  *
- * Còn chất liệu thì lấy từ chính cái bàn cờ gỗ: mọi tấm ở đây là gỗ có vân,
- * có vát cạnh, viền chỉ vàng. Một sảnh game cờ mà dựng bằng thẻ xám bo góc
- * thì nhìn như trang cài đặt.
+ * Bốn khối, theo đúng thứ tự mắt đi:
+ *
+ *   A. dải danh tính — nhỏ nhất màn hình, cố ý thế;
+ *   B. sân khấu — bức tranh của bộ môn **đang nạp**, phần tử lớn nhất;
+ *   C. dải hạng — thứ hai về diện tích, và là thứ nói "tôi đang ở đâu";
+ *   D. dải vượt ải — chỗ duy nhất sảnh trưng nội dung thay vì cấu hình;
+ *   E. một hàng 56 điểm dẫn sang cả mười ba bộ môn.
+ *
+ * Rồi cụm hành động **nằm ngoài vùng cuộn**, neo trên thanh điều hướng: ở
+ * sảnh của mọi tựa game đông người chơi, nút bắt đầu không bao giờ cuộn
+ * khỏi màn. Trước đây cả sảnh nằm trong một `ScrollView`, kể cả nút chơi.
  */
 
 const READY = new Set(registry.catalog().map((s) => s.id));
 
+/** Cấu hình đang nạp. Một khoá, đọc và ghi ở mọi chỗ chọn chế độ. */
+interface CauHinh {
+  lan: 'xh' | 'thuong';
+  gameId: string;
+  clock: string;
+}
+
 export default function Lobby() {
   const router = useRouter();
-  /** Chế độ online đang chọn bộ môn, hoặc 'join' đang nhập mã. */
-  // Sảnh chỉ còn giữ đúng một tấm: nhập mã. Chọn bộ môn đã chuyển sang
-  // màn chọn chế độ cùng với hai chế độ ghép cặp.
-  const [sheet, setSheet] = useState<'join' | null>(null);
-  /** Chế độ chơi lần gần nhất, để dựng nút "Đánh lại". */
-  const lastMode = remembered<{ lan: 'xh' | 'thuong'; gameId: string; clock: string } | null>('che-do-gan-nhat', null);
-  // `/?mo=phong` đưa thẳng tới màn chọn chế độ. Trang "Ván đấu" lúc trống
-  // cần một nút dẫn tới đúng việc tiếp theo, chứ không phải thả người ta
-  // về sảnh rồi để họ tự tìm lại. Tấm tạo phòng đã chuyển sang `/choi`
-  // nên sảnh chỉ còn việc chuyển tiếp.
-  const { mo } = useLocalSearchParams<{ mo?: string }>();
-  useEffect(() => {
-    if (mo === 'phong') router.push('/choi');
-  }, [mo]);
   const { me } = useAuth();
   const s = useLive();
-  /**
-   * Hồ sơ giữ **nguyên cả khối**, không chỉ moi mỗi số lời mời.
-   *
-   * `api.me()` trả về đủ thành tích, chuỗi thắng và lịch sử; sảnh từng gọi
-   * nó rồi vứt hết trừ một con số, và in một dòng chữ cứng "Chưa xếp hạng"
-   * cho cả người đã đánh trăm ván.
-   */
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const w = Math.min(width, 460);
+  const scroller = useRef<ScrollView>(null);
+
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(false);
   const load = useCallback(async () => {
@@ -76,14 +80,36 @@ export default function Lobby() {
   useEffect(() => {
     void load();
   }, [load]);
-  // Đã tới sảnh thì cờ "vừa nối lại ghế cũ" hết tác dụng: từ đây trở đi mọi
-  // thứ người dùng bấm là một lựa chọn mới.
-  useEffect(() => live.seen(), [s.restored]);
-  // Chấm đỏ lấy từ **dây nối**, không phải từ lần gọi API lúc mở màn: ai gửi
-  // lời mời trong lúc mình đang ngồi ở sảnh thì nó phải nhúc nhích ngay.
-  const requests = s.friendRequests || (profile?.requests ?? 0);
-  const pending = requests + s.challenges.filter((c) => c.dir === 'in').length;
 
+  // Cấu hình đang nạp. Chưa có lần chọn nào thì mặc định là bộ môn **đánh
+  // nhiều nhất** — không phải bộ môn điểm cao nhất: một con số lấy từ ba ván
+  // may mắn thì không mô tả người chơi.
+  const [cauHinh, setCauHinh] = useState<CauHinh>(() =>
+    remembered<CauHinh | null>('che-do-gan-nhat', null) ?? { lan: 'xh', gameId: 'co-caro', clock: '' },
+  );
+  useEffect(() => {
+    if (remembered<CauHinh | null>('che-do-gan-nhat', null)) return;
+    const main = [...(profile?.stats ?? [])].sort((x, y) => y.win + y.draw + y.loss - (x.win + x.draw + x.loss))[0];
+    if (main && READY.has(main.gameId)) setCauHinh((c) => ({ ...c, gameId: main.gameId }));
+  }, [profile]);
+  const nap = (lan: 'xh' | 'thuong', gameId: string, clock: string) => {
+    const c: CauHinh = { lan, gameId, clock };
+    save('che-do-gan-nhat', c);
+    setCauHinh(c);
+  };
+
+  /** Tấm đang mở. Hàng chờ là lớp phủ, không phải một màn. */
+  const [tam, setTam] = useState<'che-do' | 'bo-mon' | 'phong' | 'ma' | 'hang-cho' | null>(null);
+  // `/?mo=che-do` và `/?mo=phong` mở sẵn đúng tấm. Trang "Ván đấu" lúc trống
+  // và đường dẫn cũ `/choi` đều quay về đây kèm tham số này.
+  const { mo } = useLocalSearchParams<{ mo?: string }>();
+  useEffect(() => {
+    if (mo === 'phong' || mo === 'che-do') setTam('che-do');
+  }, [mo]);
+
+  // Đã tới sảnh thì cờ "vừa nối lại ghế cũ" hết tác dụng: từ đây mọi thứ
+  // người dùng bấm là một lựa chọn mới.
+  useEffect(() => live.seen(), [s.restored]);
   // Lời rủ được nhận lời trong lúc đang ở sảnh: vào bàn ngay.
   useEffect(() => {
     if (s.justMatched) {
@@ -91,184 +117,351 @@ export default function Lobby() {
       router.replace('/online/live');
     }
   }, [s.justMatched, router]);
-  /** Ba chế độ online đều cần danh tính, nên chưa đăng nhập là đưa sang màn đăng nhập. */
+
+  const requests = s.friendRequests || (profile?.requests ?? 0);
+  const pending = requests + s.challenges.filter((c) => c.dir === 'in').length;
   const online = (go: () => void) => (me ? go() : router.push('/auth'));
-  const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
-  const w = Math.min(width, 460);
-  const scroller = useRef<ScrollView>(null);
-  const gridY = useRef(0);
-  // Nói đúng mức máy đang nhớ, thay vì câu chung "ba mức khó": người chơi
-  // quen mức Khó cần biết ngay là bấm vào sẽ vào mức nào.
-  const botLevel = ((): BotLevel => {
-    const v = remembered<number>('muc-may', 2);
-    return v === 1 || v === 2 || v === 3 ? (v as BotLevel) : 2;
-  })();
 
-  return (
-    <View style={{ flex: 1 }}>
-      <AppBackdrop width={w} height={height} />
-      <ScrollView
-        ref={scroller}
-        contentContainerStyle={{ paddingBottom: 28, paddingTop: insets.top + S.md }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={me ? <RefreshControl refreshing={loading} onRefresh={() => void load()} tintColor={A.gold} colors={[A.gold]} /> : undefined}
+  // Tiến độ vượt ải đọc từ **máy**, đồng bộ, chạy được khi chưa đăng nhập.
+  // Đọc lại mỗi lần sảnh được tập trung: vừa qua một ải quay về là số đổi.
+  const [sao, setSao] = useState<Record<string, number>>({});
+  useFocusEffect(
+    useCallback(() => {
+      setSao(saoVuotAi());
+    }, []),
+  );
+  const tongSao = Object.values(sao).reduce((n, x) => n + x, 0);
+  const keTiep = CHUONG.flatMap((c) => aiCuaChuong(c.so)).find((a) => daMo(a.id, sao) && (sao[a.id] ?? 0) === 0);
+
+  const face = faceOf(cauHinh.gameId);
+  // "Nối lại ván" chỉ đúng khi ván **còn đang chạy**. Ván đã kết thúc thì
+  // ghế vẫn còn đó ở máy chủ cho tới lúc rời phòng, nhưng không có gì để
+  // quay vào — và một cái nút khoá cả hai chip cấu hình vì một ván đã xong
+  // là một sảnh tự khoá chính nó.
+  const noiLai = s.room != null && s.st?.outcome == null;
+  // Hàng chờ mỏng thì vượt ải lên trước dải hạng: tối nào không có ai thì
+  // PvE không phải đồ độn mà là cả sản phẩm. Chưa có nhịp thì **không đổi
+  // gì** — nói sai về chuyện có ai ở đây không là kiểu nói sai tệ nhất.
+  const vang = s.lobby != null && s.lobby.online <= 1;
+
+  const stage = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Đổi bộ môn, đang chọn ${face?.nameVi ?? cauHinh.gameId}`}
+      onPress={() => setTam('bo-mon')}
+      style={{ marginTop: S.md, marginHorizontal: S.lg }}
+    >
+      <View style={{ aspectRatio: 100 / 64, borderRadius: R.lg, overflow: 'hidden', backgroundColor: face?.surface ?? A.panelLo }}>
+        {face ? <face.Motif /> : null}
+        {/* Mép dưới tan vào nền thay vì thành một cạnh. Phải tắt hẳn về 0:
+            một gradient dừng ở 0,04 để lại đúng cái đường nó định xoá. */}
+        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '34%' }} pointerEvents="none">
+          <Svg width="100%" height="100%">
+            <Defs>
+              <LinearGradient id="stage-fade" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={A.bg} stopOpacity="0" />
+                {/* Chặn giữa kéo phần mờ về cuối: hai điểm dừng thì nửa
+                    trên của dải đã xám hẳn và bức tranh bị phủ sương. */}
+                <Stop offset="0.5" stopColor={A.bg} stopOpacity="0.16" />
+                <Stop offset="1" stopColor={A.bg} stopOpacity="1" />
+              </LinearGradient>
+            </Defs>
+            <Rect x={0} y={0} width="100%" height="100%" fill="url(#stage-fade)" />
+          </Svg>
+        </View>
+      </View>
+    </Pressable>
+  );
+
+  // `-24` chỉ đúng khi dải hạng nằm **ngay dưới sân khấu**: nó kéo tấm lên
+  // chồng vào chân dải gradient. Lúc hàng chờ mỏng, dải này tụt xuống dưới
+  // dải vượt ải và cùng con số ấy cắt mất chân mấy thẻ chương.
+  const daiHang = (duoiSanKhau: boolean) => (
+    <View style={{ marginTop: duoiSanKhau ? -24 : 0 }}>
+      <DaiHang
+        gameId={cauHinh.gameId}
+        stats={profile?.stats ?? []}
+        daDangNhap={!!me}
+        onPress={() => router.push(me ? '/me' : '/auth')}
+      />
+    </View>
+  );
+
+  const daiVuotAi = (
+    <View style={{ marginTop: S.lg, gap: S.sm }}>
+      {/* Tiêu đề cỡ 15 chứ không 21, và không huy hiệu: vượt ải **không**
+          nối vào Elo hay kinh nghiệm, nên nó không được đứng ngang hàng với
+          dải hạng. Cả hàng bấm được, dẫn sang con đường mười ải. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Vượt ải"
+        onPress={() => router.push('/vuot-ai')}
+        style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'baseline', paddingHorizontal: S.lg, gap: S.sm }, press({ pressed })]}
       >
-        {/* Tên nền tảng khắc chữ serif, có đường chỉ vàng bên dưới như khung
-            viền một bàn cờ gỗ. */}
-        <View style={{ alignItems: 'center', gap: 2 }}>
-          <Txt size={13} weight="display" color={A.gold} style={{ letterSpacing: 6 }}>
-            CỜ VIỆT
+        <Txt size={15} weight="display">
+          Vượt ải
+        </Txt>
+        <View style={{ flex: 1 }} />
+        {vang ? (
+          <Txt size={11} color={A.inkFaint}>
+            Chưa có ai trực tuyến
           </Txt>
-          <Rule width={w * 0.5} />
-          <Pulse lobby={s.lobby} />
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Cài đặt"
-          hitSlop={SLOP}
-          onPress={() => router.push(me ? '/me?tab=cai-dat' : '/auth')}
-          style={({ pressed }) => [{ position: 'absolute', right: S.lg, top: insets.top + S.md }, press({ pressed })]}
-        >
-          <Icon name="settings" size={20} color={A.inkFaint} />
-        </Pressable>
-
-        <View style={{ paddingHorizontal: S.lg, paddingTop: S.lg, gap: S.md }}>
-          <Panel radius={R.md} tone={1} seed={9} style={lift(0.4, 12, 5)}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={me ? 'Trang cá nhân' : 'Đăng nhập'}
-              onPress={() => router.push(me ? '/me' : '/auth')}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md }}
-            >
-              {me ? (
-                <Face avatar={me.avatar} id={me.id} size={46} />
-              ) : (
-                <View style={{ width: 46, height: 46, borderRadius: 23, borderWidth: 1.2, borderColor: A.lineSoft, alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="user" size={22} color={A.inkFaint} />
-                </View>
-              )}
-              <View style={{ flex: 1 }}>
-                <Txt size={17} weight="display">
-                  {me?.name ?? 'Chưa đăng nhập'}
-                </Txt>
-                {/* Không bịa elo hay số trận. Chưa đánh ván nào thì vẫn nói
-                    là chưa xếp hạng — đừng in số 0 như một thành tích. */}
-                <Txt size={11.5} color={A.inkFaint}>
-                  {me ? summary(profile) : 'Đăng nhập để chơi với người thật'}
-                </Txt>
-              </View>
-              <Icon name="chevron" size={17} color={A.inkFaint} />
-            </Pressable>
-          </Panel>
-
-          {/* Một chạm vào đúng chế độ lần trước. Đây là thứ bù lại cú
-              chạm mà màn chọn chế độ thêm vào, và nó chỉ bù được nếu nó
-              nằm ngay dưới tấm hồ sơ — phải cuộn mới thấy thì nó vô dụng. */}
-          {lastMode ? (
-            <Btn
-              size="lg"
-              icon={lastMode.lan === 'xh' ? 'crown' : 'bolt'}
-              label="Đánh lại"
-              sub={`${lastMode.lan === 'xh' ? 'Xếp hạng' : 'Đánh thường'} · ${faceOf(lastMode.gameId)?.nameVi ?? lastMode.gameId}`}
-              onPress={() =>
-                online(() => {
-                  const q = new URLSearchParams({ game: lastMode.gameId, lan: lastMode.lan });
-                  if (lastMode.lan === 'thuong' && lastMode.clock) q.set('clock', lastMode.clock);
-                  router.push(`/online/quick?${q.toString()}`);
-                })
-              }
-            />
-          ) : null}
-
-          <Btn
-            size={lastMode ? 'md' : 'lg'}
-            icon="grid"
-            label="Vào chơi"
-            sub={lastMode ? 'Chọn chế độ khác' : 'Xếp hạng, đánh thường, vượt ải'}
-            onPress={() => router.push('/choi')}
-          />
-
-          <View style={{ flexDirection: 'row', gap: S.sm }}>
-            <Mode icon="key" label="Vào mã" onPress={() => online(() => setSheet('join'))} />
-            <Mode icon="user" label="Bạn bè" badge={pending} onPress={() => online(() => router.push('/friends'))} />
-            <Mode icon="flag" label="Vượt ải" onPress={() => router.push('/vuot-ai')} />
-          </View>
-        </View>
-
-        {/* Ba bộ môn đã mở, dải ngang. Mười ba thẻ đổ hết ra sảnh là thứ
-            đẩy mọi chế độ chơi xuống dưới màn hình thứ hai — nhưng cất hết
-            đi thì sảnh mất luôn mười ba bức hình, tài sản đẹp nhất của app.
-            Ba thẻ ở lại giữ mặt tiền; cả danh mục nằm ở `/bo-mon`. */}
-        <View style={{ alignItems: 'center', paddingTop: S.xxl, paddingBottom: S.md, gap: 2 }}>
-          <Txt size={20} weight="display" color={A.ink}>
-            Đấu với máy
-          </Txt>
-          <Txt size={11.5} color={A.inkFaint}>
-            {READY.size} trên {FACES.length} bộ môn đã mở
-          </Txt>
-          <Rule width={w * 0.38} />
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ flexGrow: 0, flexShrink: 0 }}
-          contentContainerStyle={{ gap: S.md, paddingHorizontal: S.lg }}
-        >
-          {FACES.filter((f) => READY.has(f.id)).map((f, i) => (
-            <View key={f.id} style={{ width: 190 }}>
-              <GameCard
-                face={f}
-                seed={i * 17 + 5}
-                ready
-                onPress={() => router.push(`/play/${f.id}`)}
-                onRules={() => router.push(`/luat/${f.id}`)}
-              />
-            </View>
-          ))}
+        ) : null}
+        <Txt size={11} color={A.inkFaint}>
+          {tongSao}/{TONG_SAO} sao
+        </Txt>
+        <Icon name="chevron" size={14} color={A.inkFaint} />
+      </Pressable>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0, flexShrink: 0 }}
+        contentContainerStyle={{ gap: S.md, paddingHorizontal: S.lg }}
+      >
+        {/* Một chạm từ sảnh vào đúng ải đang dở. Quầng sáng để dành riêng
+            cho nút vàng, nên thẻ này chỉ có viền. */}
+        {keTiep ? (
           <Pressable
-            onPress={() => router.push('/bo-mon')}
             accessibilityRole="button"
-            accessibilityLabel="Xem cả 13 bộ môn"
-            style={({ pressed }) => [{ width: 130, borderRadius: R.md }, press({ pressed })]}
+            accessibilityLabel={`Tiếp tục ải ${keTiep.ten}`}
+            onPress={() => router.push(`/vuot-ai/${keTiep.id}`)}
+            style={({ pressed }) => [{ width: 150, borderRadius: R.md }, press({ pressed })]}
           >
-            <Panel radius={R.md} tone={1} style={{ height: '100%' }}>
-              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: S.sm, padding: S.md }}>
-                <Icon name="grid" size={22} color={A.gold} />
-                <Txt size={13} weight="semi" center color={A.gold}>
-                  Cả 13 bộ môn
+            <Panel radius={R.md} tone={2} hairline={false} style={{ borderWidth: 1.2, borderColor: A.goldDeep, height: '100%' }}>
+              <View style={{ flex: 1, justifyContent: 'center', gap: 4, padding: S.md }}>
+                <Nhan label={`Chương ${keTiep.chuong}`} />
+                <Txt size={15} weight="display" color={A.gold}>
+                  Tiếp tục
+                </Txt>
+                <Txt size={11.5} color={A.inkFaint} numberOfLines={2}>
+                  {keTiep.ten}
                 </Txt>
               </View>
             </Panel>
           </Pressable>
-        </ScrollView>
+        ) : null}
+        {CHUONG.map((ch) => {
+          const ais = aiCuaChuong(ch.so);
+          const co = ais.reduce((n, a) => n + (sao[a.id] ?? 0), 0);
+          const f = faceOf(ch.gameId);
+          const moChuong = ais.some((a) => daMo(a.id, sao));
+          return (
+            <View key={ch.so} style={{ width: 190 }}>
+              <TheAnh
+                dieuHuong
+                ten={`Chương ${ch.so} · ${ch.ten}`}
+                phu={`${f?.nameVi ?? ch.gameId} · ${co}/${ais.length * 3} sao`}
+                surface={f?.surface ?? A.panelLo}
+                Art={f?.Motif ?? (() => <View />)}
+                khoa={!moChuong}
+                dieuKien={moChuong ? undefined : 'Qua chương trước'}
+                tienDo={{ n: co, toi: ais.length * 3 }}
+                a11y={moChuong ? `Chương ${ch.so}` : `Chương ${ch.so}, chưa mở`}
+                onPress={() => router.push(`/vuot-ai?chuong=${ch.so}`)}
+              />
+            </View>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+
+  return (
+    <View style={{ flex: 1 }}>
+      <AppBackdrop width={w} height={height} />
+
+      {/* A. Dải danh tính. Không có tấm nền: đây là vùng nhỏ nhất màn hình
+          và nó không cạnh tranh với sân khấu ngay dưới. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={me ? 'Trang cá nhân' : 'Đăng nhập'}
+        onPress={() => router.push(me ? '/me' : '/auth')}
+        style={{ height: 52, marginTop: insets.top, paddingHorizontal: S.lg, flexDirection: 'row', alignItems: 'center', gap: S.md }}
+      >
+        {me ? (
+          <Face avatar={me.avatar} id={me.id} size={40} />
+        ) : (
+          <View style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 1.2, borderColor: A.lineSoft, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="user" size={20} color={A.inkFaint} />
+          </View>
+        )}
+        <View style={{ flex: 1, gap: 3 }}>
+          <Txt size={15} weight="display" numberOfLines={1}>
+            {me?.name ?? 'Chưa đăng nhập'}
+          </Txt>
+          {me ? <CapDo profile={profile} /> : (
+            <Txt size={11.5} color={A.inkFaint}>
+              Đăng nhập để chơi với người thật
+            </Txt>
+          )}
+        </View>
+        <View style={{ flexDirection: 'row', gap: S.md, alignItems: 'center' }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={pending ? `Bạn bè, ${pending} việc chờ` : 'Bạn bè'}
+            hitSlop={SLOP}
+            onPress={() => online(() => router.push('/friends'))}
+            style={({ pressed }) => [press({ pressed })]}
+          >
+            <Icon name="user" size={20} color={A.inkFaint} />
+            {pending > 0 ? (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: -7,
+                  right: -9,
+                  minWidth: 19,
+                  height: 19,
+                  borderRadius: 10,
+                  paddingHorizontal: 5,
+                  backgroundColor: A.seal,
+                  borderWidth: 1.5,
+                  borderColor: A.bg,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Txt size={11} weight="bold" color="#FFF">
+                  {pending > 9 ? '9+' : pending}
+                </Txt>
+              </View>
+            ) : null}
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Cài đặt"
+            hitSlop={SLOP}
+            onPress={() => router.push(me ? '/me?tab=cai-dat' : '/auth')}
+            style={({ pressed }) => [press({ pressed })]}
+          >
+            <Icon name="settings" size={20} color={A.inkFaint} />
+          </Pressable>
+        </View>
+      </Pressable>
+
+      <ScrollView
+        ref={scroller}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: S.xxl }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={me ? <RefreshControl refreshing={loading} onRefresh={() => void load()} tintColor={A.gold} colors={[A.gold]} /> : undefined}
+      >
+        {stage}
+        {vang ? (
+          <>
+            {daiVuotAi}
+            <View style={{ marginTop: S.lg }}>{daiHang(false)}</View>
+          </>
+        ) : (
+          <>
+            {daiHang(true)}
+            {daiVuotAi}
+          </>
+        )}
+
+        {/* E. Lối duy nhất tới danh mục trên thân sảnh. Thanh điều hướng là
+            lối thứ hai, và một thanh điều hướng không tính là "đổ ra ngoài". */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Cả 13 bộ môn"
+          onPress={() => router.push('/bo-mon')}
+          style={({ pressed }) => [{ marginTop: S.lg, marginHorizontal: S.lg, borderRadius: R.md }, press({ pressed })]}
+        >
+          <Panel radius={R.md} tone={0}>
+            <View style={{ height: 56, flexDirection: 'row', alignItems: 'center', gap: S.md, paddingHorizontal: S.md }}>
+              <Icon name="grid" size={20} color={A.gold} />
+              <Txt size={13} weight="semi" style={{ flex: 1 }}>
+                Cả {FACES.length} bộ môn
+              </Txt>
+              <Txt size={11} color={A.inkFaint}>
+                {READY.size} đã mở
+              </Txt>
+              <Icon name="chevron" size={16} color={A.inkFaint} />
+            </View>
+          </Panel>
+        </Pressable>
       </ScrollView>
 
-      <BottomNav
-        width={w}
-        insetBottom={insets.bottom}
-        onHome={() => scroller.current?.scrollTo({ y: 0, animated: true })}
-        onGrid={() => router.push('/bo-mon')}
-        onRooms={() => router.push('/van')}
-        onBoard={() => router.push('/bxh')}
-        onMe={() => router.push(me ? '/me' : '/auth')}
+      {/* F. Cụm hành động, ngoài vùng cuộn. */}
+      <StartDock
+        gameId={cauHinh.gameId}
+        lan={cauHinh.lan}
+        clock={cauHinh.clock}
+        noiLai={noiLai}
+        nhip={<Pulse lobby={s.lobby} />}
+        onDoiBoMon={() => setTam('bo-mon')}
+        onDoiCheDo={() => setTam('che-do')}
+        onVaoTran={() => (noiLai ? router.replace('/online/live') : online(() => setTam('hang-cho')))}
       />
 
-      {/* Đặt sau `BottomNav`: tấm trượt phải nằm **trên** thanh điều hướng.
-          Để trước thì thanh dưới cùng đè lên mất nút Đóng của tấm. */}
-      {/* Đóng tấm **trước khi** chuyển màn. Sảnh vẫn nằm dưới trong ngăn xếp,
-          nên quay lui từ ván đấu là thấy lại đúng tấm đang mở hôm trước. */}
-      {sheet === 'join' ? (
+      <BottomNav active="sanh" onHome={() => scroller.current?.scrollTo({ y: 0, animated: true })} />
+
+      {/* Mọi tấm đặt **sau** thanh điều hướng: để trước thì thanh dưới cùng
+          đè lên mất nút Đóng. */}
+      {tam === 'che-do' ? (
+        <SheetChonCheDo
+          tabDau={cauHinh.lan}
+          clockDau={cauHinh.clock}
+          onClose={() => setTam(null)}
+          onNap={(lan, gameId, clock) => {
+            nap(lan, gameId, clock);
+            setTam(null);
+          }}
+          onDi={(href) => {
+            setTam(null);
+            router.push(href as never);
+          }}
+          onMoTam={(t) => setTam(t)}
+        />
+      ) : null}
+
+      {tam === 'bo-mon' ? (
+        <PickGameSheet
+          mode={cauHinh.lan}
+          onClose={() => setTam(null)}
+          onPick={(id, o) => {
+            setTam(null);
+            nap(cauHinh.lan, id, cauHinh.lan === 'thuong' ? o.clock : '');
+          }}
+          onRules={(id) => {
+            setTam(null);
+            router.push(`/luat/${id}` as never);
+          }}
+        />
+      ) : null}
+
+      {tam === 'phong' ? (
+        <PickGameSheet
+          mode="create"
+          onClose={() => setTam(null)}
+          onPick={(id, o) => {
+            setTam(null);
+            const q = new URLSearchParams({ game: id });
+            if (o.clock) q.set('clock', o.clock);
+            if (o.pass.trim()) q.set('pass', o.pass.trim());
+            router.push(`/online/create?${q.toString()}`);
+          }}
+          onRules={(id) => {
+            setTam(null);
+            router.push(`/luat/${id}` as never);
+          }}
+        />
+      ) : null}
+
+      {tam === 'ma' ? (
         <CodeSheet
-          onClose={() => setSheet(null)}
+          onClose={() => setTam(null)}
           onGo={(code, pass) => {
-            setSheet(null);
+            setTam(null);
             const q = new URLSearchParams({ code });
             if (pass) q.set('pass', pass);
             router.push(`/online/join?${q.toString()}`);
           }}
         />
+      ) : null}
+
+      {tam === 'hang-cho' ? (
+        <HangChoOverlay gameId={cauHinh.gameId} lan={cauHinh.lan} clock={cauHinh.clock} onClose={() => setTam(null)} />
       ) : null}
     </View>
   );
@@ -288,8 +481,8 @@ function Pulse({ lobby }: { lobby: { online: number; rooms: number; queued: numb
   if (lobby.rooms > 0) parts.push(`${lobby.rooms} ván đang chạy`);
   if (lobby.queued > 0) parts.push(`${lobby.queued} đang tìm đối`);
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 6 }}>
-      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: lobby.online > 0 ? A.jade : A.inkFaint }} />
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingBottom: S.sm }}>
+      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: lobby.online > 1 ? A.jade : A.inkFaint }} />
       <Txt size={11} color={A.inkFaint}>
         {parts.join(' · ')}
       </Txt>
@@ -298,261 +491,26 @@ function Pulse({ lobby }: { lobby: { online: number; rooms: number; queued: numb
 }
 
 /**
- * Dòng dưới tên ở thẻ người chơi.
+ * Cấp độ và thanh kinh nghiệm, dưới tên.
  *
- * Điểm đại diện là điểm ở **bộ môn đánh nhiều nhất**, không phải điểm cao
- * nhất: khoe một con số lấy từ ba ván may mắn thì nó không mô tả người chơi.
- * Cùng một quy tắc với trang cá nhân.
+ * Cấp đo **số ván đã đánh**, khác hẳn danh hiệu đo sức mạnh: người chơi
+ * nhiều mà thua nhiều vẫn lên cấp. Hai thước đo hai thứ khác nhau thì phải
+ * đứng ở hai chỗ khác nhau — cấp ở đây, danh hiệu ở dải hạng.
  */
-function summary(p: Profile | null): string {
-  const played = (p?.stats ?? []).reduce((n, x) => n + x.win + x.draw + x.loss, 0);
-  if (!played) return 'Chưa xếp hạng · chưa đánh ván nào';
-  const main = [...(p?.stats ?? [])].sort((x, y) => y.win + y.draw + y.loss - (x.win + x.draw + x.loss))[0]!;
-  const name = faceOf(main.gameId)?.nameVi ?? main.gameId;
-  const streak = p?.streak && p.streak.n > 1 && p.streak.kind === 'win' ? ` · ${p.streak.n} thắng liên tiếp` : '';
-  // Danh hiệu đứng đầu dòng khi đã có: đó là thứ người ta muốn thấy trước
-  // con số. Chưa đủ ván định hạng thì nói thẳng còn thiếu mấy ván, chứ
-  // không im lặng bỏ trống chỗ đó.
-  const bac = danhHieuOf(main.rating, main.ranked);
-  const dau = bac ? `${bac.ten} · ` : `Còn ${conMayVan(main.ranked)} ván định hạng · `;
-  return `${dau}${main.rating} điểm ${name} · ${played} ván${streak}`;
-}
-
-/** Một ô trong hàng chế độ. `badge` là số việc đang chờ mình xử lý. */
-function Mode({ icon, label, onPress, badge = 0 }: { icon: IconName; label: string; onPress: () => void; badge?: number }) {
+function CapDo({ profile }: { profile: Profile | null }) {
+  const xp = xpCua(profile?.stats ?? []);
+  const c = capChiTiet(xp);
+  const ty = c.toi ? Math.max(0, Math.min(1, c.trong / c.toi)) : 1;
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={badge ? `${label}, ${badge} việc chờ` : label}
-      style={({ pressed }) => [{ flex: 1, borderRadius: R.md }, press({ pressed })]}
-    >
-      <Panel radius={R.md} tone={0} seed={label.length * 7}>
-        <View style={{ gap: 5, paddingVertical: S.md, alignItems: 'center' }}>
-          <Icon name={icon} size={19} color={A.gold} />
-          <Txt size={10.5} weight="semi" color={A.inkSoft} numberOfLines={1}>
-            {label}
-          </Txt>
-        </View>
-      </Panel>
-      {/* Chấm đếm việc chờ. Số chứ không phải chấm trơn: "3 lời mời" khác hẳn
-          "có gì đó mới" về mức độ đáng bấm vào ngay. */}
-      {badge > 0 ? (
-        <View
-          style={{
-            position: 'absolute',
-            top: -4,
-            right: -4,
-            minWidth: 19,
-            height: 19,
-            borderRadius: 10,
-            paddingHorizontal: 5,
-            backgroundColor: A.seal,
-            borderWidth: 1.5,
-            borderColor: A.bg,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Txt size={11} weight="bold" color="#FFF">
-            {badge > 9 ? '9+' : badge}
-          </Txt>
-        </View>
-      ) : null}
-    </Pressable>
-  );
-}
-
-
-
-
-/**
- * Thẻ bộ môn: một bức tranh lồng khung.
- *
- * Nửa trên là chất liệu thật của game, được **lồng khung**: bo góc, hở ra
- * một vành quanh mép. Hình tràn sát mép thẻ thì trông như ảnh dán; lồng
- * khung thì trông như hiện vật bày trong tủ.
- *
- * Viền của thẻ đã mở là viền trung tính, **không** phải màu nhấn. Ba thẻ
- * viền nghệ vàng nằm cùng một màn với nút chính cũng nghệ vàng thì không
- * còn cái nào là chính nữa. Đã mở hay chưa đọc ra từ chỗ khác: thẻ chưa mở
- * mờ đi và mang nhãn "Sắp có".
- */
-function GameCard({
-  face,
-  ready,
-  seed,
-  onPress,
-  onRules,
-}: {
-  face: GameFace;
-  ready: boolean;
-  seed: number;
-  onPress: () => void;
-  /** Mở trang luật. Thẻ chưa mở thì bấm vào đâu cũng ra đây. */
-  onRules: () => void;
-}) {
-  // Bề ngang do **chỗ đặt** quyết định, không do thẻ tự khai. Thẻ từng
-  // chốt cứng 47,5% cho cái lưới hai cột; đặt nó vào một dải ngang thì
-  // 47,5% tính theo ô 190 điểm của dải, và cả tấm hình bị bóp còn một nửa.
-  const Motif = face.Motif;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={ready ? `Chơi ${face.nameVi}` : `Xem luật ${face.nameVi}, chưa mở`}
-      onPress={onPress}
-      style={({ pressed }) => [
-        // Bo góc phải khai ngay ở đây, chỗ mang bóng đổ. Bóng đổ bám theo bo
-        // góc của chính phần tử mang nó: để trống thì bóng chạy theo hình
-        // chữ nhật vuông góc, và ở bốn góc nó thò ra ngoài thành một đường
-        // viền vuông bao quanh cái thẻ bo tròn.
-        { borderRadius: R.md, transform: [{ translateY: pressed ? 1 : 0 }] },
-        lift(ready ? 0.4 : 0.28, 12, 5),
-      ]}
-    >
-      <Panel radius={R.md} tone={ready ? 2 : 1} seed={seed} hairline={false} style={{ borderWidth: 1, borderColor: ready ? A.line : A.lineSoft }}>
-        <View style={{ padding: 6 }}>
-          <View
-            style={{
-              // Khung ảnh phải đúng tỉ lệ 100:64 của hình, không đặt chiều
-              // cao cố định. Lệch tỉ lệ thì hình co lại cho vừa chiều cao và
-              // hở ra hai bên; chỗ hở lộ nền phẳng của thẻ, thành một cái
-              // khung vuông thứ hai nằm bên trong khung bo góc.
-              aspectRatio: 100 / 64,
-              borderRadius: 7,
-              overflow: 'hidden',
-              backgroundColor: face.surface,
-              borderWidth: 1,
-              borderColor: '#00000055',
-              opacity: ready ? 1 : 0.7,
-            }}
-          >
-            <Motif />
-            {/* Bóng đổ của khung hắt vào trong hình, để hình lõm xuống dưới
-                mặt gỗ chứ không nổi lên trên. */}
-            <InsetShade />
-            {/* Trạng thái nằm trên hình chứ không xen vào hàng nhãn: ba nhãn
-                một hàng thì thẻ "2–4 người" bị xuống dòng, và hai thẻ cùng
-                hàng cao thấp khác nhau. */}
-            {ready ? null : (
-              <View style={{ position: 'absolute', top: 6, right: 6 }}>
-                <Nhan label="Sắp có" muted />
-              </View>
-            )}
-            {/* Nút luật nằm **trong khung hình**, góc dưới trái: ở đó nó
-                không chen vào hàng nhãn, và nó ở xa nhãn "Sắp có" nên hai
-                thứ không đọc thành một. */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Luật ${face.nameVi}`}
-              hitSlop={SLOP}
-              onPress={onRules}
-              style={({ pressed }) => [
-                {
-                  position: 'absolute',
-                  left: 6,
-                  bottom: 6,
-                  paddingHorizontal: 8,
-                  paddingVertical: 4,
-                  borderRadius: R.sm,
-                  backgroundColor: '#00000088',
-                },
-                press({ pressed }),
-              ]}
-            >
-              <Txt size={11} weight="semi" color={A.ink}>
-                Luật
-              </Txt>
-            </Pressable>
-          </View>
-        </View>
-        <View style={{ paddingHorizontal: S.md, paddingBottom: S.md, paddingTop: 2, gap: 6 }}>
-          <Txt size={15} weight="display" color={ready ? A.ink : A.inkSoft} numberOfLines={1}>
-            {face.nameVi}
-          </Txt>
-          {/* Nhãn kiểu sảnh game nhiều người: chế độ, thời lượng ván, và
-              trạng thái nếu chưa mở. Nhãn "chơi được" dán lên thẻ chơi được
-              là nhãn thừa — thẻ sáng, có viền vàng, bấm được; tám thẻ kia mờ
-              và ghi rõ "sắp có". Nhãn chỉ nên nói thứ nhìn vào chưa biết. */}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5 }}>
-            <Nhan label={face.mode} />
-            <Nhan label={face.minutes} />
-          </View>
-        </View>
-      </Panel>
-    </Pressable>
-  );
-}
-
-
-/** Vệt tối hắt từ khung xuống mép trên của hình lồng khung. */
-function InsetShade() {
-  return (
-    <View style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 18 }} pointerEvents="none">
-      <Svg width="100%" height={18}>
-        <Defs>
-          <LinearGradient id="inset-shade" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#000000" stopOpacity="0.3" />
-            <Stop offset="1" stopColor="#000000" stopOpacity="0" />
-          </LinearGradient>
-        </Defs>
-        <Rect x={0} y={0} width="100%" height={18} fill="url(#inset-shade)" />
-      </Svg>
-    </View>
-  );
-}
-
-/** Thanh dưới ba mục, đặt trên một thanh gỗ có chỉ vàng ở mép trên. */
-function BottomNav({
-  width,
-  insetBottom,
-  onHome,
-  onGrid,
-  onRooms,
-  onBoard,
-  onMe,
-}: {
-  width: number;
-  insetBottom: number;
-  onHome: () => void;
-  onGrid: () => void;
-  onRooms: () => void;
-  onBoard: () => void;
-  onMe: () => void;
-}) {
-  const h = 56 + insetBottom;
-  // Năm mục, đúng trần của một thanh dưới. Xếp hạng và ván đấu nằm ở đây
-  // chứ không chen vào hàng chế độ: chúng là những nơi để **đi tới**,
-  // không phải những việc để bấm.
-  const items: { icon: IconName; label: string; onPress?: () => void; active?: boolean }[] = [
-    { icon: 'home', label: 'Sảnh', onPress: onHome, active: true },
-    { icon: 'grid', label: 'Bộ môn', onPress: onGrid },
-    { icon: 'door', label: 'Ván đấu', onPress: onRooms },
-    { icon: 'crown', label: 'Xếp hạng', onPress: onBoard },
-    { icon: 'user', label: 'Tôi', onPress: onMe },
-  ];
-  return (
-    <View style={{ height: h, flexDirection: 'row', overflow: 'hidden' }}>
-      <SurfaceFill width={width} height={h} tone={1} />
-      <View style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 1.2, backgroundColor: A.goldDeep, opacity: 0.6 }} />
-      {items.map((it) => (
-        <Pressable
-          key={it.label}
-          accessibilityRole="button"
-          accessibilityLabel={it.label}
-          disabled={!it.onPress}
-          onPress={it.onPress}
-          style={({ pressed }) => [
-            { flex: 1, paddingTop: S.sm, paddingBottom: insetBottom + S.sm, alignItems: 'center', gap: 3 },
-            press({ pressed }),
-          ]}
-        >
-          <Icon name={it.icon} size={21} color={it.active ? A.gold : A.inkFaint} />
-          <Txt size={11} weight="semi" color={it.active ? A.gold : A.inkFaint}>
-            {it.label}
-          </Txt>
-        </Pressable>
-      ))}
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      {/* Ray dùng `line` chứ không `panelLo`: dải danh tính nằm thẳng trên
+          nền app, và `panelLo` ở đó tối ngang nền — thanh rỗng tàng hình. */}
+      <View style={{ width: 96, height: 3, borderRadius: 1.5, overflow: 'hidden', backgroundColor: A.line }}>
+        <View style={{ width: `${Math.round(ty * 100)}%`, height: 3, backgroundColor: A.goldDeep }} />
+      </View>
+      <Txt size={10.5} color={A.inkFaint}>
+        Cấp {c.cap}
+      </Txt>
     </View>
   );
 }

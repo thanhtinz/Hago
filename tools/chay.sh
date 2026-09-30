@@ -4,8 +4,12 @@
 # Không có tệp này thì `npm run serve` mở trang web mà không có máy chủ, và
 # thứ đầu tiên nhìn thấy đã là một màn đăng nhập hỏng — màn đó gọi
 # /api/auth/config ngay khi mở.
+#
+# `ADMIN_TOKEN` phải có mặt: đường quản trị tắt hẳn khi chưa đặt biến đó,
+# nên thiếu nó thì hàng đợi báo cáo trả 401 và hai bài kiểm báo sai thành
+# "báo cáo không vào hàng đợi".
 set -e
-node apps/server/dist/index.js &
+ADMIN_TOKEN=${ADMIN_TOKEN:-bimat-quan-tri} node apps/server/dist/index.js &
 MAY_CHU=$!
 npx serve -l 8080 -s apps/mobile/dist &
 WEB=$!

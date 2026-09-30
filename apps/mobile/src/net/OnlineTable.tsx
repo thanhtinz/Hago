@@ -339,9 +339,13 @@ function Waiting({ o, intent, onHome }: { o: Online; intent: Intent; onHome: () 
       {/* Mức thời gian hiện **ngay từ lúc còn đang chờ**, lấy từ ý định nếu
           chưa có phòng: người vừa chọn cờ chớp cần thấy mình đang xếp hàng
           cờ chớp, không phải đợi tới khi vào bàn mới biết. */}
-      {clockKey ? (
+      {/* "Phòng có khoá" **không** được treo vào việc có chọn mức giờ hay
+          không: khoá là một sự thật về cái phòng, còn mức giờ là một lựa
+          chọn có thể bỏ trống. Treo vào nhau thì mở một phòng khoá ở mức
+          mặc định là giấu mất chính cái khoá. */}
+      {clockKey || o.room?.locked ? (
         <Txt size={12.5} weight="semi" color={A.inkSoft}>
-          {clockLabel(clockKey)}
+          {clockKey ? clockLabel(clockKey) : 'Mức theo bộ môn'}
           {o.room?.locked ? ' · phòng có khoá' : ''}
         </Txt>
       ) : null}

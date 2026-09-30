@@ -18,6 +18,7 @@
     "serve": "npx serve -l 8080 -s apps/mobile/dist",
     "shot": "node tools/screenshot.mjs",
     "start": "npm run web && sh tools/chay.sh",
+    "chay-kiem": "RATE_LIMIT=off ADMIN_TOKEN=bimat-quan-tri node apps/server/dist/index.js",
     "kiem-giao-dien": "for f in screenshot two-players rematch sanh bxh taikhoan thongbao camgiac bienban dongho avatar history friends chat luat khan-gia phong-cho che-do vuot-ai; do node tools/$f.mjs || exit 1; done"
   },
   "devDependencies": {

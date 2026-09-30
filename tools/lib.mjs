@@ -91,29 +91,49 @@ export function finish(checks, ignore = () => false) {
 /**
  * Vào hàng chờ ghép cặp, đi đúng đường người dùng đi.
  *
- * Sảnh không còn ô "Ghép cặp": đường vào trận giờ là Vào chơi → chọn chế
- * độ → chọn bộ môn. Gom vào đây để sáu bài kiểm không phải chép lại cùng
- * một chuỗi bốn cú bấm — đã có lần đổi sảnh làm hỏng cả sáu cùng lúc.
+ * Đường vào trận giờ là: chip chế độ → thẻ chế độ → thẻ bộ môn (nạp cấu
+ * hình, tấm tự đóng) → nút VÀO TRẬN. Gom vào đây để sáu bài kiểm không
+ * phải chép lại cùng một chuỗi — đã có lần đổi sảnh làm hỏng cả sáu.
  */
 export async function ghepCap(page, boMon, o = {}) {
   const lan = o.lan ?? 'xh';
-  await page.getByLabel('Vào chơi').click();
-  await page.waitForTimeout(900);
-  await page.getByLabel(lan === 'xh' ? 'Đấu xếp hạng' : 'Đánh thường').click();
-  await page.waitForTimeout(700);
+  await page.getByLabel('Đổi chế độ', { exact: true }).click();
+  await page.waitForTimeout(800);
+  await page.getByLabel(lan === 'xh' ? 'Chế độ Đấu hạng' : 'Chế độ Đánh thường', { exact: true }).click();
+  await page.waitForTimeout(500);
   // Làn xếp hạng ghim một mức giờ nên không có hàng chip nào để bấm.
   if (o.clock && lan !== 'xh') {
     await page.getByLabel(`Mức ${o.clock}`).click();
     await page.waitForTimeout(250);
   }
   await page.getByLabel(boMon, { exact: true }).click();
+  await page.waitForTimeout(500);
+  await page.getByLabel('VÀO TRẬN').click();
   await page.waitForTimeout(o.wait ?? 1400);
 }
 
-/** Mở một phòng riêng, cũng đi qua màn chọn chế độ. */
+/**
+ * Mở tấm nhập mã, cũng qua tab "Với bạn".
+ *
+ * "Vào mã" từng là một ô trên sảnh; giờ nó là một thẻ trong tấm chọn chế
+ * độ, vì nó là một cách **vào trận với bạn** chứ không phải một mục của
+ * sảnh. Ba bài kiểm dùng nó nên nó nằm ở đây, không chép ba lần.
+ */
+export async function moVaoMa(page) {
+  await page.getByLabel('Đổi chế độ', { exact: true }).click();
+  await page.waitForTimeout(800);
+  await page.getByLabel('Chế độ Với bạn', { exact: true }).click();
+  await page.waitForTimeout(500);
+  await page.getByLabel('Vào mã', { exact: true }).click();
+  await page.waitForTimeout(700);
+}
+
+/** Mở một phòng riêng, qua tab "Với bạn" của tấm chọn chế độ. */
 export async function taoPhong(page, boMon, o = {}) {
-  await page.getByLabel('Vào chơi').click();
-  await page.waitForTimeout(900);
+  await page.getByLabel('Đổi chế độ', { exact: true }).click();
+  await page.waitForTimeout(800);
+  await page.getByLabel('Chế độ Với bạn', { exact: true }).click();
+  await page.waitForTimeout(500);
   await page.getByLabel('Tạo phòng').click();
   await page.waitForTimeout(700);
   if (o.clock) {

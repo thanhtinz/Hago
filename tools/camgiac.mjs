@@ -84,13 +84,16 @@ await P.waitForTimeout(1600);
 const keptLevel = (await P.getByLabel('Đổi mức máy').innerText()).includes('Khó');
 console.log(`  mở lại vẫn là mức Khó: ${keptLevel}`);
 
-// Và màn chọn chế độ phải nói đúng mức đang nhớ, không phải câu chung
-// "ba mức". Dòng này rời sảnh cùng lúc với nút "Đấu với máy".
-await P.goto(`${BASE}/choi`, { waitUntil: 'networkidle' });
-await P.waitForTimeout(1500);
-await shot(P, '99-sanh-noi-dung-muc');
-const lobbySays = (await P.getByText('Mức Khó').count()) > 0;
-console.log(`  màn chọn chế độ nói đúng mức: ${lobbySays}`);
+// Mức máy là một cài đặt của **ván với máy**, nên nó sống trong màn ván
+// chứ không trên sảnh — sảnh không còn chế độ đấu máy nào để nói về. Ở
+// đây chỉ kiểm nó vẫn nhớ sau khi rời trang hẳn.
+await P.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+await P.waitForTimeout(1200);
+await P.goto(`${BASE}/play/co-caro`, { waitUntil: 'networkidle' });
+await P.waitForTimeout(1600);
+await shot(P, '99-nho-muc-may-qua-lan-mo');
+const lobbySays = (await P.getByLabel('Đổi mức máy').innerText()).includes('Khó');
+console.log(`  mở lại app vẫn nhớ mức: ${lobbySays}`);
 
 // ---- ô ăn quan: dấu ô vừa bốc ------------------------------------------
 
@@ -126,7 +129,7 @@ finish([
   [trail !== null && trail !== trailBefore, 'Bàn cờ gánh không vẽ vệt nước vừa đi, hoặc vệt không đổi sau nước đi.'],
   [osc > 0, 'Đi một nước mà không phát tiếng nào.'],
   [keptLevel, 'Mức máy không nhớ qua lần mở màn sau.'],
-  [lobbySays, 'Màn chọn chế độ không nói đúng mức máy đang nhớ.'],
+  [lobbySays, 'Mở lại app thì mất mức máy đang nhớ.'],
   [dashedAfter > dashedBefore, 'Ô ăn quan không khoanh ô vừa bốc.'],
   [hasToggle, 'Không có công tắc tắt âm thanh và rung.'],
   [errors.length === 0, 'Có lỗi trên trang.'],

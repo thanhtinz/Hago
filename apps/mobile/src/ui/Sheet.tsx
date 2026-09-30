@@ -22,14 +22,28 @@ export function Sheet({
   sub,
   onClose,
   children,
+  truoc,
   maxHeight,
+  height,
 }: {
   title: string;
   sub?: string;
   onClose: () => void;
   children: React.ReactNode;
+  /**
+   * Phần **ghim** giữa tiêu đề và thân cuộn, ví dụ một hàng thẻ chọn. Để
+   * trong `children` thì nó cuộn đi mất, và một hàng thẻ cuộn khỏi màn là
+   * một hàng thẻ người ta không biết là có.
+   */
+  truoc?: React.ReactNode;
   /** Cao hơn mức này thì phần thân tự cuộn, không đẩy nút ra khỏi màn. */
   maxHeight?: number;
+  /**
+   * Chiều cao cố định. Một tấm chiếm gần trọn màn thì nó **phủ luôn** thanh
+   * điều hướng dưới, và phần sảnh còn thấy sau lớp mờ nói rằng bạn đang cấu
+   * hình chứ không đang rời đi.
+   */
+  height?: number;
 }) {
   const insets = useSafeAreaInsets();
   useBackClose(true, onClose);
@@ -44,8 +58,8 @@ export function Sheet({
       {/* Tấm dán đáy màn mà có ô nhập thì bàn phím che mất chính ô đó. iOS
           không bao giờ tự co màn, nên không có lớp này là hỏng hẳn. */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Panel radius={R.xl} tone={1} seed={71} style={lift(0.6, 30, -8)}>
-        <View style={{ gap: S.sm, padding: S.lg, paddingBottom: insets.bottom + S.lg }}>
+      <Panel radius={R.xl} tone={1} seed={71} style={[lift(0.6, 30, -8), height ? { height } : null]}>
+        <View style={{ gap: S.sm, padding: S.lg, paddingBottom: insets.bottom + S.lg, flex: height ? 1 : undefined }}>
           <Grip />
           <Txt size={18} weight="display">
             {title}
@@ -55,7 +69,12 @@ export function Sheet({
               {sub}
             </Txt>
           ) : null}
-          {maxHeight ? (
+          {truoc}
+          {height ? (
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: S.sm, paddingBottom: S.sm }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {children}
+            </ScrollView>
+          ) : maxHeight ? (
             <ScrollView
               style={{ maxHeight }}
               contentContainerStyle={{ gap: S.sm }}

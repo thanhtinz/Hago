@@ -387,19 +387,47 @@ một khung tối trung tính chính là thứ làm chúng nổi lên. Mặt bà
 thì ngược lại: một bản dùng chung (`TableBackdrop`), chỉ khác màu quầng.
 Ba mặt bàn riêng cho ba bộ môn là ba hoạ tiết tranh chỗ với chính bàn cờ.
 
-## 17. Sảnh không đổ hết mọi thứ ra ngoài
+## 17. Sảnh không phải một danh mục
 
-Hai trục, **chế độ** và **bộ môn**, đi qua hai màn khác nhau:
+Sảnh trả lời đúng ba câu: tôi là ai, tôi sắp đánh gì, bấm đâu để đánh.
+**Không một thẻ bộ môn nào nằm trên sảnh** — mười ba bức tranh sống ở
+`/bo-mon` và trong tấm chọn chế độ, còn sảnh chỉ có một hàng 56 điểm dẫn
+sang đó.
 
-- `/choi` — chọn chế độ, chia ba nhóm theo **đấu với ai**: với người (xếp
-  hạng / đánh thường), một mình (đấu máy / vượt ải), với bạn.
+Hai trục, **chế độ** và **bộ môn**, là hai thuộc tính của cùng một cấu hình
+đang nạp (`che-do-gan-nhat = { lan, gameId, clock }`), nên chúng đứng cạnh
+nhau trên **hai chip** ngay trên nút vàng, không xếp đuôi nhau thành hai
+bước:
+
+- `SheetChonCheDo` — tấm cao 88% mở **ngay trên sảnh**, bốn thẻ: Đấu hạng ·
+  Đánh thường · Vượt ải · Với bạn. Không phải một màn của router: đổi chế
+  độ là thao tác lặp nhiều lần trong ngày, tính nó thành một lần điều hướng
+  là sai giá. `/choi` còn sống nhưng chỉ là một tệp chuyển tiếp về `/?mo=che-do`.
+- `PickGameSheet` — trục bộ môn, mở từ chip trái hoặc từ chính sân khấu.
 - `/bo-mon` — danh mục mười ba bộ môn chia bốn nhóm thể loại. Đây là danh
-  mục, **không phải** một bước của luồng vào trận; luồng vào trận đi qua
-  `PickGameSheet`. Một màn một việc.
+  mục, **không phải** một bước của luồng vào trận. Một màn một việc.
 
-Sảnh giữ nút "Đánh lại" một chạm cho chế độ lần trước. Đó là thứ bù lại cú
-chạm mà `/choi` thêm vào, và nó chỉ bù được nếu nó nằm trong khung nhìn đầu
-tiên.
+**Đúng một nút vàng, nhãn không đổi.** Cấu hình nằm trên hai chip nên
+"VÀO TRẬN" không bao giờ xuống dòng hay nhảy cỡ. Ngoại lệ duy nhất là
+"VÀO LẠI VÁN" khi đang có ghế trong một ván dở. Cụm hành động nằm **ngoài**
+`ScrollView` và neo trên thanh điều hướng: nút bắt đầu không bao giờ được
+cuộn khỏi màn.
+
+**Hàng chờ là một lớp phủ, không phải một route.** `HangChoOverlay` đè lên
+sảnh, đồng hồ đếm **lên** (sự thật đã trôi qua, không phải một ETA bịa), và
+huỷ là một chạm không mất gì. Khi hàng chờ mỏng thì người ta chỉ dám bấm
+nếu huỷ rẻ.
+
+**Thẻ có tranh, không phải hàng chữ.** Mọi thẻ đi qua `TheAnh` — một hình
+học duy nhất cho cả app. Một hàng "icon 22 + tên + hai dòng xám + mũi tên"
+là ngữ pháp trang Cài đặt, và người dùng đọc ra ngay. Vì thế có **hai** bộ
+hình: `faces.tsx` vẽ bộ môn, `modes.tsx` vẽ chế độ. Thiếu bộ thứ hai là lý
+do cơ học khiến một màn chọn chế độ tất yếu tụt về danh sách dòng.
+
+**Khoá thì hiện, không giấu.** Mười bộ môn chưa mở xuất hiện đủ ở cả ba nơi
+với đúng một quy ước (mờ + lớp phủ + `Nhan "Sắp mở"`), và bấm vào dẫn tới
+`/luat/<id>` — một đích đến thật. Nguồn chân lý là `registry.has`. Giấu
+chúng đi thì nền tảng trông đúng bằng ba bộ môn.
 
 **Hai làn ghép cặp.** Khoá hàng chờ phải mang cả làn (`|xh` hoặc
 `|<mức>|thuong`). Thiếu chiều đó thì người bấm xếp hạng bị ghép với người
@@ -420,6 +448,15 @@ nên không ghim thì cùng một ải mỗi lần vào một khác. `chien-dich
 `apps/server` dựng thật từng ải và khẳng định câu "ai đi trước" trong `moTa`
 khớp hạt — bài đó đã bắt **bốn** mô tả nói sai ngay lần chạy đầu.
 
+Vượt ải được bán như **nội dung**, còn đấu với máy bị chôn như **công cụ**.
+Ở đây Hago cố ý làm khác các tựa MOBA: chúng chôn được PvE vì hàng chờ đầy
+trong hai mươi giây ở mọi khung giờ, còn sảnh này sẽ có những tối không có
+ai — và tối đó PvE không phải đồ độn mà là cả sản phẩm. Nên chiến dịch có
+một dải riêng trên sảnh, một thẻ chế độ mang số sống `Vượt ải · 8/30`, và
+`/vuot-ai` là một **con đường dọc mười node** chứ không phải mười hàng
+phẳng. Đấu với máy thì nằm cuối tab vượt ải, dưới một đường kẻ, không tiến
+độ, không sao, không lên sảnh.
+
 Vượt ải **không nối vào gì cả**: không kinh nghiệm, không Elo, không thông
 thạo, không lịch sử, không bảng xếp hạng. Ván chạy trên máy người dùng và
 máy chủ không có dòng mã bot nào, nên nó không chứng minh được bên kia là
@@ -428,14 +465,48 @@ mua được gì. Nối vượt ải vào kinh nghiệm là ngày cấp độ m�
 
 ## 19. `backToLobby` phải `dismissAll`, không `back`
 
-Từ ngày có màn chọn chế độ, đường vào trận là sảnh → chọn chế độ → ván.
-`router.back()` chỉ lùi một bước nên nút "Về sảnh" dừng ở màn chọn chế độ
-và cái nhãn nói dối. `dismissAll()` trả về màn đầu ngăn xếp, đúng là sảnh,
-mà vẫn không dựng thêm một sảnh thứ hai như `replace('/')`.
+Đường vào trận là sảnh → (lớp phủ hàng chờ) → ván, và ván vẫn được `push`
+lên trên sảnh. `router.back()` chỉ lùi một bước, nên từ một màn mở ra từ
+màn khác — `/vuot-ai/<ải>` mở từ `/vuot-ai`, ván mở từ `/bo-mon` — nút "Về
+sảnh" dừng giữa đường và cái nhãn nói dối. `dismissAll()` trả về màn đầu
+ngăn xếp, đúng là sảnh, mà vẫn không dựng thêm một sảnh thứ hai như
+`replace('/')`.
 
-Cùng lý do, mọi bài kiểm bấm "Về sảnh" trong ván phải dùng `.last()`: màn
-dưới cũng có một nút cùng nhãn, và `.first()` chọn đúng cái đang bị che.
+Cùng lý do, mọi bài kiểm bấm "Về sảnh" **hoặc một mục của thanh điều
+hướng** phải dùng `.last()`: expo-router giữ các màn dưới còn gắn trong cây
+DOM, nên "Tôi" hay "Bộ môn" có mặt ở cả màn đang bị che, và `.first()` chọn
+đúng cái không bấm được. Đây chính là thứ hỏng ngay hôm gắn `BottomNav`
+lên bốn màn.
+
+`BottomNav` gắn ở sảnh, `/bo-mon`, `/van`, `/bxh` và `/me`. Nút lùi "Về
+sảnh" ở bốn màn sau **vẫn giữ**, dù một màn có thanh tab thì về lý không
+cần mũi tên lùi: bảy bài kiểm bấm đúng nhãn đó, và đổi cả hai thứ trong một
+lần đẩy là cách chắc chắn nhất để không biết cái nào làm hỏng.
+
+**Máy chủ cho một lượt quét phải bật đúng hai biến môi trường**, và có sẵn
+một lệnh để không ai phải nhớ: `npm run chay-kiem`.
+
+`RATE_LIMIT=off` vì cửa đăng ký cho mười tài khoản một giờ trên một địa
+chỉ, còn một lượt quét mười chín bài mở gần bốn mươi tài khoản từ đúng một
+địa chỉ. Không tắt thì các bài cuối trượt bằng 429 — và nó trượt ở một chỗ
+**trông như lỗi giao diện** ("nút Tôi không bấm được"), nên đã mất hai lần
+truy mới thấy.
+
+`ADMIN_TOKEN` vì đường quản trị **tắt hẳn khi chưa đặt biến đó**, và hai
+bài (`thongbao`, `chat`) đọc thẳng hàng đợi báo cáo qua đường ấy. Thiếu
+biến thì bài báo "Báo cáo không vào hàng đợi quản trị" — nghe như một lỗi
+máy chủ, thực ra là một biến môi trường chưa đặt.
+
+Cả hai lần trượt đều cùng một giống: **môi trường sai, không phải mã sai**.
+Gặp một bài kiểm trượt ở chỗ không liên quan gì tới thay đổi vừa làm thì
+kiểm môi trường trước khi đọc mã.
 
 Đường vào trận trong bài kiểm đi qua `ghepCap()` / `taoPhong()` ở
 `tools/lib.mjs`. Sáu bài từng chép lại cùng một chuỗi bốn cú bấm, và một
 lần đổi sảnh làm hỏng cả sáu cùng lúc.
+
+**Nhãn trùng là cái bẫy thường xuyên nhất.** `getByLabel` và `getByText`
+khớp **chuỗi con, không phân biệt hoa thường**, nên "Đổi bộ môn" trúng cả
+"Đổi bộ môn, đang chọn Cờ Caro", và "Đang tìm đối" trúng cả dòng nhịp thở
+"… · 1 đang tìm đối". Nhãn của bốn thẻ chế độ vì thế mang tiền tố "Chế độ".
+Chỗ nào có nguy cơ thì dùng `{ exact: true }`.
