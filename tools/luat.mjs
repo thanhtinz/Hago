@@ -28,11 +28,15 @@ const ganhSum = (await page.getByText(/quân bị ăn chỉ/).count()) > 0;
 const ganhBlocks =
   (await page.getByText('Cách đi', { exact: true }).count()) > 0 &&
   (await page.getByText('Thắng thế nào', { exact: true }).count()) > 0;
+// Trang này chỉ được có luật. Mẹo chơi và nhận xét từng nằm ở đây rồi bị
+// bỏ; bài kiểm giữ cho chúng không quay lại.
+const chiCoLuat =
+  (await page.getByText('Mẹo cho người mới').count()) === 0 && (await page.getByText('Hay hiểu sai').count()) === 0;
 // Nhắm theo nút, không theo chữ: chữ "Đấu với máy" còn nằm ở sảnh và ở
 // dòng giải thích các chế độ chơi.
 const playBtn = page.getByRole('button', { name: 'Đấu với máy — Cờ Gánh' });
 const ganhPlay = (await playBtn.count()) > 0;
-console.log(`  tiêu đề: ${ganhTitle} · tóm tắt đúng bộ môn: ${ganhSum} · đủ khối: ${ganhBlocks} · mời đấu máy: ${ganhPlay}`);
+console.log(`  tiêu đề: ${ganhTitle} · tóm tắt đúng bộ môn: ${ganhSum} · đủ khối: ${ganhBlocks} · chỉ có luật: ${chiCoLuat} · mời đấu máy: ${ganhPlay}`);
 
 console.log('Nút "Đấu với máy" phải vào được ván thật');
 await playBtn.click();
@@ -66,6 +70,7 @@ finish([
   [ganhTitle, 'Trang luật không có tiêu đề bộ môn.'],
   [ganhSum, 'Tóm tắt luật cờ gánh không hiện.'],
   [ganhBlocks, 'Thiếu khối "Cách đi" hoặc "Thắng thế nào".'],
+  [chiCoLuat, 'Trang luật có thêm khối mẹo chơi hoặc nhận xét.'],
   [ganhPlay, 'Bộ môn đã mở mà không mời đấu với máy.'],
   [intoMatch, 'Nút "Đấu với máy" không vào được ván.'],
   [fromMatch, 'Dấu hỏi trong ván không mở được trang luật.'],

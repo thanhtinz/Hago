@@ -81,7 +81,7 @@ export default function RulesScreen() {
                 <Rich text={rules.ban} size={12.5} color={A.inkSoft} />
                 {ready ? null : (
                   <Txt size={11.5} color={A.gold} style={{ paddingTop: S.xs }}>
-                    Bộ môn này chưa mở. Luật đã chốt, phần còn lại là cài engine.
+                    Bộ môn này chưa mở.
                   </Txt>
                 )}
               </View>
@@ -89,8 +89,6 @@ export default function RulesScreen() {
 
             <Block title="Cách đi" items={rules.cachDi} />
             <Block title="Thắng thế nào" items={rules.thang} />
-            {rules.luuY?.length ? <Block title="Hay hiểu sai" items={rules.luuY} tint={A.sealLit} /> : null}
-            {rules.meo?.length ? <Block title="Mẹo cho người mới" items={rules.meo} tint={A.gold} /> : null}
 
             {ready ? (
               <Btn label={`Đấu với máy — ${face?.nameVi ?? ''}`} icon="robot" onPress={() => router.replace(`/play/${id}`)} />
@@ -102,17 +100,23 @@ export default function RulesScreen() {
   );
 }
 
-/** Một khối luật: tiêu đề, rồi từng gạch đầu dòng. */
-function Block({ title, items, tint }: { title: string; items: string[]; tint?: string }) {
+/**
+ * Một khối luật: tiêu đề, rồi từng gạch đầu dòng.
+ *
+ * Chỉ có hai khối, và cả hai đều là luật. Bản trước có thêm "Hay hiểu sai"
+ * và "Mẹo cho người mới" — hai khối ấy là nhận xét và lời khuyên, không
+ * phải luật, và chúng đẩy phần luật thật xuống dưới màn hình thứ hai.
+ */
+function Block({ title, items }: { title: string; items: string[] }) {
   return (
     <Panel radius={R.lg} tone={1} seed={title.length * 11}>
       <View style={{ padding: S.lg, gap: S.sm }}>
-        <Txt size={14} weight="display" color={tint ?? A.ink}>
+        <Txt size={14} weight="display" color={A.ink}>
           {title}
         </Txt>
         {items.map((x, i) => (
           <View key={i} style={{ flexDirection: 'row', gap: S.sm }}>
-            <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: tint ?? A.goldDeep, marginTop: 8 }} />
+            <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: A.goldDeep, marginTop: 8 }} />
             <Rich text={x} size={13} color={A.inkSoft} />
           </View>
         ))}

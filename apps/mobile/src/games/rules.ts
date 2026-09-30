@@ -1,17 +1,18 @@
 /**
  * Luật chơi, viết cho **người chơi**.
  *
- * `docs/rules/*.md` là đặc tả cho engine: nó có đồ thị kề, perft, biến thể,
- * và những chỗ "dễ cài sai nhất". Người mở app lên không cần thứ đó — họ
- * cần bốn câu: bàn thế nào, quân đi thế nào, thắng bằng gì, và mẹo đầu
- * tiên nên biết.
+ * Chỉ có luật. Không mẹo chơi, không nhận xét, không ghi chú về giao diện,
+ * không so sánh bộ môn này với bộ môn kia. Người mở trang này ra để biết
+ * nước nào hợp lệ và thắng bằng gì; mọi câu khác chen vào đều đẩy câu họ
+ * cần xuống dưới.
  *
- * Nên đây không phải bản chép rút gọn của tài liệu kia; nó là một văn bản
- * khác, cho một người đọc khác. Tài liệu kia vẫn là **nguồn chân lý về
- * luật** — chỗ nào ở đây mâu thuẫn với nó thì chỗ này sai.
+ * `docs/rules/*.md` là **nguồn chân lý về luật** — đặc tả cho engine, có đồ
+ * thị kề, perft và biến thể. Bản này là cùng luật ấy kể lại cho người đọc
+ * khác, nên chỗ nào ở đây mâu thuẫn với tài liệu kia thì chỗ này sai. Đã
+ * xảy ra: bản đầu viết cờ caro "sáu quân trở lên không tính thắng", đúng
+ * ngược với luật thật.
  *
- * Mười ba bộ môn đều có mục, kể cả mười bộ chưa mở: người ta muốn biết
- * mình đang chờ cái gì.
+ * Mười ba bộ môn đều có mục, kể cả mười bộ chưa mở.
  */
 
 export interface Rules {
@@ -21,33 +22,20 @@ export interface Rules {
   ban: string;
   /** Quân đi thế nào, ăn thế nào. */
   cachDi: string[];
-  /** Thắng bằng gì. */
+  /** Ván kết thúc thế nào, ai thắng. */
   thang: string[];
-  /** Một hai mẹo cho người mới. Bỏ trống được. */
-  meo?: string[];
-  /** Chỗ người mới hay hiểu sai. Bỏ trống được. */
-  luuY?: string[];
 }
 
 export const RULES: Record<string, Rules> = {
   'co-caro': {
     tomTat: 'Thay nhau đặt quân, ai xếp được năm quân liền nhau trước thì thắng.',
     ban: 'Bàn 15×15 ô, mỗi bên đặt không giới hạn số quân. Bên X đi trước.',
-    cachDi: [
-      'Mỗi lượt đặt đúng một quân vào một ô còn trống.',
-      'Quân đã đặt không di chuyển và không bị ăn.',
-    ],
+    cachDi: ['Mỗi lượt đặt đúng một quân vào một ô còn trống.', 'Quân đã đặt không di chuyển và không bị ăn.'],
     thang: [
-      'Xếp được **đúng năm quân** liền nhau theo hàng ngang, hàng dọc hoặc đường chéo.',
-      'Sáu quân trở lên liền nhau **không tính** là thắng — đây là luật "chặn hai đầu" của cờ caro Việt Nam, khác với gomoku tự do.',
-      'Kín bàn mà chưa ai đủ năm thì hoà.',
-    ],
-    meo: [
-      'Đừng chỉ chặn: mỗi nước chặn nên đồng thời là một nước xây chuỗi của mình.',
-      'Chuỗi ba quân **hở hai đầu** nguy hiểm hơn chuỗi bốn quân đã bị chặn một đầu.',
-    ],
-    luuY: [
-      'Ô trên bàn chỉ khoảng 23 điểm, nhỏ hơn nửa mức chạm tối thiểu — nên trong ván với người thật, chạm lần đầu chỉ **ướm quân**, chạm lại đúng ô đó mới đặt thật.',
+      'Xếp được năm quân liền nhau theo hàng ngang, hàng dọc hoặc đường chéo.',
+      'Chuỗi **đúng năm quân** mà **bị chặn cả hai đầu** thì không tính thắng — đây là luật chặn hai đầu của cờ caro Việt Nam.',
+      'Chuỗi **từ sáu quân trở lên** luôn thắng, kể cả khi bị chặn cả hai đầu.',
+      'Kín bàn mà chưa ai thắng thì hoà.',
     ],
   },
 
@@ -57,147 +45,151 @@ export const RULES: Record<string, Rules> = {
     cachDi: [
       'Mỗi lượt nhấc một quân của mình sang **một điểm kề đang trống**.',
       'Điểm kề gồm ngang và dọc ở mọi điểm, cộng thêm đường chéo ở những điểm có tổng hàng và cột là số chẵn.',
-      '**Gánh**: đi tới một điểm mà hai bên nó có đúng hai quân địch thẳng hàng thì cả hai quân đó đổi màu.',
-      '**Vây**: quân địch nào không còn nước đi nào cũng đổi màu theo.',
+      '**Gánh**: đi tới một điểm mà hai bên nó có đúng hai quân địch nằm đối xứng qua nó thì cả hai quân đó đổi màu.',
+      '**Vây**: một **cụm** quân địch mà cả cụm không còn điểm trống nào kề thì cả cụm đổi màu. Xét cả cụm, không xét từng quân.',
+      'Trong một nước, xét gánh trước rồi mới xét vây.',
+      '**Mở**: nếu nước vừa đi tạo ra một điểm trống mà đối thủ đi vào đó sẽ gánh được, thì lượt sau đối thủ **chỉ được đi vào** những điểm ấy. Ràng buộc chỉ kéo dài đúng một lượt.',
     ],
-    thang: ['Chiếm hết cả 16 quân trên bàn.', 'Tổng số quân trên bàn luôn là 16 — không quân nào rời bàn.'],
-    meo: [
-      'Đừng đẩy hai quân của mình vào thế thẳng hàng cạnh một điểm trống: đó chính là thế bị gánh.',
-      'Điểm giữa bàn có tám điểm kề, gấp đôi điểm ở cạnh — giữ được nó là giữ được thế chủ động.',
+    thang: [
+      'Chiếm hết cả 16 quân trên bàn. Tổng số quân trên bàn luôn là 16 — không quân nào rời bàn.',
+      'Hoà khi cùng một thế cờ lặp lại ba lần, hoặc khi ván chạm giới hạn số nước.',
     ],
-    luuY: ['Nước đi bị **ép** khi đối thủ vừa tạo thế gánh: ô bị ép hiện quầng đỏ, và lượt đó chỉ đi vào đó được.'],
   },
 
   'o-an-quan': {
     tomTat: 'Rải sỏi quanh bàn theo một chiều, rải khéo thì ăn được cả ô.',
     ban: 'Hai ô quan lớn ở hai đầu, mỗi ô một quan. Mười ô dân nhỏ ở giữa, mỗi ô năm dân. Mỗi bên giữ năm ô dân bên mình.',
     cachDi: [
-      'Bốc hết sỏi ở **một ô dân bên mình**, chọn một chiều, rồi rải mỗi ô một viên theo chiều đó.',
-      'Rải hết mà ô kế tiếp còn sỏi thì **bốc tiếp ô đó** và rải tiếp, cứ thế.',
-      'Rải hết mà ô kế tiếp **trống** và ô sau nữa có sỏi thì **ăn** ô có sỏi đó.',
-      'Ăn xong mà ô tiếp theo lại trống và ô sau nữa có sỏi thì ăn tiếp.',
+      'Bốc hết sỏi ở **một ô dân bên mình**, chọn một chiều, rồi rải mỗi ô một viên theo chiều đó. Chọn chiều lại ở mỗi nước.',
+      'Rải hết mà ô kế tiếp là **ô dân còn sỏi** thì bốc tiếp ô đó và rải tiếp, cứ thế.',
+      'Rải hết mà ô kế tiếp là **ô quan còn quân** thì mất lượt.',
+      'Rải hết mà ô kế tiếp **trống** và ô sau nữa có quân thì **ăn** hết ô sau nữa.',
+      'Ăn xong mà ô tiếp theo lại trống và ô sau nữa có quân thì ăn tiếp, cứ thế.',
+      'Ăn ô quan thì lấy cả quan lẫn toàn bộ dân đã tích trong ô đó.',
+      'Đầu lượt mà cả năm ô dân bên mình đều trống thì phải lấy năm dân từ phần đã ăn rải lại vào các ô của mình; thiếu thì vay của đối thủ và trừ khi tính điểm cuối ván.',
     ],
-    thang: [
-      'Ván dừng khi **hết cả hai quan**. Ai nhiều điểm hơn thì thắng.',
-      'Một quan bằng mười dân.',
-    ],
-    meo: [
-      'Đếm trước: số sỏi trong ô quyết định nước rải dừng ở đâu, và chỗ dừng quyết định có ăn được hay không.',
-      'Đừng để ô sát quan của mình đầy sỏi — đó là ô đối thủ nhắm vào.',
-    ],
-    luuY: ['Hết sỏi bên mình thì phải **vay** năm dân từ phần đã ăn để rải tiếp; hết cả phần đã ăn thì thua.'],
+    thang: ['Ván dừng khi **cả hai quan đều đã bị ăn**. Ai nhiều điểm hơn thì thắng.', 'Một quan bằng mười dân.'],
   },
 
   'co-lat': {
-    tomTat: 'Kẹp quân địch giữa hai quân mình thì quân bị kẹp lật sang màu mình. Cuối ván ai nhiều quân hơn thì thắng.',
-    ban: 'Bàn 8×8. Bốn quân đặt sẵn ở giữa, hai đen hai trắng chéo nhau.',
+    tomTat: 'Kẹp quân địch giữa hai quân mình thì quân bị kẹp lật sang màu mình.',
+    ban: 'Bàn 8×8. Bốn quân đặt sẵn ở giữa, hai đen hai trắng chéo nhau. Bên đen đi trước.',
     cachDi: [
-      'Đặt một quân sao cho **kẹp được ít nhất một quân địch** giữa quân vừa đặt và một quân khác của mình.',
-      'Kẹp tính theo cả tám hướng, và mọi quân bị kẹp đều lật.',
-      'Không có nước kẹp nào thì **mất lượt**.',
+      'Đặt một quân sao cho **kẹp được ít nhất một quân địch** giữa quân vừa đặt và một quân khác của mình, theo một dãy liền không đứt.',
+      'Kẹp tính theo cả tám hướng, và mọi quân bị kẹp đều lật sang màu mình.',
+      'Nước không kẹp được quân nào là nước không hợp lệ.',
+      'Không còn nước hợp lệ nào thì **mất lượt**, đối thủ đi tiếp.',
     ],
-    thang: ['Hết nước đi cho cả hai bên thì đếm quân; ai nhiều hơn thắng.'],
-    meo: ['Bốn góc không bao giờ bị lật — chiếm được góc là chiếm được cả một vùng.'],
+    thang: ['Hết nước đi cho cả hai bên thì đếm quân trên bàn; ai nhiều hơn thắng, bằng nhau thì hoà.'],
   },
 
   'co-hum': {
-    tomTat: 'Hai bên chơi hai luật khác nhau: một bên là hùm đi săn, bên kia là đàn dê đi vây.',
-    ban: 'Bàn Alquerque 25 điểm, y như cờ gánh. Hai con hùm có sẵn trên bàn; hai mươi con dê thả dần.',
+    tomTat: 'Hai bên chơi hai luật khác nhau và thắng theo hai cách: một bên là hùm đi săn, bên kia là đàn dê đi vây.',
+    ban: 'Bàn 25 điểm, giao của lưới 5×5, cùng hình bàn với cờ gánh. Bên hùm có 2 con đặt sẵn; bên dê có 12 con, thả dần.',
     cachDi: [
-      '**Hùm**: đi sang điểm kề trống, hoặc **nhảy qua một con dê** xuống điểm trống ngay sau nó để ăn con dê đó.',
-      '**Dê**: lượt đầu chỉ thả dê xuống điểm trống; thả hết hai mươi con rồi mới được di chuyển dê sang điểm kề.',
+      '**Hùm**: đi sang một điểm kề đang trống, hoặc **nhảy qua một con dê kề** xuống điểm trống ngay sau nó theo cùng đường thẳng để ăn con dê đó.',
+      '**Dê**: khi chưa thả hết, mỗi lượt chỉ được thả một con xuống điểm trống, không được di chuyển dê đã có trên bàn.',
+      'Thả hết mười hai con rồi thì mỗi lượt dời một con dê sang điểm kề trống. Dê không ăn được hùm.',
     ],
     thang: ['**Hùm** thắng khi ăn đủ năm con dê.', '**Dê** thắng khi cả hai con hùm đều không còn nước đi nào.'],
-    meo: ['Đàn dê không bao giờ nên đứng rời rạc: một con dê lẻ cạnh một điểm trống là một bữa ăn.'],
   },
 
   'co-ba-quan': {
-    tomTat: 'Bàn nhỏ nhất trong bộ, ván chỉ vài chục giây — đúng cho lúc chờ thang máy.',
-    ban: 'Chín điểm, mỗi bên ba quân.',
+    tomTat: 'Mỗi bên ba quân, xếp được ba quân thành một hàng thì thắng.',
+    ban: 'Chín điểm xếp thành lưới 3×3, mỗi bên ba quân.',
     cachDi: [
-      'Lượt đầu thả ba quân xuống điểm trống.',
-      'Thả hết rồi thì mỗi lượt dời một quân sang điểm kề trống.',
+      'Khi chưa thả hết, mỗi lượt thả một quân xuống điểm trống.',
+      'Thả hết ba quân rồi thì mỗi lượt dời một quân của mình sang điểm kề trống.',
     ],
-    thang: ['Xếp được ba quân của mình thành một hàng ngang, dọc hoặc chéo.'],
-    meo: ['Chiếm điểm giữa trước: nó nằm trên bốn hàng, gấp đôi mọi điểm khác.'],
+    thang: ['Xếp được ba quân của mình thành một hàng ngang, hàng dọc hoặc đường chéo.'],
   },
 
   'co-hex': {
-    tomTat: 'Nối hai cạnh bàn của mình bằng một dải quân liền nhau. Ván này **không bao giờ hoà**.',
+    tomTat: 'Nối hai cạnh bàn của mình bằng một dải quân liền nhau.',
     ban: 'Bàn hình thoi lát ô lục giác, 11×11. Mỗi bên nhận hai cạnh đối diện.',
-    cachDi: ['Mỗi lượt đặt một quân xuống ô trống.', 'Quân đã đặt không di chuyển và không bị ăn.'],
-    thang: ['Nối được hai cạnh của mình bằng một dải quân liền nhau.'],
-    meo: [
-      'Hai ô cách nhau một nhịp chéo gọi là **cầu**: đối thủ chặn một bên thì còn bên kia, nên nó coi như đã nối.',
-      'Luật ngắn nhất trong bộ, nhưng chiều sâu ngang cờ vây.',
+    cachDi: ['Mỗi lượt đặt một quân của mình xuống một ô trống.', 'Quân đã đặt không di chuyển và không bị ăn.'],
+    thang: [
+      'Nối được hai cạnh của mình bằng một dải quân liền nhau, đi qua các ô kề cạnh.',
+      'Ván không thể hoà: lấp kín bàn thì chắc chắn đã có một bên nối xong.',
     ],
-    luuY: ['Đã lấp kín bàn thì **chắc chắn** một bên đã nối xong — hoà là điều bất khả về mặt toán học.'],
   },
 
   'co-dam': {
-    tomTat: 'Quân đi chéo, nhảy qua quân địch để ăn, và ăn được thì **bắt buộc phải ăn**.',
+    tomTat: 'Quân đi chéo, nhảy qua quân địch để ăn, và ăn được thì bắt buộc phải ăn.',
     ban: 'Bàn 8×8 nhưng chỉ dùng 32 ô sẫm. Mỗi bên 12 quân.',
     cachDi: [
-      'Quân thường đi chéo một ô về phía trước.',
-      'Nhảy qua một quân địch kề chéo xuống ô trống ngay sau nó thì ăn quân đó, và **ăn liên tiếp** nếu còn nhảy được.',
-      'Quân tới hàng cuối thành **Đam**: đi và ăn được xa tuỳ ý theo đường chéo.',
+      'Quân thường đi chéo một ô về phía trước, sang ô trống.',
+      'Ăn bằng cách nhảy qua một quân địch kề chéo xuống ô trống ngay sau nó. Quân thường **ăn được cả bốn hướng chéo, kể cả lùi**.',
+      'Nhảy xong mà còn nhảy tiếp được thì phải nhảy tiếp trong cùng một nước.',
+      'Có nước ăn thì **bắt buộc phải ăn**, và phải chọn chuỗi ăn được **nhiều quân nhất**.',
+      'Quân tới hàng cuối của đối phương thì thành **Đam**: đi và ăn xa tuỳ ý theo đường chéo.',
     ],
-    thang: ['Đối phương hết quân, hoặc hết nước đi hợp lệ.'],
-    luuY: ['Ăn là **bắt buộc**: có nước ăn thì không được đi nước khác.'],
+    thang: ['Đối phương hết quân, hoặc còn quân mà không còn nước đi hợp lệ nào.'],
   },
 
   'co-vua': {
     tomTat: 'Cờ vua quốc tế, luật FIDE.',
-    ban: 'Bàn 8×8, mỗi bên 16 quân.',
+    ban: 'Bàn 8×8, mỗi bên 16 quân. Bên trắng đi trước.',
     cachDi: [
-      'Mỗi quân một cách đi riêng: Vua một ô, Hậu mọi hướng, Xe thẳng, Tượng chéo, Mã hình chữ L, Tốt tiến thẳng và ăn chéo.',
+      'Vua đi một ô mọi hướng; Hậu đi xa mọi hướng; Xe đi thẳng; Tượng đi chéo; Mã đi hình chữ L và nhảy qua được quân khác; Tốt tiến thẳng một ô và ăn chéo.',
+      'Tốt ở vị trí xuất phát được tiến hai ô.',
       'Có nhập thành, bắt tốt qua đường, và phong cấp khi tốt tới hàng cuối.',
+      'Không được đi nước để Vua của mình bị chiếu.',
     ],
-    thang: ['Chiếu bí Vua đối phương.', 'Hoà khi hết nước đi mà không bị chiếu, lặp ba lần, hoặc năm mươi nước không ăn quân và không đẩy tốt.'],
+    thang: [
+      'Chiếu bí Vua đối phương.',
+      'Hoà khi hết nước đi hợp lệ mà Vua không bị chiếu, khi lặp thế cờ ba lần, khi năm mươi nước không ăn quân và không đẩy tốt, hoặc khi hai bên không còn đủ quân để chiếu bí.',
+    ],
   },
 
   'co-tuong': {
-    tomTat: 'Cờ tướng Trung Hoa: có sông, có cung, và hai Tướng không được nhìn thẳng nhau.',
-    ban: 'Bàn 9 cột 10 hàng, quân đặt trên giao điểm. Mỗi bên 16 quân.',
+    tomTat: 'Cờ tướng: bàn có sông và cung, quân đặt trên giao điểm.',
+    ban: 'Bàn 9 đường dọc và 10 đường ngang, quân đặt trên giao điểm. Mỗi bên 16 quân.',
     cachDi: [
-      'Tướng và Sĩ chỉ đi trong cung ba nhân ba; Tượng không qua sông.',
-      'Pháo đi như Xe nhưng ăn thì phải **nhảy qua đúng một quân** làm ngòi.',
-      'Tốt qua sông rồi mới đi ngang được.',
+      'Tướng đi một ô ngang dọc và **chỉ trong cung** ba nhân ba; Sĩ đi một ô chéo và cũng chỉ trong cung.',
+      'Tượng đi hai ô chéo, **không qua sông**, và bị chặn nếu ô giữa có quân.',
+      'Mã đi hình chữ L và bị chặn nếu ô kề theo hướng đi ngang hoặc dọc có quân.',
+      'Xe đi thẳng xa tuỳ ý. Pháo đi như Xe, nhưng **ăn thì phải nhảy qua đúng một quân** làm ngòi.',
+      'Tốt tiến một ô; qua sông rồi mới được đi ngang, và không bao giờ lùi.',
+      'Hai Tướng **không được đối mặt** trên cùng một đường dọc khi giữa chúng không còn quân nào.',
     ],
-    thang: ['Chiếu bí Tướng đối phương.'],
-    luuY: ['Hai Tướng **không được đối mặt** trên cùng một cột khi giữa chúng không còn quân nào.'],
+    thang: ['Chiếu bí Tướng đối phương, hoặc đối phương hết nước đi hợp lệ.'],
   },
 
   'co-up': {
-    tomTat: 'Cờ tướng nhưng quân úp sấp: chỉ biết quân gì khi nó đi nước đầu tiên.',
-    ban: 'Bàn cờ tướng, quân xếp úp trừ hai Tướng.',
+    tomTat: 'Cờ tướng với quân úp sấp: chỉ biết quân thật là gì sau khi nó đi nước đầu tiên.',
+    ban: 'Bàn cờ tướng. Hai Tướng để ngửa; mười bốn quân còn lại mỗi bên úp sấp, quân thật xếp ngẫu nhiên.',
     cachDi: [
-      'Quân úp đi theo **vị trí xếp ban đầu** của nó; đi xong thì lật lên, và từ đó đi theo đúng quân thật.',
+      'Quân còn úp đi theo **cách đi của quân xếp ban đầu ở ô đó**, không theo quân thật bên dưới.',
+      'Đi xong nước đầu tiên thì lật ngửa, và từ đó đi theo đúng quân thật.',
+      'Sĩ và Tượng sau khi lật **không còn bị cung và sông giới hạn**, đi tự do toàn bàn theo cách đi của mình.',
+      'Mọi luật còn lại theo cờ tướng.',
     ],
-    thang: ['Chiếu bí Tướng đối phương.'],
-    meo: ['Đây là bộ môn duy nhất trong bộ có **thông tin ẩn** — nhớ quân nào đã lật là một nửa thế cờ.'],
+    thang: ['Chiếu bí Tướng đối phương, hoặc đối phương hết nước đi hợp lệ.'],
   },
 
   'co-nhat': {
-    tomTat: 'Shogi: quân ăn được **đổi chủ** — bạn thả nó lại xuống bàn làm quân của mình.',
-    ban: 'Bàn 9×9, mỗi bên 20 quân.',
+    tomTat: 'Shogi: quân ăn được đổi chủ — bạn thả nó lại xuống bàn làm quân của mình.',
+    ban: 'Bàn 9×9, mỗi bên 20 quân. Quân hai bên cùng hình dạng, phân biệt bằng hướng quay.',
     cachDi: [
-      'Quân ăn vào tay, và một lượt sau **thả** xuống một ô trống làm quân của mình.',
-      'Quân vào ba hàng cuối của đối phương thì phong cấp, đi mạnh hơn hẳn.',
+      'Quân ăn được vào tay, và ở một lượt sau **thả** xuống một ô trống làm quân của mình.',
+      'Thả quân tính là cả một nước đi. Quân vừa thả chưa được phong cấp.',
+      'Quân đi vào, đi trong, hoặc đi ra khỏi **ba hàng cuối** của đối phương thì được phong cấp, đi mạnh hơn.',
+      'Không được thả Tốt vào cột đã có Tốt chưa phong của mình, và không được thả Tốt để chiếu bí ngay.',
     ],
     thang: ['Chiếu bí Vua đối phương.'],
-    luuY: ['Vì quân không bao giờ rời cuộc, **hoà gần như không tồn tại** — chỉ khoảng một tới hai phần trăm số ván.'],
   },
 
   'co-vay': {
-    tomTat: 'Vây đất: ai bao được nhiều điểm hơn thì thắng. Luật ít nhất, chiều sâu nhiều nhất.',
-    ban: 'Bàn 19×19 giao điểm (bản rút gọn 9×9 và 13×13 cho ván ngắn).',
+    tomTat: 'Vây đất: ai chiếm được nhiều điểm hơn thì thắng.',
+    ban: 'Bàn 19×19 giao điểm. Bản rút gọn 9×9 và 13×13 cho ván ngắn. Bên đen đi trước.',
     cachDi: [
-      'Mỗi lượt đặt một quân xuống giao điểm trống.',
-      'Nhóm quân nào không còn **khí** — không còn giao điểm trống kề — thì bị nhấc khỏi bàn.',
+      'Mỗi lượt đặt một quân xuống một giao điểm trống, hoặc bỏ lượt.',
+      'Một nhóm quân không còn **khí** — không còn giao điểm trống nào kề — thì bị nhấc khỏi bàn.',
+      'Không được đi nước tự làm nhóm của mình hết khí, trừ khi nước đó ăn quân đối phương.',
+      'Không được đánh nước làm thế cờ lặp lại đúng thế vừa xảy ra (luật **ko**).',
     ],
-    thang: ['Hai bên cùng bỏ lượt thì đếm đất cộng quân bắt được; ai nhiều hơn thắng.'],
-    luuY: ['Không được đánh lặp lại thế cờ vừa xảy ra (luật **ko**).'],
+    thang: ['Hai bên cùng bỏ lượt thì ván dừng và đếm điểm: mỗi bên tính số quân còn trên bàn cộng số điểm trống mình vây được. Ai nhiều hơn thắng.'],
   },
 };
 
