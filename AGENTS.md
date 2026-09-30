@@ -365,3 +365,24 @@ Không có nó thì khi danh sách bên dưới ngắn, hàng thẻ nở ra ăn 
 trống và bốn cái thẻ bị kéo cao gần nửa màn hình. Lỗi này nấp rất lâu vì
 bảng trong lúc kiểm luôn có nhiều hàng; nó chỉ lộ ra ở đúng cảnh một nền
 tảng mới có hai người — tức là cảnh thật.
+
+## 16. Bộ mặt app nằm ở hai tệp
+
+`src/ui/theme.ts` giữ bảng màu, khoảng cách, bo góc, bóng đổ và bộ chữ;
+`src/ui/surface.tsx` giữ cách vẽ mặt nền. Đổi hai tệp đó là đổi toàn app —
+không màn nào phải sửa. Đừng viết mã màu thẳng vào màn hình.
+
+Khi đổi giá trị của một khoá màu, **giữ nguyên tên khoá**. `gold` giờ là
+nghệ vàng phẳng chứ không còn là vàng lá, nhưng vai trò không đổi (màu của
+thứ quan trọng nhất trên màn) nên tám mươi chỗ gọi không phải động tới. Đổi
+tên khoá là một lần sửa bốn mươi tệp để đọc y hệt nhau.
+
+Mọi cặp chữ-trên-nền phải đo trước khi chốt, và đo trên **tấm sáng nhất**
+(`panelHi`), không trên nền sâu nhất: gần như chỗ nào cũng có một tấm ở
+dưới, nên đo trên nền tối nhất là tự cho mình điểm cao. Ngưỡng 4,5:1.
+
+Khung thì trung tính, **bàn cờ thì không**. Giấy kẻ ô của cờ caro, sân cờ
+gánh và nền đất ô ăn quan là nội dung và giữ nguyên màu thật của chúng —
+một khung tối trung tính chính là thứ làm chúng nổi lên. Mặt bàn kê bàn cờ
+thì ngược lại: một bản dùng chung (`TableBackdrop`), chỉ khác màu quầng.
+Ba mặt bàn riêng cho ba bộ môn là ba hoạ tiết tranh chỗ với chính bàn cờ.

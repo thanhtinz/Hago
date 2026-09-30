@@ -17,7 +17,7 @@ import { Icon, type IconName } from '../src/ui/Icon';
 import { Btn, SLOP, Txt, press } from '../src/ui/parts';
 import { Sheet } from '../src/ui/Sheet';
 import { Face } from '../src/ui/Crest';
-import { AppBackdrop, Panel, Rule, WoodFill } from '../src/ui/surface';
+import { AppBackdrop, Panel, Rule, SurfaceFill } from '../src/ui/surface';
 import { A, R, S, glow, lift } from '../src/ui/theme';
 
 /**
@@ -508,12 +508,16 @@ function agoVi(at: number): string {
 }
 
 /**
- * Thẻ bộ môn: một bức tranh lồng khung gỗ.
+ * Thẻ bộ môn: một bức tranh lồng khung.
  *
- * Nửa trên là chất liệu thật của game — mở cờ tướng ra thấy gỗ tre thì thẻ
- * cũng phải là gỗ tre — nhưng nó được **lồng khung**: bo góc, có viền chỉ
- * vàng mảnh, hở ra một vành gỗ quanh mép. Hình tràn sát mép thẻ thì trông
- * như ảnh dán; lồng khung thì trông như hiện vật bày trong tủ.
+ * Nửa trên là chất liệu thật của game, được **lồng khung**: bo góc, hở ra
+ * một vành quanh mép. Hình tràn sát mép thẻ thì trông như ảnh dán; lồng
+ * khung thì trông như hiện vật bày trong tủ.
+ *
+ * Viền của thẻ đã mở là viền trung tính, **không** phải màu nhấn. Ba thẻ
+ * viền nghệ vàng nằm cùng một màn với nút chính cũng nghệ vàng thì không
+ * còn cái nào là chính nữa. Đã mở hay chưa đọc ra từ chỗ khác: thẻ chưa mở
+ * mờ đi và mang nhãn "Sắp có".
  */
 function GameCard({
   face,
@@ -541,10 +545,10 @@ function GameCard({
         // chữ nhật vuông góc, và ở bốn góc nó thò ra ngoài thành một đường
         // viền vuông bao quanh cái thẻ bo tròn.
         { width: '47.5%', borderRadius: R.md, transform: [{ translateY: pressed ? 1 : 0 }] },
-        ready ? glow(0.22, 12) : lift(0.35, 10, 4),
+        lift(ready ? 0.4 : 0.28, 12, 5),
       ]}
     >
-      <Panel radius={R.md} tone={ready ? 2 : 1} seed={seed} hairline={false} style={{ borderWidth: 1.2, borderColor: ready ? A.goldDeep : A.lineSoft }}>
+      <Panel radius={R.md} tone={ready ? 2 : 1} seed={seed} hairline={false} style={{ borderWidth: 1, borderColor: ready ? A.line : A.lineSoft }}>
         <View style={{ padding: 6 }}>
           <View
             style={{
@@ -557,7 +561,7 @@ function GameCard({
               overflow: 'hidden',
               backgroundColor: face.surface,
               borderWidth: 1,
-              borderColor: ready ? A.goldDeep : '#00000055',
+              borderColor: '#00000055',
               opacity: ready ? 1 : 0.7,
             }}
           >
@@ -689,7 +693,7 @@ function BottomNav({
   ];
   return (
     <View style={{ height: h, flexDirection: 'row', overflow: 'hidden' }}>
-      <WoodFill width={width} height={h} tone={1} seed={77} bevel={false} />
+      <SurfaceFill width={width} height={h} tone={1} />
       <View style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 1.2, backgroundColor: A.goldDeep, opacity: 0.6 }} />
       {items.map((it) => (
         <Pressable

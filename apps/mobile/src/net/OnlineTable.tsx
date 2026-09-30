@@ -7,13 +7,11 @@ import type { CaroView } from '@co/game-co-caro';
 import { type GanhView } from '@co/game-co-ganh';
 import type { QuanView } from '@co/game-o-an-quan';
 import { CaroBoard } from '../games/co-caro/Board';
-import { DeskBackdrop, PaperStack } from '../games/co-caro/Desk';
+import { PaperStack } from '../games/co-caro/Desk';
 import { caroTheme as CT, inkFor } from '../games/co-caro/theme';
 import { GanhBoard, targetsOf } from '../games/co-ganh/Board';
-import { CourtBackdrop } from '../games/co-ganh/Court';
 import { ganhTheme as GT } from '../games/co-ganh/theme';
 import { QuanBoard } from '../games/o-an-quan/Board';
-import { GroundBackdrop } from '../games/o-an-quan/Ground';
 import { faceOf } from '../games/faces';
 import { CLOCKS, clockLabel } from '@co/protocol';
 import { Face } from '../ui/Crest';
@@ -29,6 +27,7 @@ import { api, type Friend } from './api';
 import { live, useIntentOnce, useLive, useMatch, useWatch, type Online } from './live';
 import { rememberRoom } from './store';
 import type { Intent } from './useOnline';
+import { TableBackdrop, tintOf } from '../ui/TableBackdrop';
 
 /**
  * Ván với người thật.
@@ -134,9 +133,9 @@ export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => 
 }
 
 export function surfaceFor(gameId: string) {
-  if (gameId === 'co-caro') return (w: number, h: number) => <DeskBackdrop width={w} height={h} />;
-  if (gameId === 'co-ganh') return (w: number, h: number) => <CourtBackdrop width={w} height={h} />;
-  return (w: number, h: number) => <GroundBackdrop width={w} height={h} />;
+  // Một mặt bàn duy nhất cho mọi bộ môn, chỉ khác màu quầng. Bản sắc của
+  // bộ môn nằm ở bàn cờ, không ở cái bàn kê nó.
+  return (w: number, h: number) => <TableBackdrop width={w} height={h} tint={tintOf(gameId)} />;
 }
 
 export function Board({ gameId, o, onAim }: { gameId: string; o: Online; onAim: (t: string | null) => void }) {

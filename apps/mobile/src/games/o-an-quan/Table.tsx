@@ -11,7 +11,7 @@ import { LEVEL_NAME, MatchShell } from '../../ui/MatchShell';
 import { S } from '../../ui/theme';
 import { BOT, ME, useFlagOnTimeout, useVsBot } from '../useVsBot';
 import { QuanBoard } from './Board';
-import { GroundBackdrop } from './Ground';
+import { TableBackdrop, tintOf } from '../../ui/TableBackdrop';
 import { quanTheme as T } from './theme';
 
 type S0 = MetaState<QuanState>;
@@ -93,7 +93,7 @@ export function QuanTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
       noteTone={m.hint ? 'gold' : 'soft'}
       ended={m.outcome}
       youWon={m.outcome?.winner === ME}
-      surface={(w, h) => <GroundBackdrop width={w} height={h} />}
+      surface={(w, h) => <TableBackdrop width={w} height={h} tint={tintOf('o-an-quan')} />}
       top={{
         name: 'Máy',
         sub: `Mức ${LEVEL_NAME[level]} · ${theirs} điểm`,

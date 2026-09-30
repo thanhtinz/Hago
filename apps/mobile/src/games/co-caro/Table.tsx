@@ -11,7 +11,8 @@ import { LEVEL_NAME, MatchShell } from '../../ui/MatchShell';
 import { S, lift } from '../../ui/theme';
 import { BOT, ME, useFlagOnTimeout, useVsBot } from '../useVsBot';
 import { CaroBoard } from './Board';
-import { DeskBackdrop, PaperStack } from './Desk';
+import { PaperStack } from './Desk';
+import { TableBackdrop, tintOf } from '../../ui/TableBackdrop';
 import { caroTheme as CT, inkFor } from './theme';
 
 type S0 = MetaState<CaroState>;
@@ -70,7 +71,7 @@ export function CaroTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
       note={m.hint ? 'Gợi ý: nước mà máy mức Khó sẽ chọn ở chỗ bạn' : null}
       ended={m.outcome}
       youWon={m.outcome?.winner === ME}
-      surface={(w, h) => <DeskBackdrop width={w} height={h} />}
+      surface={(w, h) => <TableBackdrop width={w} height={h} tint={tintOf('co-caro')} />}
       top={{ name: 'Máy', sub: `Mức ${LEVEL_NAME[level]}`, token: <Token seat={BOT} active={m.toMove === BOT} />, active: !m.outcome && m.toMove === BOT, thinking: m.thinking, ms: m.clock[BOT] }}
       bottom={{ name: meName(), sub: 'Đấu với máy', token: <Token seat={ME} active={m.toMove === ME} />, active: !m.outcome && m.toMove === ME, ms: m.clock[ME] }}
     >

@@ -12,17 +12,15 @@ import { api, type MatchDetail } from '../../src/net/api';
 import { faceOf } from '../../src/games/faces';
 import { CaroBoard } from '../../src/games/co-caro/Board';
 import { PaperStack } from '../../src/games/co-caro/Desk';
-import { DeskBackdrop } from '../../src/games/co-caro/Desk';
 import { GanhBoard } from '../../src/games/co-ganh/Board';
-import { CourtBackdrop } from '../../src/games/co-ganh/Court';
 import { QuanBoard } from '../../src/games/o-an-quan/Board';
-import { GroundBackdrop } from '../../src/games/o-an-quan/Ground';
 import { byTurn } from '../../src/games/notation';
 import { Icon } from '../../src/ui/Icon';
 import { MoveList } from '../../src/ui/MoveList';
 import { Btn, Panel, Txt, press } from '../../src/ui/parts';
 import { AppBackdrop } from '../../src/ui/surface';
 import { A, R, S, lift } from '../../src/ui/theme';
+import { TableBackdrop, tintOf } from '../../src/ui/TableBackdrop';
 
 /**
  * Xem lại một ván đã đánh.
@@ -191,7 +189,7 @@ function Board({
     return (
       <View style={{ alignItems: 'center' }}>
         <View style={{ width: size, height: size }}>
-          <DeskBackdrop width={width} height={size + S.lg} />
+          <TableBackdrop width={width} height={size + S.lg} tint={tintOf('co-caro')} />
           <PaperStack size={size} />
           <View style={[{ borderRadius: 4 }, lift(0.6, 26, 12)]}>
             <CaroBoard view={v as CaroView} size={size} mySeat={null} onPlay={() => undefined} disabled hint={null} />
@@ -203,7 +201,7 @@ function Board({
   if (gameId === 'co-ganh') {
     return (
       <View style={{ alignItems: 'center' }}>
-        <CourtBackdrop width={width} height={size + S.lg} />
+        <TableBackdrop width={width} height={size + S.lg} tint={tintOf('co-ganh')} />
         <GanhBoard
           view={v as GanhView}
           size={size}
@@ -219,7 +217,7 @@ function Board({
   }
   return (
     <View style={{ alignItems: 'center' }}>
-      <GroundBackdrop width={width} height={size} />
+      <TableBackdrop width={width} height={size} tint={tintOf('o-an-quan')} />
       <QuanBoard
         view={v as QuanView}
         width={Math.min(width - S.lg * 2, 440)}

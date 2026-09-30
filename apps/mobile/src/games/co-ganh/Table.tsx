@@ -11,7 +11,7 @@ import { LEVEL_NAME, MatchShell } from '../../ui/MatchShell';
 import { S } from '../../ui/theme';
 import { BOT, ME, useFlagOnTimeout, useVsBot } from '../useVsBot';
 import { GanhBoard, targetsOf } from './Board';
-import { CourtBackdrop } from './Court';
+import { TableBackdrop, tintOf } from '../../ui/TableBackdrop';
 import { ganhTheme as T } from './theme';
 
 type S0 = MetaState<GanhState>;
@@ -87,7 +87,7 @@ export function GanhTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
       tally={m.tally}
       ended={m.outcome}
       youWon={m.outcome?.winner === ME}
-      surface={(w, h) => <CourtBackdrop width={w} height={h} />}
+      surface={(w, h) => <TableBackdrop width={w} height={h} tint={tintOf('co-ganh')} />}
       // Luật mở ràng buộc đối thủ chỉ được đi vào mấy ô nhất định. Không nói
       // ra thì người chơi bấm mãi vào chỗ khác mà không hiểu vì sao bàn cờ
       // không nghe lời.
