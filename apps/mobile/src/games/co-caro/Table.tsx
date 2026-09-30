@@ -9,6 +9,8 @@ import { caroMeta } from '../../catalog';
 import { meName } from '../../net/api';
 import { LEVEL_NAME, MatchShell } from '../../ui/MatchShell';
 import { S, lift } from '../../ui/theme';
+import type { AiProp } from '../ai';
+import { useChamSao } from '../ai';
 import { BOT, ME, useFlagOnTimeout, useVsBot } from '../useVsBot';
 import { CaroBoard } from './Board';
 import { PaperStack } from './Desk';
@@ -24,7 +26,7 @@ const HINTS: Record<BotLevel, string> = {
   3: 'Nhìn trước vài nước, chơi ăn thua',
 };
 
-export function CaroTable({ level, onLevel, onHome }: { level: BotLevel; onLevel: (l: BotLevel) => void; onHome: () => void }) {
+export function CaroTable({ level, onLevel, onHome, ai }: { level: BotLevel; onLevel: (l: BotLevel) => void; onHome: () => void; ai?: AiProp }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -37,7 +39,15 @@ export function CaroTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
     [],
   );
 
-  const m = useVsBot<S0, A0>(caroMeta as never, pickBot, { config: { size: 15 }, startMs: 5 * 60 * 1000, level });
+  // Ải mang cấu hình luật riêng và một hạt giống ghim. Ván thường thì
+  // không, nên hai trường này chỉ có mặt khi đang trong ải.
+  const m = useVsBot<S0, A0>(caroMeta as never, pickBot, {
+    config: ai?.config ?? { size: 15 },
+    startMs: 5 * 60 * 1000,
+    level,
+    ...(ai ? { hatCoDinh: ai.hat } : {}),
+  });
+  useChamSao(ai, m);
   useFlagOnTimeout<A0>(m.clock, m.toMove, m.outcome, m.send, (seat) => ({ t: 'flag', seat }));
 
   const view = caroMeta.view(m.state, ME).v as CaroView;
@@ -48,9 +58,11 @@ export function CaroTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
   return (
     <MatchShell
       title="Cờ Caro"
-      level={level}
-      onLevel={onLevel}
-      levelHints={HINTS}
+      {...(ai
+        ? // Trong ải thì giấu hẳn nút đổi mức máy: mức là một phần luật
+          // của ải, đổi nó giữa chừng là bỏ luật ải.
+          {}
+        : { level, onLevel, levelHints: HINTS })}
       onHome={onHome}
       onRules={() => router.push('/luat/co-caro')}
       onReset={m.reset}

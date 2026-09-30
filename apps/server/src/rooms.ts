@@ -530,7 +530,7 @@ export class Rooms {
    * hạng thật, mà điểm thì phải có người chơi trước đã. Ghép theo thứ tự
    * trước, đo phân bố, rồi mới thêm điều kiện.
    */
-  quick(id: string, gameId: string, clockKey?: string): void {
+  quick(id: string, gameId: string, clockKey?: string, xepHang = true): void {
     const p = this.players.get(id);
     if (!p) return;
     // `registry.get` **ném** khi chưa đăng ký, không trả về undefined — nên
@@ -539,10 +539,15 @@ export class Rooms {
     if (!registry.has(gameId)) return p.send({ t: 'error', code: 'NO_GAME', msg: `Chưa có bộ môn ${gameId}` });
     const engine = registry.get(gameId);
     this.leave(id);
-    const clock = clockOf(engine, clockKey);
-    // Hàng chờ tách theo **bộ môn và mức thời gian**: người xếp hàng cờ
-    // chớp mà bị ghép vào ván hai mươi phút thì mức thời gian vô nghĩa.
-    const qKey = `${gameId}|${clock.key}`;
+    // Làn xếp hạng **bỏ qua hẳn `clockKey`** và dùng đồng hồ mặc định của
+    // bộ môn. Ba bộ môn nhân năm mức đã là mười lăm ô hàng chờ; thêm một
+    // làn nữa thành ba mươi, trên một sảnh có hai mươi người. Ghim một mức
+    // là cách rẻ nhất để có hai làn mà không chia đôi đám đông.
+    const clock = clockOf(engine, xepHang ? '' : clockKey);
+    // Khoá hàng chờ phải mang **cả làn**. Thiếu chiều này thì người bấm
+    // xếp hạng bị ghép với người bấm đánh thường, ván tính điểm cho một
+    // bên và không tính cho bên kia — và **không ai nhận được lỗi gì**.
+    const qKey = xepHang ? `${gameId}|xh` : `${gameId}|${clock.key}|thuong`;
     const q = this.queues.get(qKey) ?? [];
     const otherId = q.find((x) => x !== id && this.players.get(x)?.connected);
     if (otherId) {
@@ -566,7 +571,7 @@ export class Rooms {
         match: null,
         clocks: [clock.spec.initialMs, clock.spec.initialMs],
         turnSince: null,
-        rated: true,
+        rated: xepHang,
         seed: revealSeed(this.serverSeed, code, '1'),
         rematch: new Set(),
       fans: new Set(),

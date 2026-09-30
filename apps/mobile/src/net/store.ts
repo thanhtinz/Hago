@@ -71,3 +71,24 @@ export function rememberRoom(code: string, gameId: string, at: number): void {
   const rest = recentRooms().filter((r) => r.code !== code);
   save('recent-rooms', [{ code, gameId, at }, ...rest].slice(0, 5));
 }
+
+/**
+ * Sao đã đạt ở từng ải, giữ ngay trên máy.
+ *
+ * Máy là **nguồn chân lý** của tiến độ vượt ải, không phải máy chủ. Ván
+ * chạy hoàn toàn trên thiết bị và máy chủ không chứng minh được bên kia là
+ * máy, nên nó chỉ giữ một bản sao lưu. Nhờ thế người chưa đăng nhập vẫn
+ * chơi được và vẫn giữ được buổi tối đầu tiên của họ.
+ */
+export function saoVuotAi(): Record<string, number> {
+  return load<Record<string, number>>('vuot-ai', {});
+}
+
+/** Ghi sao của một ải. Chỉ ghi đè khi lần này **tốt hơn** lần trước. */
+export function ghiSao(aiId: string, sao: number): Record<string, number> {
+  const all = saoVuotAi();
+  if ((all[aiId] ?? 0) >= sao) return all;
+  const next = { ...all, [aiId]: sao };
+  save('vuot-ai', next);
+  return next;
+}

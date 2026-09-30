@@ -9,7 +9,7 @@
  * gian mã chỉ có 32 mũ 5 — đoán mò vài nghìn lần là chen được vào ván
  * riêng của hai người lạ.
  */
-import { errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
+import { ghepCap, taoPhong, errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
 
 const browser = await launch();
 const tag = String(Date.now()).slice(-5);
@@ -18,7 +18,7 @@ const B = await signUp(await openPage(browser, 'B'), `Bình ${tag}`, 'db');
 
 /** Rời bàn đang đánh: mũi tên quay lại, rồi xác nhận. */
 async function leaveMatch(page) {
-  await page.getByLabel('Về sảnh').first().click();
+  await page.getByLabel('Về sảnh').last().click();
   await page.waitForTimeout(600);
   const ok = page.getByText('Rời ván', { exact: true });
   if (await ok.count()) await ok.click();
@@ -27,8 +27,12 @@ async function leaveMatch(page) {
 
 // ---- chọn mức thời gian ------------------------------------------------
 
-console.log('Tấm chọn bộ môn phải có hàng mức thời gian');
-await A.getByLabel('Ghép cặp').click();
+console.log('Tấm chọn bộ môn của làn ĐÁNH THƯỜNG phải có hàng mức thời gian');
+// Chỉ làn đánh thường mới chọn được mức: làn xếp hạng ghim một mức duy
+// nhất để không chia đôi một đám đông vốn đã mỏng.
+await A.getByLabel('Vào chơi').click();
+await A.waitForTimeout(900);
+await A.getByLabel('Đánh thường').click();
 await A.waitForTimeout(800);
 await shot(A, '107-chon-muc-thoi-gian');
 const hasClocks =
@@ -43,12 +47,7 @@ await A.waitForTimeout(300);
 await A.getByLabel('Cờ Caro', { exact: true }).click();
 await A.waitForTimeout(1200);
 
-await B.getByLabel('Ghép cặp').click();
-await B.waitForTimeout(700);
-await B.getByLabel('Mức Cờ chớp').click();
-await B.waitForTimeout(300);
-await B.getByLabel('Cờ Caro', { exact: true }).click();
-await B.waitForTimeout(2200);
+await ghepCap(B, 'Cờ Caro', { lan: 'thuong', clock: 'Cờ chớp', wait: 2400 });
 await shot(A, '108-van-co-chop');
 
 const blitz = (await A.getByText('3:00').count()) > 0;
@@ -60,7 +59,9 @@ console.log(`  đồng hồ 3 phút: ${blitz} · có nhãn mức: ${labelled}`);
 await leaveMatch(A);
 await A.goto(`${BASE}/`, { waitUntil: 'networkidle' });
 await A.waitForTimeout(1600);
-await A.getByLabel('Ghép cặp').click();
+await A.getByLabel('Vào chơi').click();
+await A.waitForTimeout(900);
+await A.getByLabel('Đánh thường').click();
 await A.waitForTimeout(900);
 // Không chạm vào hàng mức: nếu nhớ được thì màn chờ phải nói "Cờ chớp".
 await A.getByLabel('Cờ Caro', { exact: true }).click();
@@ -76,11 +77,7 @@ await B.waitForTimeout(1400);
 // ---- phòng có mật khẩu -------------------------------------------------
 
 console.log('A mở phòng có mật khẩu');
-await A.getByLabel('Tạo phòng').click();
-await A.waitForTimeout(800);
-await A.getByLabel('Mật khẩu phòng (không bắt buộc)').fill('mo-cua');
-await A.getByLabel('Cờ Caro', { exact: true }).click();
-await A.waitForTimeout(2000);
+await taoPhong(A, 'Cờ Caro', { pass: 'mo-cua', wait: 2000 });
 await shot(A, '109-phong-co-khoa');
 const locked = (await A.getByText('phòng có khoá', { exact: false }).count()) > 0;
 const code = (await A.locator('text=/^[A-Z0-9]{5}$/').first().innerText()).trim();

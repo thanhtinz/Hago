@@ -12,7 +12,7 @@
 
 export type Intent =
   /** `clock` là khoá trong `CLOCKS`; bỏ trống là đồng hồ mặc định của bộ môn. */
-  | { kind: 'quick'; gameId: string; clock?: string }
+  | { kind: 'quick'; gameId: string; clock?: string; xepHang: boolean }
   | { kind: 'create'; gameId: string; clock?: string; pass?: string }
   | { kind: 'join'; code: string; pass?: string }
   /** Ván đã có sẵn trên dây nối (lời rủ vừa được nhận lời) — không gửi gì thêm. */

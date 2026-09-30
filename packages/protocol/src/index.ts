@@ -78,12 +78,22 @@ export type ClientMsg =
   | { t: 'create'; gameId: string; config?: unknown; clock?: string; pass?: string }
   | { t: 'join'; code: string; pass?: string }
   /**
-   * Vào hàng chờ ghép cặp của một bộ môn **ở một mức thời gian**.
+   * Vào hàng chờ ghép cặp của một bộ môn.
    *
-   * Hàng chờ tách theo mức: người xếp hàng cờ chớp mà bị ghép vào ván hai
-   * mươi phút thì mức thời gian chẳng còn nghĩa gì.
+   * `xepHang` chọn làn. **Thiếu trường này thì hiểu là xếp hạng**: đó là
+   * hành vi của mọi bản trước, và mặc định về đánh thường sẽ khiến một bản
+   * app cũ âm thầm ngừng tính điểm cho người dùng mà không nói gì.
+   *
+   * Làn **xếp hạng** bỏ qua `clock` và luôn dùng đồng hồ mặc định của bộ
+   * môn. Ghim một mức là cách rẻ nhất để có hai làn mà không chia đôi một
+   * đám đông vốn đã mỏng: ba bộ môn nhân năm mức là mười lăm ô hàng chờ,
+   * thêm một làn nữa thành ba mươi.
+   *
+   * Làn **đánh thường** giữ nguyên việc tách hàng chờ theo mức thời gian —
+   * người xếp hàng cờ chớp mà bị ghép vào ván hai mươi phút thì mức thời
+   * gian chẳng còn nghĩa gì.
    */
-  | { t: 'quick'; gameId: string; clock?: string }
+  | { t: 'quick'; gameId: string; clock?: string; xepHang?: boolean }
   | { t: 'leave' }
   /**
    * Xin đấu lại ván nữa với đúng người vừa đánh, trong đúng phòng đó.
@@ -288,3 +298,7 @@ export const PORT = Number(process.env.PORT ?? 8787);
 // hiển thị** chứ không phải hình dạng gói tin, nhưng re-export ở đây để
 // mọi nơi vẫn nhập từ một chỗ duy nhất.
 export * from './xephang.js';
+
+// Bảng ải của chế độ vượt ải. Cả app lẫn máy chủ cùng cần: máy chủ kiểm
+// `aiId` khi ghi tiến độ, app dựng ván từ `config` và `hat`.
+export * from './chien-dich.js';

@@ -10,7 +10,7 @@
  * Bài này đánh một ván thật, mở biên bản giữa ván, rồi vào lịch sử bấm vào
  * đúng ván đó và tua từ cuối về đầu.
  */
-import { errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
+import { ghepCap, errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
 
 const browser = await launch();
 const tag = String(Date.now()).slice(-5);
@@ -19,10 +19,7 @@ const B = await signUp(await openPage(browser, 'B'), `Bình ${tag}`, 'mb');
 
 console.log('Hai người vào một ván ghép cặp');
 for (const p of [A, B]) {
-  await p.getByLabel('Ghép cặp').click();
-  await p.waitForTimeout(400);
-  await p.getByLabel('Cờ Caro', { exact: true }).click();
-  await p.waitForTimeout(1200);
+  await ghepCap(p, 'Cờ Caro');
 }
 await A.waitForTimeout(1200);
 

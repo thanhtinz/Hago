@@ -75,7 +75,22 @@ export function useVsBot<S extends BaseState, A>(
   engine: Engine<S, A, unknown, unknown>,
   /** Chọn nước cho máy. Trả về hành động đã bọc, sẵn sàng đưa vào `reduce`. */
   pickBotMove: (s: S, seat: Seat, level: BotLevel, rng: Rng, budgetMs: number) => A,
-  o: { config?: unknown; startMs: number; level: BotLevel; thinkMs?: number; budgetMs?: number },
+  o: {
+    config?: unknown;
+    startMs: number;
+    level: BotLevel;
+    thinkMs?: number;
+    budgetMs?: number;
+    /**
+     * Ghim hạt giống của ván.
+     *
+     * Chỉ chế độ vượt ải dùng: một ải phải là **đúng một câu đố**, nên
+     * "chơi lại" phải dựng lại y hệt thế cờ cũ chứ không bốc một thế mới.
+     * Bỏ trống thì mỗi lần `reset()` sinh một hạt mới, đúng như ván
+     * thường vẫn làm.
+     */
+    hatCoDinh?: string;
+  },
 ): VsBot<S, A> {
   const startMs = o.startMs;
   const fresh = useCallback(
@@ -86,7 +101,7 @@ export function useVsBot<S extends BaseState, A>(
     [engine, JSON.stringify(o.config ?? {})],
   );
 
-  const [seed, setSeed] = useState('van-1');
+  const [seed, setSeed] = useState(o.hatCoDinh ?? 'van-1');
   /**
    * Giữ cả chồng thế cờ đã qua, không chỉ thế hiện tại.
    *
@@ -138,9 +153,12 @@ export function useVsBot<S extends BaseState, A>(
     [engine, seed],
   );
 
+  const hatCoDinh = o.hatCoDinh;
   const reset = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
-    const next = `van-${Date.now() % 100000}`;
+    // Ải giữ nguyên hạt: bấm chơi lại một ải mà ra một câu đố khác thì
+    // ba điều kiện sao của ải đó không còn nghĩa gì.
+    const next = hatCoDinh ?? `van-${Date.now() % 100000}`;
     setSeed(next);
     setThinking(false);
     setClock([startMs, startMs]);
@@ -148,7 +166,7 @@ export function useVsBot<S extends BaseState, A>(
     setUndosLeft(UNDOS_PER_MATCH);
     setHint(null);
     setFrames({ cur: fresh(next), past: [] });
-  }, [fresh, startMs]);
+  }, [fresh, startMs, hatCoDinh]);
 
   /**
    * Lùi về thế cờ ngay trước nước gần nhất của người chơi.

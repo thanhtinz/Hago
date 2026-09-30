@@ -10,7 +10,7 @@
  * sai: phòng khoá mật khẩu không được lên danh sách, và phòng đã đủ người
  * phải rời danh sách ngay.
  */
-import { errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
+import { taoPhong, errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
 
 const browser = await launch();
 const tag = String(Date.now()).slice(-5);
@@ -19,13 +19,7 @@ const A = await signUp(await openPage(browser, 'A'), NA, 'pa');
 const B = await signUp(await openPage(browser, 'B'), `Bình ${tag}`, 'pb');
 
 console.log('A mở một phòng thường, mức cờ chớp');
-await A.getByLabel('Tạo phòng').click();
-await A.waitForTimeout(800);
-// Chọn mức thời gian **trước**: chạm vào tên bộ môn là mở phòng luôn.
-await A.getByLabel('Mức Cờ chớp').click();
-await A.waitForTimeout(300);
-await A.getByLabel('Cờ Caro', { exact: true }).click();
-await A.waitForTimeout(2200);
+await taoPhong(A, 'Cờ Caro', { clock: 'Cờ chớp', wait: 2200 });
 
 console.log('B mở trang Ván đấu từ thanh dưới — thẻ "Đang chờ" mở sẵn');
 await B.goto(`${BASE}/`, { waitUntil: 'networkidle' });
@@ -56,15 +50,11 @@ const nowLive = (await C.getByLabel(`Xem ván ${NA} với Bình ${tag}`).count()
 console.log(`  rời thẻ đang chờ: ${gone} · sang thẻ đang đánh: ${nowLive}`);
 
 console.log('Phòng có mật khẩu không được lên sảnh');
-await A.getByLabel('Về sảnh').click();
+await A.getByLabel('Về sảnh').last().click();
 await A.waitForTimeout(600);
 await A.getByText('Rời ván', { exact: true }).click();
 await A.waitForTimeout(1800);
-await A.getByLabel('Tạo phòng').click();
-await A.waitForTimeout(800);
-await A.getByLabel('Mật khẩu phòng (không bắt buộc)').fill('bimat');
-await A.getByLabel('Cờ Caro', { exact: true }).click();
-await A.waitForTimeout(2200);
+await taoPhong(A, 'Cờ Caro', { pass: 'bimat', wait: 2200 });
 await C.getByLabel(/^Thẻ Đang chờ/).click();
 await C.waitForTimeout(1200);
 await shot(C, '121-phong-khoa-khong-len-danh-sach');

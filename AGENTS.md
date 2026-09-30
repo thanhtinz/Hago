@@ -386,3 +386,56 @@ gánh và nền đất ô ăn quan là nội dung và giữ nguyên màu thật 
 một khung tối trung tính chính là thứ làm chúng nổi lên. Mặt bàn kê bàn cờ
 thì ngược lại: một bản dùng chung (`TableBackdrop`), chỉ khác màu quầng.
 Ba mặt bàn riêng cho ba bộ môn là ba hoạ tiết tranh chỗ với chính bàn cờ.
+
+## 17. Sảnh không đổ hết mọi thứ ra ngoài
+
+Hai trục, **chế độ** và **bộ môn**, đi qua hai màn khác nhau:
+
+- `/choi` — chọn chế độ, chia ba nhóm theo **đấu với ai**: với người (xếp
+  hạng / đánh thường), một mình (đấu máy / vượt ải), với bạn.
+- `/bo-mon` — danh mục mười ba bộ môn chia bốn nhóm thể loại. Đây là danh
+  mục, **không phải** một bước của luồng vào trận; luồng vào trận đi qua
+  `PickGameSheet`. Một màn một việc.
+
+Sảnh giữ nút "Đánh lại" một chạm cho chế độ lần trước. Đó là thứ bù lại cú
+chạm mà `/choi` thêm vào, và nó chỉ bù được nếu nó nằm trong khung nhìn đầu
+tiên.
+
+**Hai làn ghép cặp.** Khoá hàng chờ phải mang cả làn (`|xh` hoặc
+`|<mức>|thuong`). Thiếu chiều đó thì người bấm xếp hạng bị ghép với người
+bấm đánh thường, ván tính điểm cho một bên và không cho bên kia, và **không
+ai nhận được lỗi gì**. Làn xếp hạng **ghim đồng hồ mặc định**: ba bộ môn
+nhân năm mức đã là mười lăm ô hàng chờ, thêm một làn nữa thành ba mươi trên
+một sảnh hai mươi người. Client cũ không gửi làn thì hiểu là **xếp hạng** —
+mặc định về đánh thường sẽ âm thầm ngừng tính điểm cho họ.
+
+## 18. Vượt ải: một ải là dữ liệu, không phải mã
+
+`CHIEN_DICH` ở `@co/protocol`. Một ải = `config` + mức máy + **hạt giống cố
+định**. Không engine mới, không thế cờ dựng sẵn, không nhánh riêng cho từng
+bộ môn, và bàn cờ dùng lại đúng ba `Table` của chế độ đấu máy.
+
+`hat` bắt buộc cố định: cờ gánh và ô ăn quan bốc người đi trước bằng `rng`,
+nên không ghim thì cùng một ải mỗi lần vào một khác. `chien-dich.test.ts` ở
+`apps/server` dựng thật từng ải và khẳng định câu "ai đi trước" trong `moTa`
+khớp hạt — bài đó đã bắt **bốn** mô tả nói sai ngay lần chạy đầu.
+
+Vượt ải **không nối vào gì cả**: không kinh nghiệm, không Elo, không thông
+thạo, không lịch sử, không bảng xếp hạng. Ván chạy trên máy người dùng và
+máy chủ không có dòng mã bot nào, nên nó không chứng minh được bên kia là
+máy. Sao là lời khai của client, và nó **được phép** là lời khai vì nó không
+mua được gì. Nối vượt ải vào kinh nghiệm là ngày cấp độ mất nghĩa.
+
+## 19. `backToLobby` phải `dismissAll`, không `back`
+
+Từ ngày có màn chọn chế độ, đường vào trận là sảnh → chọn chế độ → ván.
+`router.back()` chỉ lùi một bước nên nút "Về sảnh" dừng ở màn chọn chế độ
+và cái nhãn nói dối. `dismissAll()` trả về màn đầu ngăn xếp, đúng là sảnh,
+mà vẫn không dựng thêm một sảnh thứ hai như `replace('/')`.
+
+Cùng lý do, mọi bài kiểm bấm "Về sảnh" trong ván phải dùng `.last()`: màn
+dưới cũng có một nút cùng nhãn, và `.first()` chọn đúng cái đang bị che.
+
+Đường vào trận trong bài kiểm đi qua `ghepCap()` / `taoPhong()` ở
+`tools/lib.mjs`. Sáu bài từng chép lại cùng một chuỗi bốn cú bấm, và một
+lần đổi sảnh làm hỏng cả sáu cùng lúc.

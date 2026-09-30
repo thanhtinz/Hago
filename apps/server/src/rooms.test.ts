@@ -810,20 +810,22 @@ test('nhịp thở của sảnh đổi khi có người vào ra và khi phòng m
   assert.equal(a.last('lobby')!.online, 1);
 });
 
-test('mức thời gian: hàng chờ tách theo mức, và phòng dùng đúng đồng hồ', () => {
+test('mức thời gian: hàng chờ đánh thường tách theo mức, và phòng dùng đúng đồng hồ', () => {
   const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
   const a = client(rooms, 'a', 'An');
   const b = client(rooms, 'b', 'Bình');
   const c = client(rooms, 'c', 'Cường');
 
+  // Làn **đánh thường**: chỉ làn này còn tách theo mức. Làn xếp hạng ghim
+  // một mức duy nhất để không chia đôi một đám đông vốn đã mỏng.
   // a xếp hàng cờ chớp, b xếp hàng cờ dài: **không được** ghép với nhau.
-  rooms.quick(a.id, 'co-caro', 'chop');
-  rooms.quick(b.id, 'co-caro', 'dai');
+  rooms.quick(a.id, 'co-caro', 'chop', false);
+  rooms.quick(b.id, 'co-caro', 'dai', false);
   assert.equal(a.last('room'), undefined, 'hai mức khác nhau thì không ghép');
   assert.equal(rooms.stats().queued, 2);
 
   // c xếp hàng cờ chớp: ghép với a.
-  rooms.quick(c.id, 'co-caro', 'chop');
+  rooms.quick(c.id, 'co-caro', 'chop', false);
   const room = a.last('room')!;
   assert.ok(room, 'cùng mức thì ghép ngay');
   assert.equal(room.clock, 'chop');
@@ -1061,4 +1063,63 @@ test('chủ phòng rớt mạng thì phòng rời danh sách chờ', () => {
 
   rooms.disconnect(a.id);
   assert.equal(b.last('lobby')!.open.length, 0, 'không mời người ta ngồi đối diện một cái ghế trống');
+});
+
+// ---- hai làn: đánh thường và xếp hạng ------------------------------------
+
+test('hai làn không ghép chéo vào nhau', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+
+  rooms.quick(a.id, 'co-caro', undefined, true);
+  rooms.quick(b.id, 'co-caro', undefined, false);
+  // Đây là lỗi im lặng nguy hiểm nhất của cả tính năng: ghép chéo thì ván
+  // tính điểm cho một bên và không tính cho bên kia, mà không ai nhận
+  // được lỗi gì.
+  assert.equal(a.last('room'), undefined, 'người xếp hạng không được ghép với người đánh thường');
+  assert.equal(b.last('room'), undefined);
+  assert.equal(a.last('queued')!.waiting, 1);
+  assert.equal(b.last('queued')!.waiting, 1);
+});
+
+test('cùng làn xếp hạng thì ghép, dù hai người gửi hai mức giờ khác nhau', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+
+  rooms.quick(a.id, 'co-caro', 'chop', true);
+  rooms.quick(b.id, 'co-caro', 'dai', true);
+  const room = a.last('room')!;
+  assert.equal(room.started, true, 'xếp hạng ghim một mức giờ nên hai mức khác nhau vẫn gặp nhau');
+  assert.equal(room.clock, '', 'xếp hạng luôn dùng đồng hồ mặc định của bộ môn');
+  assert.equal(room.rated, true);
+});
+
+test('làn đánh thường vẫn tách theo mức giờ, và không tính điểm', () => {
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  const c = client(rooms, 'c', 'Cường');
+
+  rooms.quick(a.id, 'co-caro', 'chop', false);
+  rooms.quick(b.id, 'co-caro', 'dai', false);
+  assert.equal(a.last('room'), undefined, 'cờ chớp không được ghép vào ván hai mươi phút');
+
+  rooms.quick(c.id, 'co-caro', 'chop', false);
+  const room = a.last('room')!;
+  assert.equal(room.started, true);
+  assert.equal(room.clock, 'chop');
+  assert.equal(room.rated, false, 'đánh thường không lên bảng xếp hạng');
+});
+
+test('client cũ không gửi làn thì hiểu là xếp hạng', () => {
+  // Mặc định về đánh thường sẽ khiến một bản app cũ âm thầm ngừng tính
+  // điểm cho người dùng mà không nói gì.
+  const rooms = new Rooms({ serverSeed: 'test', random: fixedCodes() });
+  const a = client(rooms, 'a', 'An');
+  const b = client(rooms, 'b', 'Bình');
+  rooms.quick(a.id, 'co-caro');
+  rooms.quick(b.id, 'co-caro');
+  assert.equal(a.last('room')!.rated, true);
 });

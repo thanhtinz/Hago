@@ -11,6 +11,7 @@ import { chromium } from 'playwright';
 import { existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { ghepCap } from './lib.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'docs/screenshots');
@@ -111,10 +112,7 @@ await B.waitForTimeout(400);
 for (const p of [A, B]) {
   await p.goto(`${BASE}/`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(1600);
-  await p.getByLabel('Ghép cặp').click();
-  await p.waitForTimeout(500);
-  await p.getByLabel('Cờ Caro', { exact: true }).click();
-  await p.waitForTimeout(1200);
+  await ghepCap(p, 'Cờ Caro');
 }
 await B.waitForTimeout(1500);
 

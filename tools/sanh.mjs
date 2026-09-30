@@ -11,7 +11,7 @@
  * 3. Mở phòng xong chỉ còn cách đọc năm ký tự qua điện thoại: không sao
  *    chép được mã, không mời được bạn vào đúng phòng vừa mở.
  */
-import { errors, finish, launch, openPage, shot, signUp } from './lib.mjs';
+import { taoPhong, errors, finish, launch, openPage, shot, signUp } from './lib.mjs';
 
 const browser = await launch();
 // Tên phải **riêng cho mỗi lần chạy**: cơ sở dữ liệu sống qua nhiều lần
@@ -67,10 +67,7 @@ console.log(`  chưa đánh ván nào thì nói đúng thế: ${honest}`);
 // ---- mời bạn vào đúng phòng -------------------------------------------
 
 console.log('A mở phòng rồi mời thẳng B vào');
-await A.getByLabel('Tạo phòng').click();
-await A.waitForTimeout(600);
-await A.getByLabel('Cờ Caro', { exact: true }).click();
-await A.waitForTimeout(1800);
+await taoPhong(A, 'Cờ Caro');
 await shot(A, '75-phong-cho-moi-ban');
 
 const copyable = (await A.getByLabel('Sao chép mã phòng').count()) > 0;

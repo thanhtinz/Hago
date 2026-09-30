@@ -9,6 +9,8 @@ import { ganhMeta } from '../../catalog';
 import { meName } from '../../net/api';
 import { LEVEL_NAME, MatchShell } from '../../ui/MatchShell';
 import { S } from '../../ui/theme';
+import type { AiProp } from '../ai';
+import { useChamSao } from '../ai';
 import { BOT, ME, useFlagOnTimeout, useVsBot } from '../useVsBot';
 import { GanhBoard, targetsOf } from './Board';
 import { TableBackdrop, tintOf } from '../../ui/TableBackdrop';
@@ -23,7 +25,7 @@ const HINTS: Record<BotLevel, string> = {
   3: 'Nhìn trước bốn nước, biết dùng thế mở để ép',
 };
 
-export function GanhTable({ level, onLevel, onHome }: { level: BotLevel; onLevel: (l: BotLevel) => void; onHome: () => void }) {
+export function GanhTable({ level, onLevel, onHome, ai }: { level: BotLevel; onLevel: (l: BotLevel) => void; onHome: () => void; ai?: AiProp }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -40,11 +42,14 @@ export function GanhTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
   const m = useVsBot<S0, A0>(ganhMeta as never, pickBot, {
     startMs: 8 * 60 * 1000,
     level,
+    // Ải mang cấu hình luật riêng và một hạt giống ghim.
+    ...(ai ? { config: ai.config, hatCoDinh: ai.hat } : {}),
     // Bàn 25 điểm nên tìm kiếm sâu 4 vẫn kịp; cho máy nhiều ngân sách hơn
     // caro vì ở đây nhìn trước mới hiểu được cú thí quân.
     budgetMs: 300,
   });
   useFlagOnTimeout<A0>(m.clock, m.toMove, m.outcome, m.send, (seat) => ({ t: 'flag', seat }));
+  useChamSao(ai, m);
 
   const view = ganhMeta.view(m.state, ME).v as GanhView;
   const myTurn = m.toMove === ME && !m.outcome;
@@ -64,9 +69,11 @@ export function GanhTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
   return (
     <MatchShell
       title="Cờ Gánh"
-      level={level}
-      onLevel={onLevel}
-      levelHints={HINTS}
+      {...(ai
+        ? // Trong ải thì giấu hẳn nút đổi mức máy: mức là một phần luật
+          // của ải, đổi nó giữa chừng là bỏ luật ải.
+          {}
+        : { level, onLevel, levelHints: HINTS })}
       onHome={onHome}
       onRules={() => router.push('/luat/co-ganh')}
       onReset={() => {

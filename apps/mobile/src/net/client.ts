@@ -206,8 +206,8 @@ export class GameClient {
   join(code: string, pass?: string): void {
     this.raw({ t: 'join', code: code.trim().toUpperCase(), ...(pass ? { pass } : {}) });
   }
-  quick(gameId: string, clock?: string): void {
-    this.raw({ t: 'quick', gameId, ...(clock ? { clock } : {}) });
+  quick(gameId: string, clock?: string, xepHang = true): void {
+    this.raw({ t: 'quick', gameId, ...(clock ? { clock } : {}), xepHang });
   }
   leave(): void {
     this.raw({ t: 'leave' });

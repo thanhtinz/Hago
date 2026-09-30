@@ -16,7 +16,7 @@
  * Và chặn / báo cáo trước đây chỉ có trong danh sách bạn — mà kẻ quấy rối
  * thì hiếm khi là bạn bè.
  */
-import { errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
+import { ghepCap, errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
 
 const browser = await launch();
 const tag = String(Date.now()).slice(-5);
@@ -69,10 +69,7 @@ await B.waitForTimeout(1200);
 for (const p of [A, B]) {
   await p.goto(`${BASE}/`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(1200);
-  await p.getByLabel('Ghép cặp').click();
-  await p.waitForTimeout(400);
-  await p.getByLabel('Cờ Caro', { exact: true }).click();
-  await p.waitForTimeout(1200);
+  await ghepCap(p, 'Cờ Caro');
 }
 await A.waitForTimeout(1200);
 

@@ -53,7 +53,7 @@ export function OnlineTable({ intent, onHome }: { intent: Intent; onHome: () => 
     // Vứt thế cờ đang giữ trước khi xin một phòng mới: nếu không, một lần
     // vào mã bị từ chối sẽ vẫn vẽ ván cũ.
     if (intent.kind !== 'none') live.forget();
-    if (intent.kind === 'quick') live.quick(intent.gameId, intent.clock);
+    if (intent.kind === 'quick') live.quick(intent.gameId, intent.clock, intent.xepHang);
     else if (intent.kind === 'create') live.create(intent.gameId, { ...(intent.clock ? { clock: intent.clock } : {}), ...(intent.pass ? { pass: intent.pass } : {}) });
     else if (intent.kind === 'join') live.join(intent.code, intent.pass);
   });

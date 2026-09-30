@@ -14,7 +14,8 @@ import { FACES, faceOf, type GameFace } from '../src/games/faces';
 import { api, useAuth, type Profile } from '../src/net/api';
 import { live, useLive } from '../src/net/live';
 import { Icon, type IconName } from '../src/ui/Icon';
-import { Btn, SLOP, Txt, press } from '../src/ui/parts';
+import { Btn, Nhan, SLOP, Txt, press } from '../src/ui/parts';
+import { CodeSheet } from '../src/ui/PickSheets';
 import { Sheet } from '../src/ui/Sheet';
 import { Face } from '../src/ui/Crest';
 import { AppBackdrop, Panel, Rule, SurfaceFill } from '../src/ui/surface';
@@ -37,13 +38,18 @@ const READY = new Set(registry.catalog().map((s) => s.id));
 export default function Lobby() {
   const router = useRouter();
   /** Chế độ online đang chọn bộ môn, hoặc 'join' đang nhập mã. */
-  const [sheet, setSheet] = useState<'quick' | 'create' | 'join' | null>(null);
-  // `/?mo=phong` mở thẳng tấm tạo phòng. Trang "Ván đấu" lúc trống cần một
-  // nút dẫn tới đúng việc tiếp theo, chứ không phải thả người ta về sảnh
-  // rồi để họ tự tìm lại.
+  // Sảnh chỉ còn giữ đúng một tấm: nhập mã. Chọn bộ môn đã chuyển sang
+  // màn chọn chế độ cùng với hai chế độ ghép cặp.
+  const [sheet, setSheet] = useState<'join' | null>(null);
+  /** Chế độ chơi lần gần nhất, để dựng nút "Đánh lại". */
+  const lastMode = remembered<{ lan: 'xh' | 'thuong'; gameId: string; clock: string } | null>('che-do-gan-nhat', null);
+  // `/?mo=phong` đưa thẳng tới màn chọn chế độ. Trang "Ván đấu" lúc trống
+  // cần một nút dẫn tới đúng việc tiếp theo, chứ không phải thả người ta
+  // về sảnh rồi để họ tự tìm lại. Tấm tạo phòng đã chuyển sang `/choi`
+  // nên sảnh chỉ còn việc chuyển tiếp.
   const { mo } = useLocalSearchParams<{ mo?: string }>();
   useEffect(() => {
-    if (mo === 'phong') setSheet('create');
+    if (mo === 'phong') router.push('/choi');
   }, [mo]);
   const { me } = useAuth();
   const s = useLive();
@@ -156,60 +162,94 @@ export default function Lobby() {
             </Pressable>
           </Panel>
 
+          {/* Một chạm vào đúng chế độ lần trước. Đây là thứ bù lại cú
+              chạm mà màn chọn chế độ thêm vào, và nó chỉ bù được nếu nó
+              nằm ngay dưới tấm hồ sơ — phải cuộn mới thấy thì nó vô dụng. */}
+          {lastMode ? (
+            <Btn
+              size="lg"
+              icon={lastMode.lan === 'xh' ? 'crown' : 'bolt'}
+              label="Đánh lại"
+              sub={`${lastMode.lan === 'xh' ? 'Xếp hạng' : 'Đánh thường'} · ${faceOf(lastMode.gameId)?.nameVi ?? lastMode.gameId}`}
+              onPress={() =>
+                online(() => {
+                  const q = new URLSearchParams({ game: lastMode.gameId, lan: lastMode.lan });
+                  if (lastMode.lan === 'thuong' && lastMode.clock) q.set('clock', lastMode.clock);
+                  router.push(`/online/quick?${q.toString()}`);
+                })
+              }
+            />
+          ) : null}
+
           <Btn
-            size="lg"
-            icon="robot"
-            label="Đấu với máy"
-            sub={`Cờ caro · mức ${LEVEL_NAME[botLevel]}`}
-            onPress={() => router.push('/play/co-caro')}
+            size={lastMode ? 'md' : 'lg'}
+            icon="grid"
+            label="Vào chơi"
+            sub={lastMode ? 'Chọn chế độ khác' : 'Xếp hạng, đánh thường, vượt ải'}
+            onPress={() => router.push('/choi')}
           />
 
           <View style={{ flexDirection: 'row', gap: S.sm }}>
-            <Mode icon="bolt" label="Ghép cặp" onPress={() => online(() => setSheet('quick'))} />
-            <Mode icon="door" label="Tạo phòng" onPress={() => online(() => setSheet('create'))} />
             <Mode icon="key" label="Vào mã" onPress={() => online(() => setSheet('join'))} />
             <Mode icon="user" label="Bạn bè" badge={pending} onPress={() => online(() => router.push('/friends'))} />
+            <Mode icon="flag" label="Vượt ải" onPress={() => router.push('/vuot-ai')} />
           </View>
-
-          <Txt size={11} color={A.inkFaint} center style={{ paddingHorizontal: S.sm }}>
-            {me ? 'Ghép cặp tính xếp hạng. Phòng riêng mở bằng mã thì không.' : 'Ba chế độ trên cần đăng nhập. Đấu với máy thì không.'}
-          </Txt>
         </View>
 
-        <View
-          onLayout={(e) => {
-            gridY.current = e.nativeEvent.layout.y;
-          }}
-          style={{ alignItems: 'center', paddingTop: S.xxl, paddingBottom: S.md, gap: 2 }}
-        >
+        {/* Ba bộ môn đã mở, dải ngang. Mười ba thẻ đổ hết ra sảnh là thứ
+            đẩy mọi chế độ chơi xuống dưới màn hình thứ hai — nhưng cất hết
+            đi thì sảnh mất luôn mười ba bức hình, tài sản đẹp nhất của app.
+            Ba thẻ ở lại giữ mặt tiền; cả danh mục nằm ở `/bo-mon`. */}
+        <View style={{ alignItems: 'center', paddingTop: S.xxl, paddingBottom: S.md, gap: 2 }}>
           <Txt size={20} weight="display" color={A.ink}>
-            Cờ hai người
+            Đấu với máy
           </Txt>
           <Txt size={11.5} color={A.inkFaint}>
-            {READY.size} trên {FACES.length} đã mở
+            {READY.size} trên {FACES.length} bộ môn đã mở
           </Txt>
           <Rule width={w * 0.38} />
         </View>
 
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.md, paddingHorizontal: S.lg }}>
-          {FACES.map((f, i) => (
-            <GameCard
-              key={f.id}
-              face={f}
-              seed={i * 17 + 5}
-              ready={READY.has(f.id)}
-              onPress={() => router.push(READY.has(f.id) ? `/play/${f.id}` : `/luat/${f.id}`)}
-              onRules={() => router.push(`/luat/${f.id}`)}
-            />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ flexGrow: 0, flexShrink: 0 }}
+          contentContainerStyle={{ gap: S.md, paddingHorizontal: S.lg }}
+        >
+          {FACES.filter((f) => READY.has(f.id)).map((f, i) => (
+            <View key={f.id} style={{ width: 190 }}>
+              <GameCard
+                face={f}
+                seed={i * 17 + 5}
+                ready
+                onPress={() => router.push(`/play/${f.id}`)}
+                onRules={() => router.push(`/luat/${f.id}`)}
+              />
+            </View>
           ))}
-        </View>
+          <Pressable
+            onPress={() => router.push('/bo-mon')}
+            accessibilityRole="button"
+            accessibilityLabel="Xem cả 13 bộ môn"
+            style={({ pressed }) => [{ width: 130, borderRadius: R.md }, press({ pressed })]}
+          >
+            <Panel radius={R.md} tone={1} style={{ height: '100%' }}>
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: S.sm, padding: S.md }}>
+                <Icon name="grid" size={22} color={A.gold} />
+                <Txt size={13} weight="semi" center color={A.gold}>
+                  Cả 13 bộ môn
+                </Txt>
+              </View>
+            </Panel>
+          </Pressable>
+        </ScrollView>
       </ScrollView>
 
       <BottomNav
         width={w}
         insetBottom={insets.bottom}
         onHome={() => scroller.current?.scrollTo({ y: 0, animated: true })}
-        onGrid={() => scroller.current?.scrollTo({ y: gridY.current, animated: true })}
+        onGrid={() => router.push('/bo-mon')}
         onRooms={() => router.push('/van')}
         onBoard={() => router.push('/bxh')}
         onMe={() => router.push(me ? '/me' : '/auth')}
@@ -227,19 +267,6 @@ export default function Lobby() {
             const q = new URLSearchParams({ code });
             if (pass) q.set('pass', pass);
             router.push(`/online/join?${q.toString()}`);
-          }}
-        />
-      ) : sheet ? (
-        <PickGameSheet
-          mode={sheet}
-          onClose={() => setSheet(null)}
-          onPick={(id, o) => {
-            const m = sheet;
-            setSheet(null);
-            const q = new URLSearchParams({ game: id });
-            if (o.clock) q.set('clock', o.clock);
-            if (m === 'create' && o.pass.trim()) q.set('pass', o.pass.trim());
-            router.push(`/online/${m}?${q.toString()}`);
           }}
         />
       ) : null}
@@ -336,176 +363,8 @@ function Mode({ icon, label, onPress, badge = 0 }: { icon: IconName; label: stri
   );
 }
 
-/**
- * Chọn bộ môn để ghép cặp hoặc mở phòng.
- *
- * Chỉ liệt kê bộ môn **máy chủ có engine**. Cho chọn một bộ môn chưa cài rồi
- * để máy chủ trả `NO_GAME` là bắt người chơi đi một vòng mới biết mình không
- * chơi được.
- */
-function PickGameSheet({
-  mode,
-  onClose,
-  onPick,
-}: {
-  mode: 'quick' | 'create';
-  onClose: () => void;
-  onPick: (id: string, o: { clock: string; pass: string }) => void;
-}) {
-  const open = FACES.filter((f) => READY.has(f.id));
-  // Mức thời gian nhớ qua lần mở sau: người quen cờ chớp không phải chọn
-  // lại mỗi lần mở app.
-  const [clock, setClock] = useState<string>(() => remembered<string>('muc-thoi-gian', ''));
-  const [pass, setPass] = useState('');
-  const pick = (id: string) => {
-    save('muc-thoi-gian', clock);
-    onPick(id, { clock, pass });
-  };
-  return (
-    <Sheet
-      title={mode === 'quick' ? 'Ghép cặp bộ môn nào?' : 'Mở phòng bộ môn nào?'}
-      sub={
-        mode === 'quick'
-          ? 'Hàng chờ tách theo mức thời gian — chỉ ghép với người chọn cùng mức'
-          : 'Nhận một mã năm ký tự để mời bạn'
-      }
-      onClose={onClose}
-      maxHeight={430}
-    >
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingBottom: S.xs }}>
-        <ClockChip label="Theo bộ môn" a11y="Mức Theo bộ môn" on={clock === ''} onPress={() => setClock('')} />
-        {Object.entries(CLOCKS).map(([k, c]) => (
-          <ClockChip
-            key={k}
-            label={`${c.nameVi} ${Math.round(c.initialMs / 60_000)} phút`}
-            a11y={`Mức ${c.nameVi}`}
-            on={clock === k}
-            onPress={() => setClock(k)}
-          />
-        ))}
-      </View>
-      {mode === 'create' ? (
-        <View style={{ paddingBottom: S.xs }}>
-          <Field label="Mật khẩu phòng (không bắt buộc)" value={pass} onChange={setPass} placeholder="Bỏ trống thì ai có mã cũng vào được" />
-        </View>
-      ) : null}
-      {open.map((f) => (
-        <Pressable
-          key={f.id}
-          onPress={() => pick(f.id)}
-          accessibilityRole="button"
-          accessibilityLabel={f.nameVi}
-          style={({ pressed }) => [{ borderRadius: R.md }, press({ pressed })]}
-        >
-          <Panel radius={R.md} tone={1} seed={f.id.length * 11}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.md }}>
-              <View style={{ width: 54, height: 35, borderRadius: 6, overflow: 'hidden' }}>
-                <f.Motif />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Txt size={15} weight="display">
-                  {f.nameVi}
-                </Txt>
-                <Txt size={10.5} color={A.inkFaint}>
-                  {f.minutes}
-                </Txt>
-              </View>
-              <Icon name="chevron" size={16} color={A.inkFaint} />
-            </View>
-          </Panel>
-        </Pressable>
-      ))}
-    </Sheet>
-  );
-}
 
-/** Nhập mã phòng bạn đọc cho. */
-function CodeSheet({ onClose, onGo }: { onClose: () => void; onGo: (code: string, pass: string) => void }) {
-  const [code, setCode] = useState('');
-  const [pass, setPass] = useState('');
-  const ok = code.trim().length === 5;
-  // Đọc một lần lúc mở tấm: danh sách chỉ đổi khi vào một phòng mới, mà
-  // lúc đó tấm này đã đóng rồi.
-  const recent = useRef(recentRooms()).current;
-  return (
-    <Sheet title="Vào bằng mã" sub="Năm ký tự bạn của bạn đọc cho" onClose={onClose}>
-      <TextInput
-        value={code}
-        onChangeText={(t) => setCode(t.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5))}
-        autoCapitalize="characters"
-        autoCorrect={false}
-        placeholder="ABCDE"
-        placeholderTextColor={A.inkFaint}
-        accessibilityLabel="Mã phòng"
-        style={{
-          borderWidth: 1.4,
-          borderColor: A.goldDeep,
-          backgroundColor: A.panelLo,
-          borderRadius: R.md,
-          color: A.gold,
-          fontSize: 30,
-          letterSpacing: 10,
-          textAlign: 'center',
-          paddingVertical: S.md,
-        }}
-      />
-      {/* Ô mật khẩu để sẵn ở đây, không bắt người ta vào tới nơi rồi mới
-          bị hỏi. Phòng không khoá thì bỏ trống. */}
-      <Field label="Mật khẩu (nếu phòng có khoá)" value={pass} onChange={setPass} placeholder="Bỏ trống nếu phòng không khoá" />
-      <Btn label="Vào phòng" disabled={!ok} onPress={() => onGo(code.trim(), pass.trim())} />
 
-      {/* Mã vừa vào gần đây. Phòng bị xoá khi cả hai người rời, nên phần
-          lớn mã cũ sẽ báo "không có phòng nào mang mã này" — vì thế hàng
-          này kèm thời điểm và **không** trình bày như phòng đang còn sống. */}
-      {recent.length ? (
-        <>
-          <Txt size={11} color={A.inkFaint} style={{ paddingTop: S.xs }}>
-            Mã vừa vào gần đây — phòng có thể đã đóng
-          </Txt>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.sm }}>
-            {recent.map((r) => (
-              <Pressable
-                key={r.code}
-                accessibilityRole="button"
-                accessibilityLabel={`Vào lại mã ${r.code}`}
-                onPress={() => onGo(r.code, pass.trim())}
-                style={({ pressed }) => [
-                  {
-                    paddingHorizontal: S.md,
-                    paddingVertical: 10,
-                    borderRadius: R.md,
-                    borderWidth: 1.2,
-                    borderColor: A.line,
-                    backgroundColor: A.panel,
-                  },
-                  press({ pressed }),
-                ]}
-              >
-                <Txt size={14} weight="bold" color={A.gold} style={{ letterSpacing: 3 }}>
-                  {r.code}
-                </Txt>
-                <Txt size={11} color={A.inkFaint}>
-                  {faceOf(r.gameId)?.nameVi ?? r.gameId} · {agoVi(r.at)}
-                </Txt>
-              </Pressable>
-            ))}
-          </View>
-        </>
-      ) : null}
-    </Sheet>
-  );
-}
-
-/** "3 phút trước", "hôm qua". Đủ để biết mã còn mới hay đã cũ. */
-function agoVi(at: number): string {
-  const m = Math.round((Date.now() - at) / 60_000);
-  if (m < 1) return 'vừa xong';
-  if (m < 60) return `${m} phút trước`;
-  const h = Math.round(m / 60);
-  if (h < 24) return `${h} giờ trước`;
-  const d = Math.round(h / 24);
-  return d === 1 ? 'hôm qua' : `${d} ngày trước`;
-}
 
 /**
  * Thẻ bộ môn: một bức tranh lồng khung.
@@ -533,6 +392,9 @@ function GameCard({
   /** Mở trang luật. Thẻ chưa mở thì bấm vào đâu cũng ra đây. */
   onRules: () => void;
 }) {
+  // Bề ngang do **chỗ đặt** quyết định, không do thẻ tự khai. Thẻ từng
+  // chốt cứng 47,5% cho cái lưới hai cột; đặt nó vào một dải ngang thì
+  // 47,5% tính theo ô 190 điểm của dải, và cả tấm hình bị bóp còn một nửa.
   const Motif = face.Motif;
   return (
     <Pressable
@@ -544,7 +406,7 @@ function GameCard({
         // góc của chính phần tử mang nó: để trống thì bóng chạy theo hình
         // chữ nhật vuông góc, và ở bốn góc nó thò ra ngoài thành một đường
         // viền vuông bao quanh cái thẻ bo tròn.
-        { width: '47.5%', borderRadius: R.md, transform: [{ translateY: pressed ? 1 : 0 }] },
+        { borderRadius: R.md, transform: [{ translateY: pressed ? 1 : 0 }] },
         lift(ready ? 0.4 : 0.28, 12, 5),
       ]}
     >
@@ -574,7 +436,7 @@ function GameCard({
                 hàng cao thấp khác nhau. */}
             {ready ? null : (
               <View style={{ position: 'absolute', top: 6, right: 6 }}>
-                <Chip label="Sắp có" muted />
+                <Nhan label="Sắp có" muted />
               </View>
             )}
             {/* Nút luật nằm **trong khung hình**, góc dưới trái: ở đó nó
@@ -613,8 +475,8 @@ function GameCard({
               là nhãn thừa — thẻ sáng, có viền vàng, bấm được; tám thẻ kia mờ
               và ghi rõ "sắp có". Nhãn chỉ nên nói thứ nhìn vào chưa biết. */}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5 }}>
-            <Chip label={face.mode} />
-            <Chip label={face.minutes} />
+            <Nhan label={face.mode} />
+            <Nhan label={face.minutes} />
           </View>
         </View>
       </Panel>
@@ -622,28 +484,6 @@ function GameCard({
   );
 }
 
-/**
- * Nhãn nhỏ trên thẻ: khắc chìm vào mặt gỗ, không phải miếng dán nổi. Ba nhãn
- * cạnh nhau mà cái nào cũng có viền sáng thì chúng đánh nhau với tên game.
- */
-function Chip({ label, muted }: { label: string; muted?: boolean }) {
-  return (
-    <View
-      style={{
-        paddingHorizontal: 7,
-        paddingVertical: 2.5,
-        borderRadius: R.sm,
-        backgroundColor: muted ? '#40290FEE' : '#00000038',
-        borderWidth: muted ? 1 : 0,
-        borderColor: A.goldDeep,
-      }}
-    >
-      <Txt size={11} weight="semi" color={muted ? A.gold : A.inkFaint}>
-        {label}
-      </Txt>
-    </View>
-  );
-}
 
 /** Vệt tối hắt từ khung xuống mép trên của hình lồng khung. */
 function InsetShade() {

@@ -18,6 +18,13 @@ export function backToLobby(router: ReturnType<typeof useRouter>, params?: Recor
     if (router.canDismiss?.()) router.dismissAll();
     return router.replace(`/?${q}` as never);
   }
+  // `dismissAll()` đóng **mọi** màn đã chồng lên và trả về màn đầu ngăn
+  // xếp, tức là sảnh. `back()` chỉ lùi đúng một bước — từ ngày có màn
+  // chọn chế độ thì đường vào trận là sảnh → chọn chế độ → ván, nên
+  // "Về sảnh" bằng `back()` dừng lại ở màn chọn chế độ và cái nhãn nói
+  // dối. Vẫn không dùng `replace('/')` khi còn ngăn xếp: nó dựng thêm
+  // một sảnh thứ hai.
+  if (router.canDismiss?.()) return router.dismissAll();
   if (router.canGoBack()) router.back();
   else router.replace('/');
 }

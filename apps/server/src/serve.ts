@@ -238,7 +238,7 @@ export function buildServer(opts: ServeOptions = {}): Serving {
           case 'join':
             return rooms.join(id, msg.code, msg.pass);
           case 'quick':
-            return rooms.quick(id, msg.gameId, msg.clock);
+            return rooms.quick(id, msg.gameId, msg.clock, msg.xepHang ?? true);
           case 'leave':
             return rooms.leave(id);
           case 'rematch':

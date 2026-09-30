@@ -54,6 +54,13 @@ export interface GameFace {
   mode: string;
   /** Thời lượng một ván thường gặp, không phải kỷ lục. */
   minutes: string;
+  /**
+   * Thể loại, để danh mục chia nhóm.
+   *
+   * Bốn nhóm lệch cỡ nhau và đó là thật: nền tảng có nhiều cờ ăn quân hơn
+   * cờ nối hàng. Chia cho đều là chia sai.
+   */
+  group: 'dan-gian' | 'co-quan' | 'noi-hang' | 'chiem-o';
   ready: boolean;
   Motif: () => React.ReactElement;
 }
@@ -214,6 +221,7 @@ function Stone({ x, y, r, dark, idp }: { x: number; y: number; r: number; dark: 
 export const FACES: GameFace[] = [
   {
     id: 'co-caro',
+    group: 'noi-hang',
     nameVi: 'Cờ Caro',
     taglineVi: 'Năm quân liền nhau, chặn hai đầu không tính',
     accent: '#25428F',
@@ -262,6 +270,7 @@ export const FACES: GameFace[] = [
   },
   {
     id: 'co-ganh',
+    group: 'dan-gian',
     nameVi: 'Cờ Gánh',
     taglineVi: 'Cờ dân gian Quảng Nam — kẹp hai đầu là gánh được quân',
     accent: '#C06030',
@@ -363,6 +372,7 @@ export const FACES: GameFace[] = [
   },
   {
     id: 'o-an-quan',
+    group: 'dan-gian',
     nameVi: 'Ô Ăn Quan',
     taglineVi: 'Rải sỏi từng ô, ăn quan, hết quan thì tàn dân',
     accent: '#6E8F4A',
@@ -450,6 +460,7 @@ export const FACES: GameFace[] = [
   },
   {
     id: 'co-tuong',
+    group: 'co-quan',
     nameVi: 'Cờ Tướng',
     taglineVi: 'Pháo qua sông, tướng không bao giờ lộ mặt',
     accent: '#A33B2A',
@@ -503,6 +514,7 @@ export const FACES: GameFace[] = [
   },
   {
     id: 'co-vua',
+    group: 'co-quan',
     nameVi: 'Cờ Vua',
     taglineVi: 'Cờ quốc tế, quân đá cẩm thạch',
     accent: '#7C8AA0',
@@ -579,6 +591,7 @@ export const FACES: GameFace[] = [
   },
   {
     id: 'co-up',
+    group: 'co-quan',
     nameVi: 'Cờ Úp',
     taglineVi: 'Quân úp sấp, đi rồi lật lên mới biết là gì',
     accent: '#8A6A3B',
@@ -633,6 +646,7 @@ export const FACES: GameFace[] = [
   },
   {
     id: 'co-vay',
+    group: 'chiem-o',
     nameVi: 'Cờ Vây',
     taglineVi: 'Vây đất, bắt khí — ván cờ dài nhất trong chín bộ',
     accent: '#4C4740',
@@ -688,6 +702,7 @@ export const FACES: GameFace[] = [
   },
   {
     id: 'co-dam',
+    group: 'co-quan',
     nameVi: 'Cờ Đam',
     taglineVi: 'Ăn là bắt buộc, và phải ăn chuỗi dài nhất',
     accent: '#8C2F2F',
@@ -751,6 +766,7 @@ export const FACES: GameFace[] = [
   },
   {
     id: 'co-lat',
+    group: 'chiem-o',
     nameVi: 'Cờ Lật',
     taglineVi: 'Kẹp hai đầu là lật màu — đếm quân lúc hết bàn',
     accent: '#2E9E6B',
@@ -812,6 +828,7 @@ export const FACES: GameFace[] = [
   },
   {
     id: 'co-hum',
+    group: 'dan-gian',
     nameVi: 'Cờ Hùm',
     taglineVi: 'Hai hùm săn mười hai dê — hai bên hai luật khác nhau',
     accent: '#D08A2C',
@@ -885,6 +902,7 @@ export const FACES: GameFace[] = [
   },
   {
     id: 'co-ba-quan',
+    group: 'dan-gian',
     nameVi: 'Cờ Ba Quân',
     taglineVi: 'Ba quân thành hàng là thắng — một ván chưa tới một phút',
     accent: '#7FA3C8',
@@ -952,6 +970,7 @@ export const FACES: GameFace[] = [
   },
   {
     id: 'co-hex',
+    group: 'noi-hang',
     nameVi: 'Cờ Hex',
     taglineVi: 'Nối hai bờ của mình — không bao giờ có ván hoà',
     accent: '#C0392B',
@@ -1016,6 +1035,7 @@ export const FACES: GameFace[] = [
   },
   {
     id: 'co-nhat',
+    group: 'co-quan',
     nameVi: 'Cờ Nhật',
     taglineVi: 'Quân ăn được thả lại xuống bàn làm quân mình',
     accent: '#A8702A',
@@ -1074,3 +1094,11 @@ export const FACES: GameFace[] = [
 ];
 
 export const faceOf = (id: string): GameFace | undefined => FACES.find((f) => f.id === id);
+
+/** Tên từng nhóm thể loại, theo thứ tự hiện trong danh mục. */
+export const GROUPS: { id: GameFace['group']; ten: string }[] = [
+  { id: 'dan-gian', ten: 'Cờ dân gian Việt' },
+  { id: 'co-quan', ten: 'Cờ quân' },
+  { id: 'noi-hang', ten: 'Cờ nối hàng' },
+  { id: 'chiem-o', ten: 'Cờ chiếm ô' },
+];

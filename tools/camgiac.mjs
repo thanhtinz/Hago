@@ -84,12 +84,13 @@ await P.waitForTimeout(1600);
 const keptLevel = (await P.getByLabel('Đổi mức máy').innerText()).includes('Khó');
 console.log(`  mở lại vẫn là mức Khó: ${keptLevel}`);
 
-// Và sảnh phải nói đúng mức đang nhớ, không phải câu chung "ba mức khó".
-await P.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+// Và màn chọn chế độ phải nói đúng mức đang nhớ, không phải câu chung
+// "ba mức". Dòng này rời sảnh cùng lúc với nút "Đấu với máy".
+await P.goto(`${BASE}/choi`, { waitUntil: 'networkidle' });
 await P.waitForTimeout(1500);
 await shot(P, '99-sanh-noi-dung-muc');
-const lobbySays = (await P.getByText('Cờ caro · mức Khó').count()) > 0;
-console.log(`  sảnh nói đúng mức: ${lobbySays}`);
+const lobbySays = (await P.getByText('Mức Khó').count()) > 0;
+console.log(`  màn chọn chế độ nói đúng mức: ${lobbySays}`);
 
 // ---- ô ăn quan: dấu ô vừa bốc ------------------------------------------
 
@@ -125,7 +126,7 @@ finish([
   [trail !== null && trail !== trailBefore, 'Bàn cờ gánh không vẽ vệt nước vừa đi, hoặc vệt không đổi sau nước đi.'],
   [osc > 0, 'Đi một nước mà không phát tiếng nào.'],
   [keptLevel, 'Mức máy không nhớ qua lần mở màn sau.'],
-  [lobbySays, 'Sảnh không nói đúng mức máy đang nhớ.'],
+  [lobbySays, 'Màn chọn chế độ không nói đúng mức máy đang nhớ.'],
   [dashedAfter > dashedBefore, 'Ô ăn quan không khoanh ô vừa bốc.'],
   [hasToggle, 'Không có công tắc tắt âm thanh và rung.'],
   [errors.length === 0, 'Có lỗi trên trang.'],

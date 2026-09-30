@@ -87,3 +87,43 @@ export function finish(checks, ignore = () => false) {
   }
   if (bad) process.exit(1);
 }
+
+/**
+ * Vào hàng chờ ghép cặp, đi đúng đường người dùng đi.
+ *
+ * Sảnh không còn ô "Ghép cặp": đường vào trận giờ là Vào chơi → chọn chế
+ * độ → chọn bộ môn. Gom vào đây để sáu bài kiểm không phải chép lại cùng
+ * một chuỗi bốn cú bấm — đã có lần đổi sảnh làm hỏng cả sáu cùng lúc.
+ */
+export async function ghepCap(page, boMon, o = {}) {
+  const lan = o.lan ?? 'xh';
+  await page.getByLabel('Vào chơi').click();
+  await page.waitForTimeout(900);
+  await page.getByLabel(lan === 'xh' ? 'Đấu xếp hạng' : 'Đánh thường').click();
+  await page.waitForTimeout(700);
+  // Làn xếp hạng ghim một mức giờ nên không có hàng chip nào để bấm.
+  if (o.clock && lan !== 'xh') {
+    await page.getByLabel(`Mức ${o.clock}`).click();
+    await page.waitForTimeout(250);
+  }
+  await page.getByLabel(boMon, { exact: true }).click();
+  await page.waitForTimeout(o.wait ?? 1400);
+}
+
+/** Mở một phòng riêng, cũng đi qua màn chọn chế độ. */
+export async function taoPhong(page, boMon, o = {}) {
+  await page.getByLabel('Vào chơi').click();
+  await page.waitForTimeout(900);
+  await page.getByLabel('Tạo phòng').click();
+  await page.waitForTimeout(700);
+  if (o.clock) {
+    await page.getByLabel(`Mức ${o.clock}`).click();
+    await page.waitForTimeout(250);
+  }
+  if (o.pass) {
+    await page.getByLabel('Mật khẩu phòng (không bắt buộc)').fill(o.pass);
+    await page.waitForTimeout(200);
+  }
+  await page.getByLabel(boMon, { exact: true }).click();
+  await page.waitForTimeout(o.wait ?? 1800);
+}

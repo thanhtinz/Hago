@@ -56,18 +56,29 @@ await page.goto(`${URL_BASE}/`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(2000);
 await shot('01-sanh');
 
-console.log('Sảnh: cuộn xuống lưới bộ môn');
-await page.getByLabel('Bộ môn').click();
-await page.waitForTimeout(900);
+// Lưới 13 bộ môn đã rời sảnh sang danh mục riêng, nên đây là một màn
+// khác chứ không còn là một lần cuộn.
+console.log('Danh mục bộ môn');
+await page.getByLabel('Bộ môn', { exact: true }).click();
+await page.waitForTimeout(1200);
 await shot('02-sanh-bo-mon');
 
-// Lưới 13 bộ môn dài hơn một màn hình, nên phải chụp cả nửa dưới — nếu không
-// thì sáu game thêm sau cùng không bao giờ được nhìn tận mắt.
-console.log('Sảnh: nửa dưới lưới bộ môn');
+// Danh mục dài hơn một màn hình, nên phải chụp cả nửa dưới — nếu không
+// thì sáu bộ môn cuối không bao giờ được nhìn tận mắt.
+console.log('Danh mục: nửa dưới');
 await page.mouse.move(215, 600);
 await page.mouse.wheel(0, 1700);
 await page.waitForTimeout(900);
 await shot('02b-sanh-bo-mon-duoi');
+
+console.log('Về sảnh rồi mở màn chọn chế độ');
+await page.goBack();
+await page.waitForTimeout(1200);
+await page.getByLabel('Vào chơi').click();
+await page.waitForTimeout(1200);
+await shot('02c-chon-che-do');
+await page.goBack();
+await page.waitForTimeout(1200);
 
 console.log('Đăng nhập và trang cá nhân');
 await page.getByLabel('Đăng nhập').first().click();
@@ -88,8 +99,10 @@ await page.goto(`${URL_BASE}/`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
 
 console.log('Bàn cờ caro');
-await tap('Đấu với máy', { exact: false });
-await page.waitForTimeout(1200);
+// Sảnh không còn nút "Đấu với máy" cứng vào cờ caro; giờ vào bằng chính
+// thẻ bộ môn ở dải ngang.
+await page.getByLabel('Chơi Cờ Caro').click();
+await page.waitForTimeout(1400);
 await shot('03-caro-ban-trong');
 
 /** Bấm vào một ô của bàn cờ theo toạ độ (hàng, cột), 0-indexed. */

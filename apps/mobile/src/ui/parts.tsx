@@ -123,6 +123,10 @@ export function Btn({
   return (
     <Pressable
       accessibilityRole="button"
+      // Nhãn là **nhãn chính**, không gộp cả dòng phụ. Không khai thì
+      // trình đọc màn hình đọc liền cả hai thành một câu dài, và mọi bài
+      // kiểm tìm nút theo tên đều trượt.
+      accessibilityLabel={label}
       disabled={disabled}
       onPress={onPress}
       onLayout={onLayout}
@@ -312,6 +316,29 @@ export function Clock({ ms, running, low = 20000 }: { ms: number; running?: bool
       >
         {mm}:{String(ss).padStart(2, '0')}
       </Text>
+    </View>
+  );
+}
+
+/**
+ * Nhãn nhỏ trên thẻ: khắc chìm vào mặt gỗ, không phải miếng dán nổi. Ba nhãn
+ * cạnh nhau mà cái nào cũng có viền sáng thì chúng đánh nhau với tên game.
+ */
+export function Nhan({ label, muted }: { label: string; muted?: boolean }) {
+  return (
+    <View
+      style={{
+        paddingHorizontal: 7,
+        paddingVertical: 2.5,
+        borderRadius: R.sm,
+        backgroundColor: muted ? '#40290FEE' : '#00000038',
+        borderWidth: muted ? 1 : 0,
+        borderColor: A.goldDeep,
+      }}
+    >
+      <Txt size={11} weight="semi" color={muted ? A.gold : A.inkFaint}>
+        {label}
+      </Txt>
     </View>
   );
 }

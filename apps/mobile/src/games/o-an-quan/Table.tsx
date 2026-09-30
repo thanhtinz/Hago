@@ -9,6 +9,8 @@ import { quanMeta } from '../../catalog';
 import { meName } from '../../net/api';
 import { LEVEL_NAME, MatchShell } from '../../ui/MatchShell';
 import { S } from '../../ui/theme';
+import type { AiProp } from '../ai';
+import { useChamSao } from '../ai';
 import { BOT, ME, useFlagOnTimeout, useVsBot } from '../useVsBot';
 import { QuanBoard } from './Board';
 import { TableBackdrop, tintOf } from '../../ui/TableBackdrop';
@@ -23,7 +25,7 @@ const HINTS: Record<BotLevel, string> = {
   3: 'Nhìn trước sáu nửa nước, biết nuôi quan và tránh bẫy thu quân',
 };
 
-export function QuanTable({ level, onLevel, onHome }: { level: BotLevel; onLevel: (l: BotLevel) => void; onHome: () => void }) {
+export function QuanTable({ level, onLevel, onHome, ai }: { level: BotLevel; onLevel: (l: BotLevel) => void; onHome: () => void; ai?: AiProp }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
@@ -40,6 +42,8 @@ export function QuanTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
   const m = useVsBot<S0, A0>(quanMeta as never, pickBot, {
     startMs: 10 * 60 * 1000,
     level,
+    // Ải mang cấu hình luật riêng và một hạt giống ghim.
+    ...(ai ? { config: ai.config, hatCoDinh: ai.hat } : {}),
     // Chỉ 10 nước mỗi lượt nên tìm sâu 6 nửa nước là nhẹ; cho thêm ngân
     // sách vì đây là game mà nhìn xa ăn thua rõ rệt nhất.
     budgetMs: 400,
@@ -48,6 +52,7 @@ export function QuanTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
     thinkMs: 700,
   });
   useFlagOnTimeout<A0>(m.clock, m.toMove, m.outcome, m.send, (seat) => ({ t: 'flag', seat }));
+  useChamSao(ai, m);
 
   const view = quanMeta.view(m.state, ME).v as QuanView;
   const myTurn = m.toMove === ME && !m.outcome;
@@ -65,9 +70,11 @@ export function QuanTable({ level, onLevel, onHome }: { level: BotLevel; onLevel
   return (
     <MatchShell
       title="Ô Ăn Quan"
-      level={level}
-      onLevel={onLevel}
-      levelHints={HINTS}
+      {...(ai
+        ? // Trong ải thì giấu hẳn nút đổi mức máy: mức là một phần luật
+          // của ải, đổi nó giữa chừng là bỏ luật ải.
+          {}
+        : { level, onLevel, levelHints: HINTS })}
       onHome={onHome}
       onRules={() => router.push('/luat/o-an-quan')}
       onReset={() => {

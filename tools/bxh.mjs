@@ -9,7 +9,7 @@
  * hiện ở đáy màn kể cả khi nằm ngoài danh sách, và bảng của bộ môn chưa ai
  * đánh thì nói rõ vì sao trống.
  */
-import { errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
+import { ghepCap, errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
 
 const browser = await launch();
 const tag = String(Date.now()).slice(-5);
@@ -23,10 +23,7 @@ async function pair() {
   for (const p of [A, B]) {
     await p.goto(`${BASE}/`, { waitUntil: 'networkidle' });
     await p.waitForTimeout(1200);
-    await p.getByLabel('Ghép cặp').click();
-    await p.waitForTimeout(400);
-    await p.getByLabel('Cờ Caro', { exact: true }).click();
-    await p.waitForTimeout(1200);
+    await ghepCap(p, 'Cờ Caro');
   }
   await A.waitForTimeout(1200);
 }

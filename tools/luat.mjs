@@ -54,7 +54,8 @@ const fromMatch = (await page.getByText(/quân bị ăn chỉ/).count()) > 0;
 console.log(`  mở được từ trong ván: ${fromMatch}`);
 
 console.log('Thẻ bộ môn chưa mở cũng phải trả lời được "đang chờ cái gì"');
-await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+// Bộ môn chưa mở đã rời sảnh sang danh mục cùng với cả lưới mười ba thẻ.
+await page.goto(`${BASE}/bo-mon`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1600);
 await page.getByLabel('Xem luật Cờ Vây, chưa mở').click();
 await page.waitForTimeout(1600);

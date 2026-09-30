@@ -44,7 +44,7 @@ console.log(`  đổi mật khẩu: ${hasPw} · thiết bị: ${hasDevices} · t
 // ---- giới thiệu --------------------------------------------------------
 
 console.log('Lưu một dòng giới thiệu và xem nó hiện trên hồ sơ');
-await A.getByLabel('Giới thiệu').fill('Thích cờ gánh và cà phê đá');
+await A.getByLabel('Giới thiệu', { exact: true }).fill('Thích cờ gánh và cà phê đá');
 await A.waitForTimeout(300);
 await A.getByText('Lưu giới thiệu').click();
 await A.waitForTimeout(1400);

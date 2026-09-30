@@ -12,6 +12,7 @@ import { chromium } from 'playwright';
 import { existsSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { ghepCap, taoPhong } from './lib.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'docs/screenshots');
@@ -56,10 +57,7 @@ const A = await open('A');
 const B = await open('B');
 
 console.log('A mở phòng cờ caro');
-await A.getByLabel('Tạo phòng').click();
-await A.waitForTimeout(500);
-await A.getByLabel('Cờ Caro', { exact: true }).click();
-await A.waitForTimeout(1500);
+await taoPhong(A, 'Cờ Caro', { wait: 1500 });
 await shot(A, '20-online-cho-ma');
 
 const code = (await A.locator('text=/^[A-Z0-9]{5}$/').first().innerText()).trim();
@@ -107,10 +105,7 @@ console.log('Ghép cặp cờ gánh');
 for (const p of [A, B]) {
   await p.goto(`${BASE}/`, { waitUntil: 'networkidle' });
   await p.waitForTimeout(1500);
-  await p.getByLabel('Ghép cặp').click();
-  await p.waitForTimeout(400);
-  await p.getByLabel('Cờ Gánh', { exact: true }).click();
-  await p.waitForTimeout(1200);
+  await ghepCap(p, 'Cờ Gánh');
 }
 await B.waitForTimeout(1500);
 await shot(A, '25-online-ganh-ghep-cap');

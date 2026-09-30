@@ -210,7 +210,7 @@ export function useWatch(ids: string[]): void {
 }
 
 export const live = {
-  quick: (gameId: string, clock?: string) => client?.quick(gameId, clock),
+  quick: (gameId: string, clock?: string, xepHang = true) => client?.quick(gameId, clock, xepHang),
   create: (gameId: string, o: { clock?: string; pass?: string } = {}) => client?.create(gameId, o),
   join: (code: string, pass?: string) => client?.join(code, pass),
   leave: () => client?.leave(),

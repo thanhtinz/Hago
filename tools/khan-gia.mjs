@@ -13,7 +13,7 @@
  * Kèm hai điều dễ làm sai: khán giả bấm vào bàn cờ thì **không được** đi
  * nước nào, và hai người đang đánh phải biết có người đang xem.
  */
-import { errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
+import { ghepCap, errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
 
 const browser = await launch();
 const tag = String(Date.now()).slice(-5);
@@ -33,10 +33,7 @@ const play = async (page, r, c) => {
 
 console.log('Hai người vào một ván ghép cặp');
 for (const p of [A, B]) {
-  await p.getByLabel('Ghép cặp').click();
-  await p.waitForTimeout(400);
-  await p.getByLabel('Cờ Caro', { exact: true }).click();
-  await p.waitForTimeout(1200);
+  await ghepCap(p, 'Cờ Caro');
 }
 await A.waitForTimeout(1200);
 await play(A, 7, 7);

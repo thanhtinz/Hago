@@ -10,7 +10,7 @@
  * 2. Hết ván online thì chỉ còn nút về sảnh. Muốn đánh ván nữa với đúng người
  *    đó thì phải ra sảnh, mở phòng lại, đọc mã lại.
  */
-import { errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
+import { taoPhong, errors, finish, launch, openPage, shot, signUp, BASE } from './lib.mjs';
 
 const browser = await launch();
 const A = await signUp(await openPage(browser, 'A'), 'An Nguyễn', 'ra');
@@ -18,10 +18,7 @@ const B = await signUp(await openPage(browser, 'B'), 'Bình Trần', 'rb');
 
 /** Hai người vào chung một phòng cờ caro bằng mã. */
 async function pair() {
-  await A.getByLabel('Tạo phòng').click();
-  await A.waitForTimeout(500);
-  await A.getByLabel('Cờ Caro', { exact: true }).click();
-  await A.waitForTimeout(1500);
+  await taoPhong(A, 'Cờ Caro', { wait: 1500 });
   const code = (await A.locator('text=/^[A-Z0-9]{5}$/').first().innerText()).trim();
   await B.getByLabel('Vào mã').click();
   await B.waitForTimeout(400);
