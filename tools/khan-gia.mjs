@@ -41,13 +41,16 @@ for (const p of [A, B]) {
 await A.waitForTimeout(1200);
 await play(A, 7, 7);
 
-console.log('Người thứ ba mở sảnh — ván đang chạy phải hiện ra ở đó');
+console.log('Người thứ ba mở trang Ván đấu từ thanh dưới, thẻ "Đang đánh"');
 await C.goto(`${BASE}/`, { waitUntil: 'networkidle' });
 await C.waitForTimeout(1800);
-await C.getByText('Đang đánh', { exact: true }).scrollIntoViewIfNeeded();
-await shot(C, '115-sanh-co-van-dang-danh');
+await C.getByLabel('Ván đấu').click();
+await C.waitForTimeout(1200);
+await C.getByLabel(/^Thẻ Đang đánh/).click();
+await C.waitForTimeout(900);
+await shot(C, '115-van-dau-dang-danh');
 const listed = (await C.getByText(`${NA} — ${NB}`).count()) > 0;
-console.log(`  sảnh liệt kê ván của hai người kia: ${listed}`);
+console.log(`  thẻ liệt kê ván của hai người kia: ${listed}`);
 
 console.log('Bấm vào để xem');
 await C.getByLabel(`Xem ván ${NA} với ${NB}`).click();
@@ -82,7 +85,7 @@ const boardClean = (await A.getByLabel('Ô hàng 5 cột 5, quân X').count()) =
 console.log(`  ô cờ tắt với khán giả: ${stayedOut} · bàn của người chơi sạch: ${boardClean}`);
 
 console.log('Rời màn xem thì số khán giả về lại 0');
-await C.getByLabel('Về sảnh').click();
+await C.getByLabel('Về sảnh').last().click();
 await C.waitForTimeout(1500);
 await A.waitForTimeout(900);
 const gone = (await A.getByLabel('1 người đang xem').count()) === 0 && (await C.getByText(/Bạn đang xem/).count()) === 0;
@@ -90,7 +93,7 @@ console.log(`  thôi xem được, và người chơi thấy số khán giả v�
 
 await browser.close();
 finish([
-  [listed, 'Sảnh không liệt kê ván đang đánh.'],
+  [listed, 'Thẻ "Đang đánh" không liệt kê ván đang chạy.'],
   [saysWatching, 'Màn xem không nói rõ mình đang ở vai khán giả.'],
   [sawFirst, 'Vào giữa ván mà không thấy thế cờ đã có.'],
   [bothNames, 'Màn xem không hiện tên hai người đang đánh.'],

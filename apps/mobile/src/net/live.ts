@@ -48,6 +48,15 @@ export interface LiveState {
   liveRooms: LiveRoom[];
   /** Những phòng đang chờ người thứ hai. */
   openRooms: OpenRoom[];
+  /**
+   * Lúc nhận nhịp sảnh gần nhất.
+   *
+   * `waitedMs` của mỗi phòng là ảnh chụp tại thời điểm đó. Máy chủ chỉ gửi
+   * lại khi có người vào ra, nên màn nào in "đã chờ bao lâu" phải cộng
+   * thêm quãng từ mốc này — nếu không, một phòng mở nửa tiếng vẫn ghi
+   * "vừa mở".
+   */
+  lobbyAt: number;
   /** Số lời mời kết bạn đang chờ mình trả lời. */
   friendRequests: number;
   /**
@@ -82,6 +91,7 @@ const EMPTY: LiveState = {
   lobby: null,
   liveRooms: [],
   openRooms: [],
+  lobbyAt: 0,
   friendRequests: 0,
   restored: null,
 };
@@ -141,7 +151,7 @@ function open(t: string): void {
     // Nhịp đồng hồ chỉ đụng vào `ms` của từng ghế, không đụng thế cờ. Gộp
     // vào `st` để màn chơi đọc đồng hồ ở đúng một chỗ như mọi thứ khác.
     welcome: (inRoom) => set({ restored: inRoom }),
-    lobby: (online, rooms, queued, liveRooms, openRooms) => set({ lobby: { online, rooms, queued }, liveRooms, openRooms }),
+    lobby: (online, rooms, queued, liveRooms, openRooms) => set({ lobby: { online, rooms, queued }, liveRooms, openRooms, lobbyAt: Date.now() }),
     alerts: (friendRequests) => set({ friendRequests }),
     clock: (ms) => {
       const st = state.st;

@@ -27,30 +27,33 @@ await A.waitForTimeout(300);
 await A.getByLabel('Cờ Caro', { exact: true }).click();
 await A.waitForTimeout(2200);
 
-console.log('B mở sảnh — phòng của A phải nằm ở mục "Phòng đang chờ"');
+console.log('B mở trang Ván đấu từ thanh dưới — thẻ "Đang chờ" mở sẵn');
 await B.goto(`${BASE}/`, { waitUntil: 'networkidle' });
 await B.waitForTimeout(1800);
-await B.getByText('Phòng đang chờ', { exact: true }).scrollIntoViewIfNeeded();
-await shot(B, '119-sanh-co-phong-dang-cho');
+await B.getByLabel('Ván đấu').click();
+await B.waitForTimeout(1400);
+await shot(B, '119-van-dau-dang-cho');
 const listed = (await B.getByLabel(`Vào phòng của ${NA}`).count()) > 0;
 // Người lạ phải biết mình sắp đánh mức thời gian nào trước khi bấm vào.
 const saysClock = (await B.getByText(/Cờ Caro · Cờ chớp/).count()) > 0;
-console.log(`  phòng của A hiện ở sảnh: ${listed} · nói rõ mức thời gian: ${saysClock}`);
+console.log(`  phòng của A hiện ở thẻ đang chờ: ${listed} · nói rõ mức thời gian: ${saysClock}`);
 
 console.log('B bấm vào, không gõ mã');
 await B.getByLabel(`Vào phòng của ${NA}`).click();
 await B.waitForTimeout(2500);
-await shot(B, '120-vao-thang-tu-sanh');
+await shot(B, '120-vao-thang-tu-danh-sach');
 const inRoom = (await B.getByLabel('Xin thua').count()) > 0;
 console.log(`  vào thẳng bàn cờ: ${inRoom}`);
 
-console.log('Phòng đã đủ người phải rời danh sách');
+console.log('Phòng đã đủ người phải rời thẻ "Đang chờ" và sang thẻ "Đang đánh"');
 const C = await signUp(await openPage(browser, 'C'), `Cường ${tag}`, 'pc');
-await C.waitForTimeout(1500);
+await C.getByLabel('Ván đấu').click();
+await C.waitForTimeout(1400);
 const gone = (await C.getByLabel(`Vào phòng của ${NA}`).count()) === 0;
-// Và nó phải nhảy sang mục "Đang đánh" — đủ người là ván chạy ngay.
-const nowLive = (await C.getByText('Đang đánh', { exact: true }).count()) > 0;
-console.log(`  rời mục đang chờ: ${gone} · nhảy sang mục đang đánh: ${nowLive}`);
+await C.getByLabel(/^Thẻ Đang đánh/).click();
+await C.waitForTimeout(900);
+const nowLive = (await C.getByLabel(`Xem ván ${NA} với Bình ${tag}`).count()) > 0;
+console.log(`  rời thẻ đang chờ: ${gone} · sang thẻ đang đánh: ${nowLive}`);
 
 console.log('Phòng có mật khẩu không được lên sảnh');
 await A.getByLabel('Về sảnh').click();
@@ -62,19 +65,20 @@ await A.waitForTimeout(800);
 await A.getByLabel('Mật khẩu phòng (không bắt buộc)').fill('bimat');
 await A.getByLabel('Cờ Caro', { exact: true }).click();
 await A.waitForTimeout(2200);
+await C.getByLabel(/^Thẻ Đang chờ/).click();
 await C.waitForTimeout(1200);
-await shot(C, '121-phong-khoa-khong-len-sanh');
+await shot(C, '121-phong-khoa-khong-len-danh-sach');
 const hidden = (await C.getByLabel(`Vào phòng của ${NA}`).count()) === 0;
-console.log(`  phòng khoá không lên sảnh: ${hidden}`);
+console.log(`  phòng khoá không lên danh sách: ${hidden}`);
 
 await browser.close();
 finish([
-  [listed, 'Sảnh không liệt kê phòng đang chờ.'],
+  [listed, 'Thẻ "Đang chờ" không liệt kê phòng của A.'],
   [saysClock, 'Danh sách không nói mức thời gian của phòng.'],
   [inRoom, 'Bấm vào phòng ở sảnh không vào được bàn cờ.'],
-  [gone, 'Phòng đã đủ người vẫn nằm ở mục đang chờ.'],
-  [nowLive, 'Phòng đủ người không nhảy sang mục đang đánh.'],
-  [hidden, 'Phòng có mật khẩu bị phát ra sảnh.'],
+  [gone, 'Phòng đã đủ người vẫn nằm ở thẻ đang chờ.'],
+  [nowLive, 'Phòng đủ người không sang thẻ đang đánh.'],
+  [hidden, 'Phòng có mật khẩu bị phát ra danh sách.'],
   [errors.length === 0, 'Có lỗi trên trang.'],
 ]);
-console.log('\nNgười lạ tìm được phòng đang chờ ở sảnh và vào thẳng, không cần mã.');
+console.log('\nNgười lạ tìm được phòng đang chờ ở trang Ván đấu và vào thẳng, không cần mã.');
