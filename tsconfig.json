@@ -11,6 +11,9 @@
       "path": "packages/game-co-caro"
     },
     {
+      "path": "packages/game-co-lat"
+    },
+    {
       "path": "packages/game-co-ganh"
     },
     {

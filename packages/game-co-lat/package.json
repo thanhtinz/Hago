@@ -1,0 +1,1 @@
+{"dependencies":{"@co/core":"*"},"main":"./dist/index.js","name":"@co/game-co-lat","private":true,"type":"module","types":"./dist/index.d.ts","version":"0.1.0"}

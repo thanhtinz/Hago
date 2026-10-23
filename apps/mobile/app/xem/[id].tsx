@@ -6,6 +6,7 @@ import { registry, replayFrames, type BaseState, type MatchLog } from '@co/core'
 import type { CaroView } from '@co/game-co-caro';
 import type { GanhView } from '@co/game-co-ganh';
 import type { QuanView } from '@co/game-o-an-quan';
+import type { LatView } from '@co/game-co-lat';
 import '../../src/catalog';
 import { backToLobby } from '../../src/nav';
 import { api, type MatchDetail } from '../../src/net/api';
@@ -14,6 +15,7 @@ import { CaroBoard } from '../../src/games/co-caro/Board';
 import { PaperStack } from '../../src/games/co-caro/Desk';
 import { GanhBoard } from '../../src/games/co-ganh/Board';
 import { QuanBoard } from '../../src/games/o-an-quan/Board';
+import { LatBoard } from '../../src/games/co-lat/Board';
 import { byTurn } from '../../src/games/notation';
 import { Icon } from '../../src/ui/Icon';
 import { MoveList } from '../../src/ui/MoveList';
@@ -212,6 +214,14 @@ function Board({
           legalTargets={[]}
           disabled
         />
+      </View>
+    );
+  }
+  if (gameId === 'co-lat') {
+    return (
+      <View style={{ alignItems: 'center' }}>
+        <TableBackdrop width={width} height={size + S.lg} tint={tintOf('co-lat')} />
+        <LatBoard view={v as LatView} size={size} mySeat={null} onPlay={() => undefined} disabled hint={null} />
       </View>
     );
   }

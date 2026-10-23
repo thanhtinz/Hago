@@ -23,7 +23,7 @@ import { A, R, S } from '../src/ui/theme';
  * làm chìm lẫn vào việc không cần làm.
  */
 
-const GAMES = ['co-caro', 'co-ganh', 'o-an-quan'] as const;
+const GAMES = ['co-caro', 'co-ganh', 'o-an-quan', 'co-lat'] as const;
 
 export default function FriendsScreen() {
   const router = useRouter();

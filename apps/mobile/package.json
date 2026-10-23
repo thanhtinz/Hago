@@ -18,7 +18,8 @@
     "react-native-web": "^0.21.3",
     "@co/game-co-ganh": "*",
     "@co/game-o-an-quan": "*",
-    "@co/protocol": "*"
+    "@co/protocol": "*",
+    "@co/game-co-lat": "*"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",

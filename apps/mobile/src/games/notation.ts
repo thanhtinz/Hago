@@ -36,6 +36,10 @@ export function moveText(gameId: string, a: unknown): string {
       if (typeof o.f === 'number' && typeof o.t === 'number') return `${at(o.f, 5)}–${at(o.t, 5)}`;
       return '';
     }
+    if (gameId === 'co-lat') {
+      if (typeof o.r === 'number' && typeof o.c === 'number') return cell(o.r, o.c);
+      return '';
+    }
     if (gameId === 'o-an-quan') {
       // Ô ăn quan không có toạ độ hai chiều: mười hai ô xếp thành một vòng,
       // nên số ô cộng chiều rải là đủ để đọc lại nước đi.

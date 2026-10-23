@@ -1,6 +1,7 @@
 import { registry, withStandardMeta } from '@co/core';
 import { caroEngine } from '@co/game-co-caro';
 import { ganhEngine } from '@co/game-co-ganh';
+import { latEngine } from '@co/game-co-lat';
 import { quanEngine } from '@co/game-o-an-quan';
 
 /**
@@ -13,3 +14,4 @@ import { quanEngine } from '@co/game-o-an-quan';
 registry.register(withStandardMeta(caroEngine));
 registry.register(withStandardMeta(ganhEngine));
 registry.register(withStandardMeta(quanEngine));
+registry.register(withStandardMeta(latEngine));

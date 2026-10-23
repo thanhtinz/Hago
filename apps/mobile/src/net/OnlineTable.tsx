@@ -4,9 +4,11 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 import type { CaroView } from '@co/game-co-caro';
+import type { LatView } from '@co/game-co-lat';
 import { type GanhView } from '@co/game-co-ganh';
 import type { QuanView } from '@co/game-o-an-quan';
 import { CaroBoard } from '../games/co-caro/Board';
+import { LatBoard } from '../games/co-lat/Board';
 import { PaperStack } from '../games/co-caro/Desk';
 import { caroTheme as CT, inkFor } from '../games/co-caro/theme';
 import { GanhBoard, targetsOf } from '../games/co-ganh/Board';
@@ -190,6 +192,22 @@ export function Board({ gameId, o, onAim }: { gameId: string; o: Online; onAim: 
           }}
           legalTargets={targetsOf(view, picked)}
           disabled={!o.myTurn}
+        />
+      </View>
+    );
+  }
+
+  if (gameId === 'co-lat') {
+    const size = Math.min(width - S.xl * 2, height - insets.top - insets.bottom - 250, 440);
+    return (
+      <View style={{ width: size, height: size }}>
+        <LatBoard
+          view={o.view as LatView}
+          size={size}
+          mySeat={o.mySeat}
+          onPlay={(r, c) => o.send({ t: 'game', a: { r, c } })}
+          disabled={!o.myTurn}
+          hint={null}
         />
       </View>
     );
@@ -505,7 +523,7 @@ export function Token({ gameId, seat, active }: { gameId: string; seat: number; 
       </View>
     );
   }
-  const fill = gameId === 'co-ganh' ? (seat === 0 ? GT.redFace : GT.paleFace) : seat === 0 ? '#6E6257' : '#D8CBB4';
+  const fill = gameId === 'co-ganh' ? (seat === 0 ? GT.redFace : GT.paleFace) : gameId === 'co-lat' ? (seat === 0 ? '#2A2A2E' : '#F4EFE3') : seat === 0 ? '#6E6257' : '#D8CBB4';
   return (
     <View style={[box, { backgroundColor: A.panelLo, borderColor: ring }]}>
       <Svg width={22} height={22}>
