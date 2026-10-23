@@ -3,6 +3,7 @@ import { caroEngine } from '@co/game-co-caro';
 import { ganhEngine } from '@co/game-co-ganh';
 import { latEngine } from '@co/game-co-lat';
 import { baQuanEngine } from '@co/game-co-ba-quan';
+import { hexEngine } from '@co/game-co-hex';
 import { quanEngine } from '@co/game-o-an-quan';
 
 /**
@@ -24,8 +25,11 @@ export const latMeta = withStandardMeta(latEngine);
 
 export const baQuanMeta = withStandardMeta(baQuanEngine);
 
+export const hexMeta = withStandardMeta(hexEngine);
+
 registry.register(caroMeta);
 registry.register(ganhMeta);
 registry.register(quanMeta);
 registry.register(latMeta);
 registry.register(baQuanMeta);
+registry.register(hexMeta);

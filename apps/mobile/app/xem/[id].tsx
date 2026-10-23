@@ -8,6 +8,7 @@ import type { GanhView } from '@co/game-co-ganh';
 import type { QuanView } from '@co/game-o-an-quan';
 import type { LatView } from '@co/game-co-lat';
 import type { BaQuanView } from '@co/game-co-ba-quan';
+import type { HexView } from '@co/game-co-hex';
 import '../../src/catalog';
 import { backToLobby } from '../../src/nav';
 import { api, type MatchDetail } from '../../src/net/api';
@@ -18,6 +19,7 @@ import { GanhBoard } from '../../src/games/co-ganh/Board';
 import { QuanBoard } from '../../src/games/o-an-quan/Board';
 import { LatBoard } from '../../src/games/co-lat/Board';
 import { BaQuanBoard } from '../../src/games/co-ba-quan/Board';
+import { HexBoard } from '../../src/games/co-hex/Board';
 import { byTurn } from '../../src/games/notation';
 import { Icon } from '../../src/ui/Icon';
 import { MoveList } from '../../src/ui/MoveList';
@@ -216,6 +218,15 @@ function Board({
           legalTargets={[]}
           disabled
         />
+      </View>
+    );
+  }
+  if (gameId === 'co-hex') {
+    const boardWidth = Math.min(width - S.xl * 2, 460);
+    return (
+      <View style={{ alignItems: 'center' }}>
+        <TableBackdrop width={width} height={boardWidth * 0.62 + S.lg + 28} tint={tintOf('co-hex')} />
+        <HexBoard view={v as HexView} width={boardWidth} mySeat={null} onPlay={() => undefined} disabled hint={null} />
       </View>
     );
   }

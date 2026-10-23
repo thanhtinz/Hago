@@ -16,6 +16,7 @@
     "ws": "^8.18.0",
     "@co/protocol": "*",
     "@co/game-co-lat": "*",
-    "@co/game-co-ba-quan": "*"
+    "@co/game-co-ba-quan": "*",
+    "@co/game-co-hex": "*"
   }
 }

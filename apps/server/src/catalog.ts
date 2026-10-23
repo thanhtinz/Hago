@@ -3,6 +3,7 @@ import { caroEngine } from '@co/game-co-caro';
 import { ganhEngine } from '@co/game-co-ganh';
 import { latEngine } from '@co/game-co-lat';
 import { baQuanEngine } from '@co/game-co-ba-quan';
+import { hexEngine } from '@co/game-co-hex';
 import { quanEngine } from '@co/game-o-an-quan';
 
 /**
@@ -17,3 +18,4 @@ registry.register(withStandardMeta(ganhEngine));
 registry.register(withStandardMeta(quanEngine));
 registry.register(withStandardMeta(latEngine));
 registry.register(withStandardMeta(baQuanEngine));
+registry.register(withStandardMeta(hexEngine));

@@ -8,6 +8,7 @@ import { GanhTable } from '../../src/games/co-ganh/Table';
 import { QuanTable } from '../../src/games/o-an-quan/Table';
 import { LatTable } from '../../src/games/co-lat/Table';
 import { BaQuanTable } from '../../src/games/co-ba-quan/Table';
+import { HexTable } from '../../src/games/co-hex/Table';
 import { faceOf } from '../../src/games/faces';
 import { load, save } from '../../src/net/store';
 import { Btn, Txt } from '../../src/ui/parts';
@@ -46,6 +47,7 @@ export default function PlayScreen() {
   if (game === 'o-an-quan') return <QuanTable level={level} onLevel={setLevel} onHome={home} />;
   if (game === 'co-lat') return <LatTable level={level} onLevel={setLevel} onHome={home} />;
   if (game === 'co-ba-quan') return <BaQuanTable level={level} onLevel={setLevel} onHome={home} />;
+  if (game === 'co-hex') return <HexTable level={level} onLevel={setLevel} onHome={home} />;
 
   const face = faceOf(String(game));
   return (

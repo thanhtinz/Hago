@@ -6,11 +6,13 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import type { CaroView } from '@co/game-co-caro';
 import type { LatView } from '@co/game-co-lat';
 import type { BaQuanView } from '@co/game-co-ba-quan';
+import type { HexView } from '@co/game-co-hex';
 import { type GanhView } from '@co/game-co-ganh';
 import type { QuanView } from '@co/game-o-an-quan';
 import { CaroBoard } from '../games/co-caro/Board';
 import { LatBoard } from '../games/co-lat/Board';
 import { BaQuanBoard } from '../games/co-ba-quan/Board';
+import { HexBoard } from '../games/co-hex/Board';
 import { PaperStack } from '../games/co-caro/Desk';
 import { caroTheme as CT, inkFor } from '../games/co-caro/theme';
 import { GanhBoard, targetsOf } from '../games/co-ganh/Board';
@@ -194,6 +196,24 @@ export function Board({ gameId, o, onAim }: { gameId: string; o: Online; onAim: 
           }}
           legalTargets={targetsOf(view, picked)}
           disabled={!o.myTurn}
+        />
+      </View>
+    );
+  }
+
+  if (gameId === 'co-hex') {
+    const view = o.view as HexView;
+    const boardWidth = Math.min(width - S.xl * 2, 460);
+    return (
+      <View style={{ width: boardWidth, height: boardWidth * 0.62 + 28, alignItems: 'center', justifyContent: 'center' }}>
+        <HexBoard
+          view={view}
+          width={boardWidth}
+          mySeat={o.mySeat}
+          onPlay={(at) => o.send({ t: 'game', a: { at } })}
+          onSwap={() => o.send({ t: 'game', a: { swap: true } })}
+          disabled={!o.myTurn}
+          hint={null}
         />
       </View>
     );
@@ -547,7 +567,7 @@ export function Token({ gameId, seat, active }: { gameId: string; seat: number; 
       </View>
     );
   }
-  const fill = gameId === 'co-ganh' ? (seat === 0 ? GT.redFace : GT.paleFace) : gameId === 'co-lat' ? (seat === 0 ? '#2A2A2E' : '#F4EFE3') : gameId === 'co-ba-quan' ? (seat === 0 ? '#4A4038' : '#F6EEDD') : seat === 0 ? '#6E6257' : '#D8CBB4';
+  const fill = gameId === 'co-ganh' ? (seat === 0 ? GT.redFace : GT.paleFace) : gameId === 'co-lat' ? (seat === 0 ? '#2A2A2E' : '#F4EFE3') : gameId === 'co-ba-quan' ? (seat === 0 ? '#4A4038' : '#F6EEDD') : gameId === 'co-hex' ? (seat === 0 ? '#C0392B' : '#2B5EA7') : seat === 0 ? '#6E6257' : '#D8CBB4';
   return (
     <View style={[box, { backgroundColor: A.panelLo, borderColor: ring }]}>
       <Svg width={22} height={22}>
