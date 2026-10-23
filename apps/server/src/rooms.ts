@@ -4,6 +4,7 @@ import {
   revealSeed,
   type AnyEngine,
   type BaseState,
+  type BotLevel,
   type ClockSpec,
   type MatchLog,
   type Outcome,
@@ -36,6 +37,15 @@ export interface Player {
   watching: Set<string>;
   /** Kênh nhắn tin đang mở. Một người mở một kênh tại một thời điểm. */
   channel: string | null;
+  /**
+   * Mức máy, nếu "người" này là bot do máy chủ ngồi vào.
+   *
+   * Bot là một `Player` như mọi người khác: có ghế, có đồng hồ, đi qua
+   * đúng cổng `act()`. Khác biệt duy nhất là `send` của nó là hàm rỗng và
+   * lượt của nó do `maybeBot` phát động. Không có trường này thì bot là
+   * người — và người thì không ai phát động hộ.
+   */
+  botLevel?: BotLevel;
   /**
    * Mã phòng đang **xem**, hoặc null.
    *
@@ -120,6 +130,8 @@ interface Room {
   fans: Set<string>;
   /** Mốc mở phòng, để sảnh nói được phòng này đã chờ bao lâu. */
   openedAt: number;
+  /** Một nước bot đang được tính cho phòng này — chống phát động hai lần. */
+  botBusy?: boolean;
 }
 
 /**
@@ -135,6 +147,18 @@ function clockOf(engine: AnyEngine, key: string | undefined): { spec: ClockSpec;
 }
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+/**
+ * Nguồn nước bot mà `Rooms` cần.
+ *
+ * `state` là state **bên trong** lớp meta của ván đang đánh, `pick` trả về
+ * hành động thô của engine (chưa bọc `{t:'game'}`) — lớp bọc là việc của
+ * `act()`, và bot không được đi đường tắt nào qua nó.
+ */
+export interface BotSource {
+  has(gameId: string): boolean;
+  pick(req: { gameId: string; state: unknown; seat: Seat; level: BotLevel; seed: string }): Promise<unknown>;
+}
 
 export interface RoomsOptions {
   /**
@@ -172,6 +196,15 @@ export interface RoomsOptions {
     /** Log input của ván, dạng JSON. Đủ để phát lại toàn bộ. */
     log: string;
   }) => void;
+  /**
+   * Nguồn nước bot — hàng đợi hai làn chạy ngoài vòng lặp sự kiện
+   * (`bots.ts`). Bỏ trống thì máy chủ không mở được ván với máy: `vsBot`
+   * báo `NO_BOT` thay vì dựng một phòng không bao giờ có nước thứ hai.
+   *
+   * `Rooms` chỉ biết hợp đồng này, không biết worker là gì — cùng một lối
+   * với `mayChallenge`: câu hỏi thuộc về hạ tầng thì hỏi ra ngoài.
+   */
+  bots?: BotSource;
   /** Hạt giống bí mật của máy chủ. Trộn với mã phòng ra hạt giống của ván. */
   serverSeed?: string;
   /** Nguồn ngẫu nhiên để sinh mã phòng — test truyền vào để có mã đoán trước. */
@@ -190,6 +223,7 @@ export class Rooms {
   private readonly chat: Chat | undefined;
   private readonly isBlocked: RoomsOptions['isBlocked'];
   private readonly pendingRequests: RoomsOptions['pendingRequests'];
+  private readonly bots: BotSource | undefined;
   private readonly challenges = new Map<string, Challenge>();
   private nextChallenge = 1;
   /** Ván đã báo kết thúc rồi, để không cộng thành tích hai lần. */
@@ -214,6 +248,7 @@ export class Rooms {
     this.chat = o.chat;
     this.isBlocked = o.isBlocked;
     this.pendingRequests = o.pendingRequests;
+    this.bots = o.bots;
   }
 
   // ---- nhắn tin --------------------------------------------------------
@@ -597,6 +632,72 @@ export class Rooms {
   }
 
   /**
+   * Mở ván với máy ngay trên máy chủ.
+   *
+   * Khác ván đấu máy trong app ở một điểm: ván này chạy trên máy chủ, bot
+   * là một ghế thật đi qua cổng `act()`, và log của ván phát lại được như
+   * mọi ván khác. Đổi lại, nó **không tính xếp hạng** — `rated: false` vô
+   * điều kiện, vì đối thủ không phải người và sổ thành tích chỉ ghi ván
+   * với người (mục 7 trong AGENTS.md).
+   *
+   * Người ngồi ghế 0. Đấu lại thì hai ghế đổi nhau như mọi phòng, và lúc
+   * đó bot đi trước — `maybeBot` tự phát động từ `startIfReady`.
+   */
+  vsBot(id: string, gameId: string, level: BotLevel, clockKey?: string): void {
+    const p = this.players.get(id);
+    if (!p) return;
+    if (!registry.has(gameId)) return p.send({ t: 'error', code: 'NO_GAME', msg: `Chưa có bộ môn ${gameId}` });
+    if (!this.bots?.has(gameId)) {
+      return p.send({ t: 'error', code: 'NO_BOT', msg: `Bộ môn ${gameId} chưa có máy trên máy chủ` });
+    }
+    const engine = registry.get(gameId);
+    this.leave(id);
+    const clock = clockOf(engine, clockKey);
+    const code = this.freshCode();
+    const lv: BotLevel = level === 1 || level === 3 ? level : 2;
+    const bot: Player = {
+      id: `bot:${code}`,
+      name: 'Máy',
+      code,
+      connected: true,
+      offSince: null,
+      watching: new Set(),
+      channel: null,
+      fanOf: null,
+      send: () => undefined,
+      botLevel: lv,
+    };
+    this.players.set(bot.id, bot);
+    const room: Room = {
+      code,
+      gameId,
+      config: {},
+      engine,
+      clockSpec: clock.spec,
+      clockKey: clock.key,
+      pass: null,
+      players: [p, bot],
+      seated: [p.id, bot.id],
+      seatedNames: [p.name, bot.name],
+      match: null,
+      clocks: [clock.spec.initialMs, clock.spec.initialMs],
+      turnSince: null,
+      rated: false,
+      seed: revealSeed(this.serverSeed, code, '1'),
+      rematch: new Set(),
+      fans: new Set(),
+      openedAt: this.now(),
+      game: 1,
+      lastClock: [-1, -1],
+    };
+    this.rooms.set(code, room);
+    p.code = code;
+    this.broadcastRoom(room);
+    this.startIfReady(room);
+    this.pushLobby();
+  }
+
+  /**
    * Xin đấu lại, hoặc rút lại lời xin.
    *
    * Chỉ mở sau khi ván đã xong. Hai bên cùng xin thì ván mới dựng ngay tại
@@ -617,6 +718,11 @@ export class Rooms {
     }
     if (want) room.rematch.add(seat as Seat);
     else room.rematch.delete(seat as Seat);
+    // Ghế bot thì đồng ý đấu lại ngay: bắt người chờ một đối thủ không
+    // bao giờ bấm nút là treo phòng ở trạng thái xin-một-nửa.
+    if (want) {
+      for (const [s2, x] of room.players.entries()) if (x?.botLevel) room.rematch.add(s2 as Seat);
+    }
     if (room.rematch.size === room.players.length) return this.restart(room);
     this.broadcastRoom(room);
   }
@@ -783,10 +889,15 @@ export class Rooms {
     if (room.match && !room.match.outcome()) {
       this.serverAction(room, { t: 'abandon', seat });
     }
-    if (room.players.every((x) => x === null)) {
+    const botLeft = room.players.find((x) => x?.botLevel);
+    if (room.players.every((x) => x === null) || botLeft) {
+      // Phòng chỉ còn bot thì tan luôn: bot không có ai để chờ, và một
+      // ghế bot `connected` vĩnh viễn sẽ làm `sweep` tưởng phòng còn sống.
       this.closeFans(room);
       this.rooms.delete(code);
       this.finished.delete(code);
+      if (botLeft) this.players.delete(botLeft.id);
+      if (!room.players.every((x) => x === null)) this.broadcastRoom(room);
     }
     else this.broadcastRoom(room);
     this.pushLobby();
@@ -1204,6 +1315,61 @@ export class Rooms {
     // Ván vừa xong là danh sách "đang đánh" ở sảnh vừa sai. Không báo ở đây
     // thì nó còn sai cho tới lúc tình cờ có ai đó vào hoặc ra.
     if (justEnded) this.pushLobby();
+    // Mọi đường đổi lượt đều chảy qua đây — nước người vừa đi, ván mới
+    // dựng, đấu lại đổi bên — nên đây là chỗ duy nhất cần hỏi "có phải
+    // lượt của bot không". Đặt ở từng nhánh là chắc chắn quên một nhánh,
+    // và nhánh bị quên là ván treo không ai đi tiếp được.
+    this.maybeBot(room);
+  }
+
+  /**
+   * Phát động một nước bot, nếu ghế tới lượt là bot.
+   *
+   * Bot là nguồn input bên ngoài: nước nó chọn quay lại qua đúng `act()`
+   * như nước người gõ — cùng kiểm luật, cùng nonce, cùng log (R9). Hàng
+   * đợi tính nước ở worker; lúc kết quả về, ván có thể đã khác (người kia
+   * rời phòng, ván đã xong), nên mọi thứ đều được kiểm lại trên `ply` đã
+   * chụp lúc phát động. Sai lệch thì bỏ, không cố áp một nước của thế cũ.
+   *
+   * Hạ tầng hỏng (worker chết, quá hạn, bot trả nước phạm luật) thì rơi
+   * về **nước hợp lệ đầu tiên**: ván đi tiếp bằng một nước dở còn hơn
+   * treo mãi vì một tiến trình con.
+   */
+  private maybeBot(room: Room): void {
+    if (!this.bots || !room.match || room.match.outcome() || room.botBusy) return;
+    const t = room.engine.turn(room.match.s);
+    if (t.kind !== 'seat') return;
+    const bot = room.players[t.seat];
+    if (!bot?.botLevel) return;
+    const level = bot.botLevel;
+    const ply = room.match.s.ply;
+    const seed = `${room.seed}:${room.game}:${ply}`;
+    room.botBusy = true;
+    const done = (action: unknown) => {
+      room.botBusy = false;
+      // Ván trong lúc chờ có thể đã bị xoá, đã xong, hoặc đã sang thế khác.
+      if (this.rooms.get(room.code) !== room || !room.match || room.match.outcome()) return;
+      if (room.match.s.ply !== ply) return;
+      const turn = room.engine.turn(room.match.s);
+      if (turn.kind !== 'seat' || room.players[turn.seat] !== bot) return;
+      // `legal()` của engine đã bọc meta trả về nước **đã bọc**
+      // (`{t:'game', a}`), còn bot trả nước **thô** của engine gốc. So và
+      // chọn đều phải làm ở tầng thô, rồi `act` bọc lại — lẫn hai tầng là
+      // nước bị bọc hai lần và chết ở cổng kiểm luật mà không ai thấy,
+      // vì `send` của bot là hàm rỗng.
+      const legal = room.engine.legal(room.match.s, turn.seat) as { t?: string; a?: unknown }[];
+      const rawLegal = legal.filter((w) => w.t === 'game').map((w) => w.a);
+      const ok = rawLegal.some((a) => JSON.stringify(a) === JSON.stringify(action));
+      const chosen = ok ? action : rawLegal[0];
+      if (chosen === undefined) return;
+      this.act(bot.id, `bot:${room.game}:${ply}`, { t: 'game', a: chosen });
+    };
+    this.bots
+      .pick({ gameId: room.gameId, state: (room.match.s as unknown as { inner: unknown }).inner, seat: t.seat, level, seed })
+      .then(done, (e: unknown) => {
+        console.error('Bot của phòng ' + room.code + ' không trả được nước, dùng nước hợp lệ đầu tiên:', e);
+        done(undefined);
+      });
   }
 
   private dequeue(id: string): void {

@@ -94,6 +94,13 @@ export type ClientMsg =
    * gian chẳng còn nghĩa gì.
    */
   | { t: 'quick'; gameId: string; clock?: string; xepHang?: boolean }
+  /**
+   * Mở ván với máy **trên máy chủ**: bot ngồi một ghế thật, đi qua cùng
+   * cổng kiểm luật như người, và ván phát lại được từ log. Không tính xếp
+   * hạng — đối thủ không phải người. Khác hẳn ván đấu máy trong app, ván
+   * đó chạy ngay trên máy người chơi và máy chủ không biết gì về nó.
+   */
+  | { t: 'vs-bot'; gameId: string; level: 1 | 2 | 3; clock?: string }
   | { t: 'leave' }
   /**
    * Xin đấu lại ván nữa với đúng người vừa đánh, trong đúng phòng đó.

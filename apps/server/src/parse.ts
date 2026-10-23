@@ -69,6 +69,17 @@ export function parseClientMsg(raw: unknown): ClientMsg | null {
         ...(m.clock === undefined ? {} : { clock: m.clock as string }),
         ...(m.xepHang === undefined ? {} : { xepHang: m.xepHang }),
       };
+    case 'vs-bot': {
+      if (!str(m.gameId, 64)) return null;
+      if (m.level !== 1 && m.level !== 2 && m.level !== 3) return null;
+      if (m.clock !== undefined && !str(m.clock, 32)) return null;
+      return {
+        t: 'vs-bot',
+        gameId: m.gameId,
+        level: m.level,
+        ...(m.clock === undefined ? {} : { clock: m.clock as string }),
+      };
+    }
     case 'leave':
       return { t: 'leave' };
     case 'rematch':

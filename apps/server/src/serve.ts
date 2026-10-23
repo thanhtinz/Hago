@@ -9,6 +9,7 @@ import { handleApi } from './http.js';
 import { Limiter, MAX_WINDOW, RULES } from './limit.js';
 import { parseClientMsg } from './parse.js';
 import { Rooms } from './rooms.js';
+import { BotDispatcher } from './bots.js';
 import { Avatars } from './uploads.js';
 
 /**
@@ -49,6 +50,7 @@ export interface Serving {
   http: Server;
   wss: WebSocketServer;
   rooms: Rooms;
+  bots: BotDispatcher;
   accounts: Accounts;
   chat: Chat;
   limiter: Limiter;
@@ -75,7 +77,11 @@ export function buildServer(opts: ServeOptions = {}): Serving {
    * Phòng riêng mở bằng mã là phòng mời bạn: hai người quen nhau muốn bơm
    * điểm cho nhau chỉ cần mở phòng rồi thay nhau xin thua vài chục lần.
    */
+  // Hàng đợi bot hai làn: worker riêng cho nước máy, để một ván Hex
+  // nghĩ gần một giây không làm đồng hồ của mọi ván khác đứng yên.
+  const bots = new BotDispatcher();
   const rooms = new Rooms({
+    bots,
     // Chỉ bạn bè mới rủ nhau được. `Rooms` không đọc cơ sở dữ liệu nên câu
     // hỏi đó trả lời ở đây, nơi đã có sẵn lớp tài khoản.
     mayChallenge: (from, to) => accounts.areFriends(from, to) && !accounts.isBlockedEither(from, to),
@@ -239,6 +245,8 @@ export function buildServer(opts: ServeOptions = {}): Serving {
             return rooms.join(id, msg.code, msg.pass);
           case 'quick':
             return rooms.quick(id, msg.gameId, msg.clock, msg.xepHang ?? true);
+          case 'vs-bot':
+            return rooms.vsBot(id, msg.gameId, msg.level, msg.clock);
           case 'leave':
             return rooms.leave(id);
           case 'rematch':
@@ -292,6 +300,7 @@ export function buildServer(opts: ServeOptions = {}): Serving {
     http,
     wss,
     rooms,
+    bots,
     accounts,
     chat,
     limiter,
@@ -310,6 +319,7 @@ export function buildServer(opts: ServeOptions = {}): Serving {
       new Promise((ok) => {
         clearInterval(beat);
         clearInterval(ticker);
+        void bots.close();
         for (const c of wss.clients) c.terminate();
         wss.close(() => http.close(() => ok()));
       }),

@@ -25,6 +25,10 @@ const KILLERS: unknown[] = [
   { t: 'act', nonce: 1, action: {} },
   { t: 'act', nonce: 'n1' },
   { t: 'quick', gameId: [] },
+  { t: 'vs-bot', gameId: 'co-caro' },
+  { t: 'vs-bot', gameId: 'co-caro', level: 4 },
+  { t: 'vs-bot', gameId: 'co-caro', level: 'kho' },
+  { t: 'vs-bot', gameId: 5, level: 2 },
   { t: 'create', gameId: 'co-caro', config: 'khong-phai-object' },
   { t: 'challenge', to: 5, gameId: 'co-caro' },
   { t: 'challenge-answer', id: 'c1', accept: 'co' },
@@ -49,6 +53,13 @@ test('gói tin đúng dạng thì đi qua nguyên vẹn', () => {
   assert.deepEqual(parseClientMsg({ t: 'join', code: 'abcde' }), { t: 'join', code: 'abcde' });
   assert.deepEqual(parseClientMsg({ t: 'leave' }), { t: 'leave' });
   assert.deepEqual(parseClientMsg({ t: 'rematch', want: true }), { t: 'rematch', want: true });
+  assert.deepEqual(parseClientMsg({ t: 'vs-bot', gameId: 'co-caro', level: 3 }), { t: 'vs-bot', gameId: 'co-caro', level: 3 });
+  assert.deepEqual(parseClientMsg({ t: 'vs-bot', gameId: 'co-hex', level: 1, clock: 'cham' }), {
+    t: 'vs-bot',
+    gameId: 'co-hex',
+    level: 1,
+    clock: 'cham',
+  });
   assert.deepEqual(parseClientMsg({ t: 'watch', ids: ['a', 'b'] }), { t: 'watch', ids: ['a', 'b'] });
   assert.deepEqual(parseClientMsg({ t: 'create', gameId: 'co-caro' }), { t: 'create', gameId: 'co-caro' });
   assert.deepEqual(parseClientMsg({ t: 'create', gameId: 'co-caro', config: { size: 15 } }), {
