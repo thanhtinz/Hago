@@ -15,6 +15,7 @@
     "@co/game-o-an-quan": "*",
     "ws": "^8.18.0",
     "@co/protocol": "*",
-    "@co/game-co-lat": "*"
+    "@co/game-co-lat": "*",
+    "@co/game-co-ba-quan": "*"
   }
 }

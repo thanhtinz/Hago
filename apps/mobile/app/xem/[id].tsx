@@ -7,6 +7,7 @@ import type { CaroView } from '@co/game-co-caro';
 import type { GanhView } from '@co/game-co-ganh';
 import type { QuanView } from '@co/game-o-an-quan';
 import type { LatView } from '@co/game-co-lat';
+import type { BaQuanView } from '@co/game-co-ba-quan';
 import '../../src/catalog';
 import { backToLobby } from '../../src/nav';
 import { api, type MatchDetail } from '../../src/net/api';
@@ -16,6 +17,7 @@ import { PaperStack } from '../../src/games/co-caro/Desk';
 import { GanhBoard } from '../../src/games/co-ganh/Board';
 import { QuanBoard } from '../../src/games/o-an-quan/Board';
 import { LatBoard } from '../../src/games/co-lat/Board';
+import { BaQuanBoard } from '../../src/games/co-ba-quan/Board';
 import { byTurn } from '../../src/games/notation';
 import { Icon } from '../../src/ui/Icon';
 import { MoveList } from '../../src/ui/MoveList';
@@ -214,6 +216,14 @@ function Board({
           legalTargets={[]}
           disabled
         />
+      </View>
+    );
+  }
+  if (gameId === 'co-ba-quan') {
+    return (
+      <View style={{ alignItems: 'center' }}>
+        <TableBackdrop width={width} height={size + S.lg} tint={tintOf('co-ba-quan')} />
+        <BaQuanBoard view={v as BaQuanView} size={size} mySeat={null} picked={null} onPick={() => undefined} onPlay={() => undefined} disabled hint={null} />
       </View>
     );
   }

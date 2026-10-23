@@ -2,6 +2,7 @@ import { registry, withStandardMeta } from '@co/core';
 import { caroEngine } from '@co/game-co-caro';
 import { ganhEngine } from '@co/game-co-ganh';
 import { latEngine } from '@co/game-co-lat';
+import { baQuanEngine } from '@co/game-co-ba-quan';
 import { quanEngine } from '@co/game-o-an-quan';
 
 /**
@@ -21,7 +22,10 @@ export const quanMeta = withStandardMeta(quanEngine);
 
 export const latMeta = withStandardMeta(latEngine);
 
+export const baQuanMeta = withStandardMeta(baQuanEngine);
+
 registry.register(caroMeta);
 registry.register(ganhMeta);
 registry.register(quanMeta);
 registry.register(latMeta);
+registry.register(baQuanMeta);

@@ -36,6 +36,10 @@ export function moveText(gameId: string, a: unknown): string {
       if (typeof o.f === 'number' && typeof o.t === 'number') return `${at(o.f, 5)}–${at(o.t, 5)}`;
       return '';
     }
+    if (gameId === 'co-ba-quan') {
+      if (typeof o.t === 'number') return typeof o.f === 'number' && o.f >= 0 ? `${at(o.f, 3)}–${at(o.t, 3)}` : at(o.t, 3);
+      return '';
+    }
     if (gameId === 'co-lat') {
       if (typeof o.r === 'number' && typeof o.c === 'number') return cell(o.r, o.c);
       return '';

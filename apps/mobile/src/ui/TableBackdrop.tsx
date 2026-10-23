@@ -57,6 +57,7 @@ export const TINT: Record<string, string> = {
   'co-ganh': '#D98A5B',
   'o-an-quan': '#E0B368',
   'co-lat': '#3E9C74',
+  'co-ba-quan': '#C9A35F',
 };
 
 export const tintOf = (gameId: string): string => TINT[gameId] ?? A.gold;

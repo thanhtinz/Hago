@@ -19,7 +19,8 @@
     "@co/game-co-ganh": "*",
     "@co/game-o-an-quan": "*",
     "@co/protocol": "*",
-    "@co/game-co-lat": "*"
+    "@co/game-co-lat": "*",
+    "@co/game-co-ba-quan": "*"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",

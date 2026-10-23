@@ -47,6 +47,13 @@ export interface MatchShellProps {
   level?: BotLevel;
   onLevel?: (lv: BotLevel) => void;
   levelHints?: Record<BotLevel, string>;
+  /**
+   * Tên mức máy riêng của bộ môn. Mặc định Dễ / Vừa / Khó — nhưng có game
+   * mà tên mặc định là một lời hứa sai: cờ ba quân đã giải được, mức cao
+   * nhất của nó không "khó", nó **không thua**, và đặc tả luật bắt gọi
+   * đúng như vậy.
+   */
+  levelNames?: Record<BotLevel, string>;
   /** Thay chỗ nhãn mức máy ở góc phải, ví dụ mã phòng của ván online. */
   headerRight?: React.ReactNode;
   /** Mở trang luật của bộ môn này. Bỏ trống thì khung giấu nút hỏi. */
@@ -182,7 +189,7 @@ export function MatchShell(p: MatchShellProps) {
           >
             <Icon name="robot" size={15} color={A.gold} />
             <Txt size={12} weight="bold" color={A.gold}>
-              {LEVEL_NAME[p.level]}
+              {(p.levelNames ?? LEVEL_NAME)[p.level]}
             </Txt>
           </Pressable>
         ) : (
@@ -257,6 +264,7 @@ export function MatchShell(p: MatchShellProps) {
         <LevelSheet
           level={p.level}
           hints={p.levelHints}
+          names={p.levelNames}
           onPick={(lv) => {
             p.onLevel?.(lv);
             setPicking(false);
@@ -507,11 +515,13 @@ function Result({
 function LevelSheet({
   level,
   hints,
+  names,
   onPick,
   onClose,
 }: {
   level: BotLevel;
   hints: Record<BotLevel, string>;
+  names?: Record<BotLevel, string>;
   onPick: (lv: BotLevel) => void;
   onClose: () => void;
 }) {
@@ -563,7 +573,7 @@ function LevelSheet({
               <Icon name="robot" size={20} color={level === lv ? A.gold : A.inkSoft} />
               <View style={{ flex: 1 }}>
                 <Txt size={14} weight="bold" color={level === lv ? A.gold : A.ink}>
-                  {LEVEL_NAME[lv]}
+                  {(names ?? LEVEL_NAME)[lv]}
                 </Txt>
                 <Txt size={11} color={A.inkFaint}>
                   {hints[lv]}
